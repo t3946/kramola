@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-preloader.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/popup-styles.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='img/favicon.png') }}">
+    {% block head_extra %}{% endblock %}
+    <title>{% block title %}Сервис Обработки Документов{% endblock %}</title>
+</head>
+<body>
+    <!-- Прелоадер -->
+    <div id="preloader" style="display: none;">
+        <div class="preloader-spinner"></div>
+        <p>Идет обработка вашего запроса...</p>
+        <p>Пожалуйста, подождите.</p>
+    </div>
+
+    <div class="wrapper">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Инструменты</h2>
+                <button class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            </div>
+            <div class="sidebar-menu">
+                <a href="{{ url_for('highlight.index') }}" class="active"><i class="fas fa-file-alt"></i><span>Поиск крамолы</span></a>
+                <a href="{{ url_for('footnotes.index') }}"><i class="fas fa-tags"></i><span>Добавление сносок</span></a>
+            </div>
+        </div>
+
+        <div class="main-content" id="main-content">
+            <div class="top-bar">
+                <h1>{% block page_title %}{% endblock %}</h1>
+                <div class="auth-section">
+                    <span class="user">Привет, Пользователь!</span>
+                    <button class="logout-btn" onclick="logout()">Выйти</button>
+                    <a href="/settings" class="settings-btn" data-tooltip="Настройки"><i class="fas fa-cog"></i></a>
+                </div>
+            </div>
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/error-popup.js') }}"></script>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+        }
+        function logout() {
+            alert('Вы вышли из системы');
+            window.location.href = '/login';
+        }
+    </script>
+    {% block scripts_extra %}{% endblock %}
+</body>
+</html>

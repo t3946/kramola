@@ -1,0 +1,77 @@
+{% extends "layout.html" %}
+
+{% block title %}Добавление сносок{% endblock %}
+{% block page_title %}Добавление сносок{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <i class="fas fa-file-alt"></i>
+        Добавление сносок
+    </div>
+
+    {% if error %}
+    <div class="error" id="serverErrorMessage" style="color: red; margin-bottom: 15px; border: 1px solid red; padding: 10px; border-radius: 4px;">
+        {{ error | safe }}
+    </div>
+    {% endif %}
+    <div class="error" id="clientErrorMessage" style="display: none; color: red; margin-bottom: 15px; border: 1px solid red; padding: 10px; border-radius: 4px;"></div>
+
+    <form action="{{ url_for('footnotes.process') }}" method="post" enctype="multipart/form-data" id="uploadForm">
+        <div class="card">
+            <h3>1. Исходный документ:</h3>
+            <input type="file" id="source_file" name="source_file" accept=".docx" required style="display: none;">
+            <button type="button" class="button" onclick="document.getElementById('source_file').click();">
+                <i class="fas fa-upload"></i> Выберите файл
+            </button>
+            <div class="file-info" id="source_file_info">Файл: docx | файл не выбран</div>
+        </div>
+
+        <div class="card">
+            <h3>2. Файл со словами для поиска (необязательно):</h3>
+            <input type="file" id="words_file" name="words_file" accept=".docx" style="display: none;">
+            <button type="button" class="button" onclick="document.getElementById('words_file').click();">
+                <i class="fas fa-upload"></i> Выберите файл
+            </button>
+            <div class="file-info" id="words_file_info">Файл: docx | файл не выбран</div>
+        </div>
+
+        <div class="card">
+            <h3>3. Предопределенные списки для поиска (необязательно):</h3>
+            <div class="checkbox-group">
+                {% if predefined_lists %}
+                    {% for key, name in predefined_lists.items() %}
+                    <label>
+                        <div class="tooltip-wrapper">
+                            <input type="checkbox" name="predefined_list_keys" value="{{ key }}" id="list_{{ key }}">
+                            {{ name }}
+                            <span class="tooltip-icon" data-tooltip="Поиск по списку {{ name }}">?</span>
+                        </div>
+                    </label>
+                    {% endfor %}
+                {% else %}
+                    <p class="note">Предопределенные списки не настроены.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="action-buttons">
+            <button type="button" class="button cancel" onclick="window.location.reload();">Отмена</button>
+            <button type="submit" class="button" id="submitButton">Обработать</button>
+        </div>
+    </form>
+</div>
+
+{% block scripts_extra %}
+<script>
+document.getElementById('source_file').addEventListener('change', function() {
+    const fileInfo = document.getElementById('source_file_info');
+    fileInfo.textContent = this.files.length > 0 ? `Файл: ${this.files[0].name}` : 'Файл: docx | файл не выбран';
+});
+document.getElementById('words_file').addEventListener('change', function() {
+    const fileInfo = document.getElementById('words_file_info');
+    fileInfo.textContent = this.files.length > 0 ? `Файл: ${this.files[0].name}` : 'Файл: docx | файл не выбран';
+});
+</script>
+{% endblock %}
+{% endblock %}

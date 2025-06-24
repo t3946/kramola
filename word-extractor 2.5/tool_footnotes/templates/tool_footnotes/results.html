@@ -1,0 +1,161 @@
+{% extends "layout.html" %}
+
+{% block title %}Результаты (Сноски){% endblock %}
+{% block page_title %}Результаты добавления сносок{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="header">
+        <i class="fas fa-file-alt"></i>
+        Результаты добавления сносок
+    </div>
+
+    <!-- Блок результата обработки -->
+    <div class="card">
+        <h3>Статус обработки:</h3>
+        {% if result_filename and not result_file_missing %}
+            <div class="results" style="display: block;">
+                <p>Обработка успешно завершена за {{ processing_time | default('?') }} сек.</p>
+                <a href="{{ url_for('footnotes.download_result', filename=result_filename) }}" class="button download-btn">
+                    <i class="fas fa-download"></i> Скачать документ со сносками ({{ result_filename }})
+                </a>
+            </div>
+        {% elif result_file_missing %}
+            <div class="error">
+                Ошибка: Файл результата "{{ result_filename }}" не найден на сервере. Возможно, произошла ошибка во время обработки или файл был удален.
+            </div>
+        {% else %}
+            <div class="error">
+                Ошибка: Имя файла результата отсутствует. Возможно, совпадений не найдено или произошла ошибка при сохранении.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Блок статистики слов -->
+    <div class="card">
+        <h3>Найденные слова и их статистика:</h3>
+        <div class="stats-table">
+            {% if word_stats %}
+                <table class="word-stats">
+                    <thead>
+                        <tr>
+                            <th>Исходное слово</th>
+                            <th>№ сноски</th>
+                            <th>Лемма</th>
+                            <th>Количество</th>
+                            <th>Найденные формы (кол-во)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lemma, data in word_stats %}
+                            <tr data-lemma="{{ lemma }}">
+                                <td>{{ data.original | default('?') }}</td>
+                                <td>{{ data.footnote | default('?') }}</td>
+                                <td>{{ lemma }}</td>
+                                <td>{{ data.count }}</td>
+                                <td>
+                                    {% if data.forms %}
+                                        {% for form, count in data.forms.items() | sort %}
+                                            <span class="word-form" data-lemma="{{ lemma }}" data-original="{{ form }}">
+                                                {{ form }} ({{ count }})
+                                            </span>
+                                            {% if not loop.last %}, {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="note">Отдельные слова из списка не найдены в документе.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Блок статистики фраз -->
+    <div class="card">
+        <h3>Найденные фразы и их статистика:</h3>
+        <div class="stats-table">
+            {% if phrase_stats %}
+                <table class="word-stats">
+                    <thead>
+                        <tr>
+                            <th>Исходная фраза</th>
+                            <th>№ сноски</th>
+                            <th>Фраза (леммы)</th>
+                            <th>Количество</th>
+                            <th>Найденные формы (кол-во)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for phrase_lemma_str, data in phrase_stats %}
+                            <tr data-phrase="{{ phrase_lemma_str }}">
+                                <td>{{ data.original | default('?') }}</td>
+                                <td>{{ data.footnote | default('?') }}</td>
+                                <td>{{ phrase_lemma_str }}</td>
+                                <td>{{ data.count }}</td>
+                                <td>
+                                    {% if data.forms %}
+                                        {% for form, count in data.forms.items() | sort %}
+                                            <span class="phrase-form" data-phrase-lemma="{{ phrase_lemma_str }}" data-original="{{ form }}">
+                                                "{{ form }}" ({{ count }})
+                                            </span>
+                                            {% if not loop.last %}; {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="note">Фразы из списка не найдены в документе.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Блок использованных списков -->
+    {% if used_predefined_lists %}
+        <div class="card">
+            <h3>Использованные предопределенные списки:</h3>
+            <ul class="file-info">
+                {% for list_name in used_predefined_lists %}
+                    <li>{{ list_name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <!-- Блок информации об обработке -->
+    <div class="card">
+        <h3>Информация об обработке:</h3>
+        <ul class="file-info">
+            <li><strong>Исходный документ:</strong> {{ source_filename | default('Не указан') }}</li>
+            <li><strong>Слова для поиска:</strong>
+                {% if words_filename %}
+                    {{ words_filename }}
+                {% elif used_predefined_lists %}
+                    Предопределенные списки
+                {% else %}
+                    Не указаны
+                {% endif %}
+            </li>
+            <li><strong>Время обработки:</strong> {{ processing_time | default('?') }} сек.</li>
+        </ul>
+    </div>
+
+    <!-- Ссылка для возврата -->
+    <a href="{{ url_for('footnotes.index') }}" class="back-link">
+        <i class="fas fa-arrow-left"></i> Обработать другой документ
+    </a>
+</div>
+
+{% block scripts_extra %}
+<script src="{{ url_for('static', filename='js/highlighting.js') }}"></script>
+{% endblock %}
+{% endblock %}
