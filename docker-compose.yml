@@ -1,63 +1,23 @@
-# --- START OF FILE docker-compose.yml ---
-
-
+version: '3.8'
 services:
-  web:
-    build: . # Собирать образ из Dockerfile в текущей директории
-    container_name: text_analysis_app # Имя контейнера
-    restart: always # Автоматически перезапускать контейнер при сбое или перезагрузке VPS
-    # command: gunicorn --workers 4 --bind 0.0.0.0:5000 --timeout 120 app:app
+  redis:
+    image: redis:alpine
+    container_name: my_redis_db
     ports:
-      # Маппинг: <порт_на_хосте>:<порт_в_контейнере>
-      # Приложение будет доступно на VPS по порту 5000
-      - "5000:5000"
-      # Если хочешь доступ по стандартному порту 80 (HTTP), используй:
-      # - "80:5000" # Убедись, что порт 80 на VPS не занят!
+      - '6379:6379'
+  web:
+    build: .
+    container_name: kramola_2_5
+    ports:
+      - '5000:5000'
     volumes:
-      # Монтирование папок для сохранения данных между перезапусками контейнера
-      # <путь_на_хосте>:<путь_в_контейнере>
-      # Пути в контейнере должны совпадать с app.config['...']
-      - .:/app 
-      - ./uploads:/app/uploads # Общие загрузки
-      - ./results:/app/results # Общие результаты
-      - ./uploads_highlight:/app/uploads/highlight # Загрузки для highlight
-      - ./results_highlight:/app/results/highlight # Результаты для highlight
-      - ./uploads_footnotes:/app/uploads/footnotes # Загрузки для footnotes
-      - ./results_footnotes:/app/results/footnotes # Результаты для footnotes
-      - ./predefined_lists:/app/predefined_lists:ro # Списки слов (read-only)
-      # Том для логов, если хочешь хранить их на хосте
-      - ./app.log:/app/app.log
-    environment:
-      # Переменные окружения для Flask
-      - FLASK_ENV=production # Устанавливаем режим продакшена
-      # ГЕНЕРИРУЙ НОВЫЙ КЛЮЧ ДЛЯ ПРОДАКШЕНА!
-      # Можно сгенерировать командой: python -c 'import os; print(os.urandom(24))'
-      - FLASK_SECRET_KEY='\xa2\\"Rr\x91\xc5>e\xbc\xc5\x86\xb2O\x15\x04Yao\x81\xe9\x90\xac\xec'
-      # Путь к данным NLTK внутри контейнера (соответствует Dockerfile)
-      - NLTK_DATA=/usr/share/nltk_data
-      - REDIS_HOST=redis # Имя сервиса Redis, как определено ниже
-      - REDIS_PORT=6379
+      - .:/app
 
     depends_on:
-      - redis # Указывает, что сервис 'web' зависит от сервиса 'redis' и 'redis' должен запуститься первым
-    networks:
-      - app-network 
-
-  redis:
-    image: "redis:alpine" # Используем официальный образ Redis (alpine - легковесная версия)
-    ports:
-      - "6379:6379" # Пробрасываем порт Redis на хост-машину (опционально, для отладки с хоста)
-    volumes:
-      - redis-data:/data # Монтируем именованный том 'redis-data' для сохранения данных Redis
-    networks:
-      - app-network    
-
-networks:
-  app-network:
-    driver: bridge # Стандартный драйвер сети
-
-# Определяем именованные тома (volumes)
-volumes:
-  redis-data: # Именованный том для хранения данных Redis
-
-# --- END OF FILE docker-compose.yml ---
+      - redis
+    environment:
+      FLASK_APP: app.py
+      FLASK_DEBUG: 1
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    command: flask run --host=0.0.0.0

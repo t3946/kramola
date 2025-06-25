@@ -15,7 +15,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN python3 -m nltk.downloader -d /usr/share/nltk_data wordnet omw-1.4
 ENV NLTK_DATA=/usr/share/nltk_data
 
-COPY . .
+COPY . /app
 
 RUN mkdir -p /app/uploads /app/results /app/predefined_lists /app/models \
     /app/uploads/highlight /app/results/highlight \
@@ -28,4 +28,14 @@ ENV FLASK_RUN_HOST=0.0.0.0
 ENV PYTHONUNBUFFERED=1
 
 # CMD ["gunicorn", "--bind", "0.0.0.0:5000", "-w", "4", "app:app"]
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--log-level", "debug", "--access-logfile", "-", "--error-logfile", "-", "--timeout", "1800", "app:app"]
+CMD [
+    "gunicorn",
+    "--bind", "0.0.0.0:5000",
+    "--workers", "1",
+    "--log-level", "debug",
+    "--access-logfile", "-",
+    "--error-logfile", "-",
+    "--timeout", "1800",
+    "--reload",
+    "app:app"
+]
