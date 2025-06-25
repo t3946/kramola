@@ -201,14 +201,17 @@ def process_async():
 
         if not is_docx_source and not is_pdf_source:
             return jsonify({'error': 'Недопустимый формат исходного файла. Загрузите .docx или .pdf'}), 400
+
         if is_pdf_source and not FIT_AVAILABLE:
              return jsonify({'error': 'Обработка PDF файлов недоступна на сервере (PyMuPDF).'}), 400
 
         file_ext = ".docx" if is_docx_source else ".pdf"
         source_filename_unique = f"source_{task_id}{file_ext}"
         source_path = save_uploaded_file(source_file, UPLOAD_DIR, source_filename_unique)
+
         if not source_path: # Should already be caught by save_uploaded_file's potential exceptions
             return jsonify({'error': 'Ошибка при сохранении исходного документа.'}), 500
+
         logger.info(f"[Req {task_id}] Source file '{source_filename_original}' saved as '{source_filename_unique}'")
         
         search_lines_from_file = []
@@ -301,7 +304,7 @@ def process_async():
         else: # redis_client is None
             logger.error(f"[Req {task_id}] Redis client is not available. Cannot save task state. Task processing aborted.")
             # Cleanup handled by outer except.
-            return jsonify({'error': 'test'}), 500
+            return jsonify({'error': 'Ошибка конфигурации сервера: хранилище задач недоступно. Обработка невозможна.'}), 500
         # --- End CRITICAL Redis write ---
 
         executor = current_app.extensions.get('executor')
