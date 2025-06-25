@@ -22,7 +22,7 @@ log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(fu
 # Устанавливаем DEBUG уровень, как было в исходном запросе
 log_level = logging.DEBUG
 
-log_file = "app.log" # Имя основного лог-файла
+log_file = "log/app.log" # Имя основного лог-файла
 log_dir = os.path.dirname(log_file)
 # Проверяем и создаем директорию для логов
 if log_dir and not os.path.exists(log_dir):
