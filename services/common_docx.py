@@ -173,13 +173,14 @@ def tokenize_paragraph_universal(paragraph):
                 token_type = 'word'
                 # Получаем лемму и стемм только для слов
                 word_lower = text.lower()
+
                 if PYMORPHY_AVAILABLE:
                     try:
-                        lemma = pymorphy_service._get_lemma(word_lower, use_cache=True)
+                        lemma = pymorphy_service._get_lemma(word_lower)
                     except Exception as e_lemma:
                         logger_cd.error(f"Ошибка получения леммы для '{text}': {e_lemma}", exc_info=False)
                     try:
-                        stem = pymorphy_service._get_stem(word_lower, use_cache=True)
+                        stem = pymorphy_service._get_stem(word_lower)
                     except Exception as e_stem:
                         logger_cd.error(f"Ошибка получения стеммы для '{text}': {e_stem}", exc_info=False)
                 else:
