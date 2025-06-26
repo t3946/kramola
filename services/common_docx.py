@@ -40,7 +40,7 @@ def _safe_copy_paragraph_format(source_pf, target_pf):
             # Используем логгер этого модуля
             logger_cd.warning(f"Предупреждение при копировании формата параграфа '{attr}': {e}", exc_info=False)
 
-def _apply_run_style(source_run, target_run, copy_highlight=False):
+def _apply_run_style(source_run, target_run, document_cache, copy_highlight=False):
     """
     Применяет стиль и форматирование от source_run к target_run.
     (Скопировано из footnotes_service.py / highlight_service.py и адаптировано)
@@ -50,16 +50,14 @@ def _apply_run_style(source_run, target_run, copy_highlight=False):
 
     try:
         # 1. Копирование стиля символов (Character Style)
-        if hasattr(source_run, 'style') and source_run.style:
-             if hasattr(source_run.style, 'name') and source_run.style.name:
-                 try:
-                     style_name = source_run.style.name
-                     # Проверяем наличие стиля в целевом документе перед применением
-                     if style_name in target_run.part.document.styles:
-                          target_run.style = target_run.part.document.styles[style_name]
-                 except Exception as e:
-                     # Используем логгер этого модуля
-                     logger_cd.warning(f"Не удалось присвоить стиль run '{getattr(source_run.style,'name','N/A')}': {e}")
+        source_run_style = source_run.style
+
+        if source_run_style and source_run_style.name:
+            try:
+                target_run.style = document_cache.getStyle(source_run_style.name)
+            except Exception as e:
+                # Используем логгер этого модуля
+                logger_cd.warning(f"Не удалось присвоить стиль run '{getattr(source_run_style,'name','N/A')}': {e}")
 
         # 2. Копирование прямого форматирования (логические атрибуты)
         bool_attrs = [
@@ -79,8 +77,9 @@ def _apply_run_style(source_run, target_run, copy_highlight=False):
 
 
         # 3. Копирование атрибутов шрифта (font)
-        if hasattr(source_run, 'font') and source_run.font:
-            s_font = source_run.font
+        s_font = source_run.font
+
+        if s_font:
             t_font = target_run.font
             # Основные атрибуты шрифта
             font_attrs = ['name', 'size', 'color', 'underline', 'highlight_color']
