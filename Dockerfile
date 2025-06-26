@@ -28,14 +28,14 @@ ENV FLASK_RUN_HOST=0.0.0.0
 ENV PYTHONUNBUFFERED=1
 
 # CMD ["gunicorn", "--bind", "0.0.0.0:5000", "-w", "4", "app:app"]
-CMD [
-    "gunicorn",
-    "--bind", "0.0.0.0:5000",
-    "--workers", "1",
-    "--log-level", "debug",
-    "--access-logfile", "-",
-    "--error-logfile", "-",
-    "--timeout", "1800",
-    "--reload",
-    "app:app"
+CMD [ \
+    "gunicorn", \
+    "--bind", "0.0.0.0:5000", \
+    "--workers", "1", \
+    "--log-level", "debug", \
+    "--access-logfile", "-", \
+    "--error-logfile", "-", \
+    "--timeout", "1800", \
+    "--reload", \
+    "app:app" \
 ]
