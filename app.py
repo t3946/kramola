@@ -1,22 +1,19 @@
-# --- START OF FILE app.py ---
 import os
+import sys
 import time
-import traceback
 import logging
 from concurrent_log_handler import ConcurrentRotatingFileHandler # <-- Используем этот хендлер
-from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, session
+from flask import Flask, redirect, url_for
 from flask_executor import Executor 
-import uuid 
 import redis
-from services.document_service import save_uploaded_file, extract_lines_from_docx, TOKEN_PATTERN
-from services.pymorphy_service import (
+from dotenv import load_dotenv
 
+load_dotenv()
+
+from services.pymorphy_service import (
     load_pymorphy,
     load_nltk_lemmatizer,
-    get_morph_analyzer,
-
 )
-from services.highlight_service import analyze_and_highlight_docx, analyze_and_highlight_pdf # Добавляем PDF обработчик
 
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(funcName)s - %(message)s')
 # Устанавливаем DEBUG уровень, как было в исходном запросе
@@ -229,7 +226,12 @@ if __name__ == '__main__':
     # Для продакшена используйте Gunicorn или другой WSGI сервер и debug=False.
     # Пример запуска для разработки: flask run --host=0.0.0.0 --port=5000
     # Или напрямую:
-    app.run(debug=True, host='0.0.0.0', port=5000)
-# --- КОНЕЦ ---
+    app_port = int(os.getenv("APP_PORT"))
+    app_host = os.getenv("APP_HOST")
 
-# --- END OF FILE app.py ---
+    if not app_port or not app_host:
+        sys.exit('Did you specify an app host and port?')
+
+    print(f"Service stated on {app_host}:{app_port}")
+    print(f"Web access http://localhost:{app_port}")
+    app.run(debug=True, host=app_host, port=app_port)
