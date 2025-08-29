@@ -1,11 +1,13 @@
 from services.highlight_service import analyze_and_highlight_docx
+from services.solution import highlight_word
 
-source_path = "./tests/2000 words.docx"
-search_data = {'lemmas': {'word'}, 'stems': {'word'}}
-search_phrase_lemmas_map = {}
-output_path = "./results/output.docx"
-
-analyze_and_highlight_docx(source_path, search_data, search_phrase_lemmas_map, output_path)
+# source_path = "./tests/1000 words.docx"
+# search_data = {'lemmas': {'word'}, 'stems': {'word'}}
+# search_phrase_lemmas_map = {}
+# output_path = "./results/output.docx"
+# Использование:
+highlight_word('./tests/1000 words.docx', 'word', './results/output.docx')
+# analyze_and_highlight_docx(source_path, search_data, search_phrase_lemmas_map, output_path)
 
 # 100 words       ~  0.27s
 # 1000 words      ~  2.40s
@@ -17,4 +19,7 @@ analyze_and_highlight_docx(source_path, search_data, search_phrase_lemmas_map, o
 # 170000 words    ~   476s 1ЛДРедJones,_The_Fall_of_Robespierre
 
 
+# новая функция в разы быстрее
+
 # изначально 1000 words Обрабатывался за 6.5s, вдобавок была квадратичная сложности, что не позволяло обработать крупный файл вовсе
+# по оптимизации есть две идеи, переделать сборку файла ответа на "скопировал, подправвил", и C#
