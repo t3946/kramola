@@ -170,7 +170,6 @@ def _reconstruct_paragraph_with_highlighting(
         phrase_stats,
         document_cache: DocxCache
 ):
-
     try:
         style_name = old_paragraph.style.name
         new_paragraph.style = document_cache.getStyle(style_name)
@@ -300,8 +299,10 @@ def _find_matches_in_paragraph_tokens(
 
                 while needed_words > 0 and current_sub_idx < num_tokens:
                     token = tokens[current_sub_idx]
+
                     if start_actual_token_idx == -1 and token['type'] == 'word':
                         start_actual_token_idx = current_sub_idx
+
                     if token['type'] == 'word':
                         window_word_tokens.append(token)
                         end_actual_token_idx = current_sub_idx
@@ -1002,6 +1003,5 @@ def _merge_hyphenated_ocr_words(ocr_df):
             output_words.append(
                 {'text': text1, 'conf': row1['conf'], 'level': 5, 'is_merged': False, 'original_indices': [idx1]})
     return output_words
-
 
 # --- END OF FILE highlight_service.py ---
