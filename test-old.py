@@ -1,13 +1,17 @@
 from services.analyser import Analyser
+from services.document_service import extract_lines_from_docx
 from services.highlight_service import analyze_and_highlight_docx
 from services.pymorphy_service import prepare_search_terms, get_highlight_search_data
 from services.solution import highlight_word
 
-terms = {'apple', 'яблоко'}
+
+terms = extract_lines_from_docx("./tests/texts/Слова.docx")
+
+# terms = {'apple', 'яблоко'}
 prepared_data_unified = prepare_search_terms(terms)
 search_data_for_highlight = get_highlight_search_data(prepared_data_unified)
 
-source_path = "./tests/functionality/main.docx"
+source_path = "./tests/texts/История древней Руси.docx"
 search_phrase_lemmas_map = {}
 output_path = "./results/output.docx"
 # Использование:
