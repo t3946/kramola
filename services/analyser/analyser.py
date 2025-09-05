@@ -6,6 +6,7 @@ from docx.text.paragraph import Paragraph
 from services.analyser import AnalyseData
 from services.common_docx import tokenize_paragraph_universal
 from services.highlight_service import _find_matches_in_paragraph_tokens
+from utils.timeit import timeit
 
 
 class Analyser:
@@ -24,6 +25,7 @@ class Analyser:
         #     if start <= char_idx_in_para < end: return run_obj
         # return source_runs[-1] if source_runs else None
 
+    @timeit
     def analyse_and_highlight(self):
         paragraphs: List[Paragraph] = self.document.paragraphs
 

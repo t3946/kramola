@@ -2,10 +2,10 @@ import docx
 
 from services.analyser import Analyser, AnalyseData
 
-filename = '1 words.docx'
-source_path = f"./tests/{filename}"
+filename = 'main.docx'
+source_path = f"./tests/functionality/{filename}"
 doc = docx.Document(source_path)
-analyse_data = AnalyseData({'word'}, {'word'})
+analyse_data = AnalyseData({'apple'}, {'apple'})
 analyser = Analyser(doc)
 analyser.set_analyse_data(analyse_data)
 analyser.analyse_and_highlight()

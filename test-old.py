@@ -2,8 +2,8 @@ from services.analyser import Analyser
 from services.highlight_service import analyze_and_highlight_docx
 from services.solution import highlight_word
 
-source_path = "./tests/1000 words.docx"
-search_data = {'lemmas': {'word'}, 'stems': {'word'}}
+source_path = "./tests/100 words.docx"
+search_data = {'lemmas': {'apple'}, 'stems': {'apple'}}
 search_phrase_lemmas_map = {}
 output_path = "./results/output.docx"
 # Использование:
