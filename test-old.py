@@ -1,14 +1,18 @@
 from services.analyser import Analyser
 from services.highlight_service import analyze_and_highlight_docx
+from services.pymorphy_service import prepare_search_terms, get_highlight_search_data
 from services.solution import highlight_word
 
-source_path = "./tests/100 words.docx"
-search_data = {'lemmas': {'apple'}, 'stems': {'apple'}}
+terms = {'apple', 'яблоко'}
+prepared_data_unified = prepare_search_terms(terms)
+search_data_for_highlight = get_highlight_search_data(prepared_data_unified)
+
+source_path = "./tests/functionality/main.docx"
 search_phrase_lemmas_map = {}
 output_path = "./results/output.docx"
 # Использование:
 
-analyze_and_highlight_docx(source_path, search_data, search_phrase_lemmas_map, output_path)
+analyze_and_highlight_docx(source_path, search_data_for_highlight, search_phrase_lemmas_map, output_path)
 
 # 100 words       ~  0.27s
 # 1000 words      ~  2.40s
