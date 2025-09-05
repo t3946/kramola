@@ -202,39 +202,32 @@ def _reconstruct_paragraph_with_highlighting(
         return source_runs[-1] if source_runs else None
 
     # fast
-    # todo: сколько интересно раз выполняется _apply_run_style на 1000 kw, тут мне кажется сложность не линейная
     for match in matches:
         match_start_idx = match['start_token_idx']
         match_end_idx = match['end_token_idx']
         match_type_val = match['type']
 
-        # [start] copy old styles
-        if current_token_idx < match_start_idx:
+        if match_start_idx > current_token_idx:
             for i in range(current_token_idx, match_start_idx):
-                # apply old styles to new run
-                token = tokens[i]
+                token = tokens[i];
                 run_style = find_source_run(token['start'])
                 nr = new_paragraph.add_run(token['text'])
                 if run_style: _apply_run_style(run_style, nr, document_cache, copy_highlight=True)
 
-        # highlighted text (all parts)
         text_parts = []
 
         for i in range(match_start_idx, match_end_idx + 1):
+            token = tokens[i];
             text_parts.append(token['text'])
-
-            # apply old styles to new run
-            token = tokens[i]
             run_style = find_source_run(token['start'])
             nr = new_paragraph.add_run(token['text'])
+
             if run_style: _apply_run_style(run_style, nr, document_cache, copy_highlight=True)
 
             try:
-                # highlight text by green color
                 nr.font.highlight_color = HIGHLIGHT_COLOR_DOCX
             except Exception:
                 pass
-        # [end]
 
         found_text = "".join(text_parts).strip()
 
