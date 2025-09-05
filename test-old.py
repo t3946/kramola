@@ -5,15 +5,15 @@ from services.pymorphy_service import prepare_search_terms, get_highlight_search
 from services.solution import highlight_word
 
 
-terms = extract_lines_from_docx("./tests/texts/Слова.docx")
+terms = {'apple', 'яблоко'}
 
 # terms = {'apple', 'яблоко'}
 prepared_data_unified = prepare_search_terms(terms)
 search_data_for_highlight = get_highlight_search_data(prepared_data_unified)
 
-source_path = "./tests/texts/История древней Руси.docx"
+source_path = "./tests/functionality/1.docx"
 search_phrase_lemmas_map = {}
-output_path = "./results/output.docx"
+output_path = "./results/1 (old).docx"
 # Использование:
 
 analyze_and_highlight_docx(source_path, search_data_for_highlight, search_phrase_lemmas_map, output_path)
