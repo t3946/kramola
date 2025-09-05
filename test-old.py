@@ -8,7 +8,7 @@ search_phrase_lemmas_map = {}
 output_path = "./results/output.docx"
 # Использование:
 
-# analyze_and_highlight_docx(source_path, search_data, search_phrase_lemmas_map, output_path)
+analyze_and_highlight_docx(source_path, search_data, search_phrase_lemmas_map, output_path)
 
 # 100 words       ~  0.27s
 # 1000 words      ~  2.40s
