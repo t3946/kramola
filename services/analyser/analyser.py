@@ -4,6 +4,7 @@ from typing import List
 from docx.enum.text import WD_COLOR_INDEX
 from docx.text.paragraph import Paragraph
 from docx.text.run import Run
+from docx.oxml.ns import qn
 
 from services.analyser import AnalyseData
 from services.common_docx import tokenize_paragraph_universal
@@ -73,6 +74,7 @@ class Analyser:
 
         return paragraph.runs[target_run_index + 1]
 
+    #todo: old lib based version
     @timeit
     def analyse_and_highlight(self):
         paragraphs: List[Paragraph] = self.document.paragraphs
@@ -104,3 +106,33 @@ class Analyser:
                     token = tokens[i]
                     phrase_run = self.isolate_new_run(paragraph, token['start'], token['end'])
                     phrase_run.font.highlight_color = WD_COLOR_INDEX.BRIGHT_GREEN
+
+    #
+    @timeit
+    def analyse_and_highlight_xml(self):
+        paragraphs: List[Paragraph] = self.document.paragraphs
+
+        for paragraph in paragraphs:
+            p_element = paragraph._element
+            batches = []
+            batch_runs = []
+
+            # [start] split paragraph text on batches of runs
+            for child in p_element:
+                if child.tag == qn('w:r'):
+                    batch_runs.append(child)
+                elif len(batch_runs) > 0:
+                    batches.append(batch_runs)
+                    batch_runs = []
+
+            if len(batch_runs) > 0:
+                batches.append(batch_runs)
+            # [end]
+
+            for batch in batches:
+                text = ''
+
+                for run in batch:
+                    text += run.text
+
+                print('analyze batch:', text)
