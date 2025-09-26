@@ -185,3 +185,6 @@ class Analyser:
 
                     for paragraph in paragraphs:
                         self.__analyse_paragraph(paragraph)
+
+    def save(self, output_path: str) -> None:
+        self.document.save(output_path)
