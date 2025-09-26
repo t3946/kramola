@@ -1,4 +1,5 @@
 # --- START OF FILE pymorphy_service.py --- (FINALIZED)
+from typing import List
 
 import pymorphy3
 import nltk
@@ -6,8 +7,6 @@ import nltk
 import re
 from collections import defaultdict # Оставляем, используется в get_highlight_phrase_map
 import functools
-import time
-import os
 
 # --- Константы и Глобальные переменные ---
 MORPH = None
@@ -121,7 +120,7 @@ def _get_stem(word):
     return _get_stem_cached(cleaned) if cleaned is not None else None
 
 # --- НОВАЯ Унифицированная функция подготовки поисковых терминов ---
-def prepare_search_terms(search_terms_list):
+def prepare_search_terms(search_terms_list: List[str]):
     """
     Готовит данные для поиска слов и фраз.
     Возвращает словарь: {оригинальный_термин: {'type': 'word'/'phrase', 'data':...}}
