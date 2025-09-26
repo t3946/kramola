@@ -19,7 +19,10 @@ class Analyser:
     document: docx.Document
     analyse_data: AnalyseData
 
-    def __init__(self, document):
+    def __init__(self, document: docx.Document | str):
+        if isinstance(document, str):
+            document = docx.Document(document)
+
         self.document = document
 
     def set_analyse_data(self, analyse_data):
