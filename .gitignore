@@ -6,3 +6,4 @@ notes
 log
 /results*
 /uploads*
+__pycache__
