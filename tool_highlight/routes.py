@@ -6,6 +6,9 @@ import traceback
 import uuid
 import json  # Для сериализации/десериализации данных в Redis
 from collections import Counter
+from typing import List
+
+from services.analyser import AnalyseData, Analyser
 
 try:
     import fitz  # PyMuPDF
@@ -63,11 +66,11 @@ def _get_redis_client():
 
 
 def _perform_highlight_processing(
-        source_path,
+        source_path: str,
         source_filename_original,
-        words_path,
+        words_path: str,
         words_filename_original,
-        all_search_lines_clean,
+        all_search_lines_clean: List[str],
         is_docx_source,
         perform_ocr,
         task_id,
@@ -98,7 +101,7 @@ def _perform_highlight_processing(
         'processing_time': 0, 'used_predefined_lists': used_predefined_list_names_for_session,
         'error': None, '_task_id_ref': task_id
     }
-    result_path_task = None
+    output_path = None
     final_status_for_redis = 'FAILURE'
 
     try:
@@ -118,23 +121,37 @@ def _perform_highlight_processing(
 
         reset_caches()
         result_filename_task = f"highlighted_{task_id}{file_ext}"
-        result_path_task = os.path.join(RESULT_DIR, result_filename_task)
-        logger.info(f"[Task {task_id}] Analysis type: {file_ext}. Output: {result_path_task}")
+        output_path = os.path.join(RESULT_DIR, result_filename_task)
+        logger.info(f"[Task {task_id}] Analysis type: {file_ext}. Output: {output_path}")
 
-        # perform analyze
+        # [start] perform analyze
+        # analysis_results -- структура вроде {'word_stats': {'word': {'c': 1, 'f': {'word': 1}}}, 'phrase_stats': {}, 'total_matches': 1}
+
         if is_docx_source:
-            analysis_results = analyze_and_highlight_docx(
-                source_path,
-                search_data_for_highlight,
-                phrase_map_for_highlight,
-                result_path_task
-            )
+            analyse_data = AnalyseData()
+            analyse_data.readFromDocx(words_path)
+
+            analyser = Analyser(source_path)
+            analyser.set_analyse_data(analyse_data)
+            analyser.analyse_and_highlight()
+            analyser.save(output_path)
+
+            analysis_results = {
+                'word_stats': {
+                    'word': {
+                        'c': 1,
+                        'f': {
+                            'word': 1
+                        }
+                    }
+                }
+            }
         else:
             analysis_results = analyze_and_highlight_pdf(
                 source_path,
                 search_data_for_highlight,
                 phrase_map_for_highlight,
-                result_path_task,
+                output_path,
                 use_ocr=perform_ocr
             )
 
@@ -142,7 +159,9 @@ def _perform_highlight_processing(
             task_result_data['error'] = 'Ошибка анализа документа (сервис анализа вернул None).'
             raise ValueError(task_result_data['error'])
 
-        if os.path.exists(result_path_task) and os.path.isfile(result_path_task):
+        # [end]
+
+        if os.path.exists(output_path) and os.path.isfile(output_path):
             task_result_data['result_filename'] = result_filename_task
 
         task_result_data.update(analysis_results)
@@ -181,13 +200,13 @@ def _perform_highlight_processing(
             except Exception as e_del:
                 logger.warning(f"[Task {task_id}] Failed to delete words '{words_path}': {e_del}")
 
-        if final_status_for_redis == 'FAILURE' and result_path_task and os.path.exists(result_path_task):
+        if final_status_for_redis == 'FAILURE' and output_path and os.path.exists(output_path):
             try:
-                os.remove(result_path_task)
+                os.remove(output_path)
                 task_result_data['result_filename'] = None  # Ensure result_filename is cleared
             except Exception as e_del:
                 logger.warning(
-                    f"[Task {task_id}] Failed to delete result file '{result_path_task}' after error: {e_del}")
+                    f"[Task {task_id}] Failed to delete result file '{output_path}' after error: {e_del}")
 
         logger.info(
             f"[Task {task_id}] Background processing finished in {task_result_data['processing_time']} sec with state {final_status_for_redis}.")
