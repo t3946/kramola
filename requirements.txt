@@ -14,3 +14,4 @@ pymorphy3-dicts-ru
 concurrent-log-handler
 Flask-Executor
 redis
+python-dotenv
