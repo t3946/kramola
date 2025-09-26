@@ -129,7 +129,7 @@ def _apply_run_style(source_run, target_run, document_cache, copy_highlight=Fals
         # Используем логгер этого модуля
         logger_cd.error(f"Критическая ошибка в _apply_run_style: {e}", exc_info=True)
 
-def tokenize_paragraph_universal(paragraph):
+def tokenize_text(text):
     """
     Универсальная токенизация параграфа DOCX.
 
@@ -145,7 +145,7 @@ def tokenize_paragraph_universal(paragraph):
     full_text = ""
     try:
         # Получаем текст параграфа безопасно
-        full_text = paragraph.text if paragraph else ""
+        full_text = text
         if not full_text:
             return tokens # Возвращаем пустой список для пустого параграфа
 
@@ -159,8 +159,12 @@ def tokenize_paragraph_universal(paragraph):
                 missed_text = full_text[current_pos:start]
                 # Считаем пропущенный текст "пунктуацией" для простоты
                 tokens.append({
-                    'text': missed_text, 'start': current_pos, 'end': start,
-                    'type': 'punct', 'lemma': None, 'stem': None
+                    'text': missed_text,
+                    'start': current_pos,
+                    'end': start,
+                    'type': 'punct',
+                    'lemma': None,
+                    'stem': None
                 })
                 logger_cd.warning(f"Обнаружен пропущенный текст при токенизации: '{missed_text}'")
 
@@ -213,5 +217,9 @@ def tokenize_paragraph_universal(paragraph):
 
     return tokens
 
+def tokenize_paragraph_universal(paragraph):
+    text = paragraph.text if paragraph else ""
+
+    return tokenize_text(text)
 
 # --- END OF FILE services/common_docx.py ---   
