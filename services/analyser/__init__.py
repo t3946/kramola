@@ -1,4 +1,4 @@
 from .analyse_data import AnalyseData
 from .analyser import Analyser
 
-__all__ = ['AnalyseData']
+__all__ = ['Analyser', 'AnalyseData']
