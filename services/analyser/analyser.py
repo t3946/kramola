@@ -1,5 +1,5 @@
 import docx
-from typing import List
+from typing import List, Union
 
 from docx.enum.text import WD_COLOR_INDEX
 from docx.text.paragraph import Paragraph
@@ -19,7 +19,7 @@ class Analyser:
     document: docx.Document
     analyse_data: AnalyseData
 
-    def __init__(self, document: docx.Document | str):
+    def __init__(self, document: Union[docx.Document, str]):
         if isinstance(document, str):
             document = docx.Document(document)
 
@@ -131,7 +131,7 @@ class Analyser:
                 batch = self.__isolate_new_run_xml(batch, token['start'], token['end'])
 
     @staticmethod
-    def __split_on_batches(element: CT_P | CT_Hyperlink) -> List[List[CT_R]]:
+    def __split_on_batches(element: Union[CT_P, CT_Hyperlink]) -> List[List[CT_R]]:
         batches = []
         batch_runs = []
         qn_ct_r = qn('w:r')
