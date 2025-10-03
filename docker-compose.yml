@@ -5,6 +5,12 @@ services:
     container_name: my_redis_db
     ports:
       - '6379:6379'
+  selenium:
+    image: selenium/standalone-chrome:latest
+    container_name: selenium
+    ports:
+      - "4444:4444"
+      - "5900:5900"
   web:
     build: .
     container_name: kramola_2_5
