@@ -5,7 +5,9 @@
 
 {% block content %}
 <div class="container">
-    FA UL
+    {% for word in words %}
+        <li>{{ word }}</li>
+    {% endfor %}
 </div>
 
 {% endblock %}
