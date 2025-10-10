@@ -8,6 +8,8 @@ from flask_executor import Executor
 import redis
 from dotenv import load_dotenv
 
+from blueprints.foreign_agents.routes import foreign_agents_bp
+
 load_dotenv()
 
 from services.pymorphy_service import (
@@ -180,32 +182,14 @@ if not ANALYZERS_READY:
 # --- КОНЕЦ ---
 
 
-# --- Регистрация Blueprints ---
-# Blueprint для инструмента подсветки
-try:
-    from tool_highlight.routes import highlight_bp
+from tool_highlight.routes import highlight_bp
+from tool_footnotes.routes import footnotes_bp
 
-    app.register_blueprint(highlight_bp, url_prefix='/highlight')
-    app.logger.info("Blueprint 'highlight_bp' registered successfully with prefix /highlight")
-except ImportError:
-    app.logger.error("Failed to import blueprint 'highlight_bp'. Highlight tool will be unavailable.")
-except Exception as e:
-    app.logger.error(f"Error registering blueprint 'highlight_bp': {e}", exc_info=True)
+app.register_blueprint(highlight_bp, url_prefix='/highlight')
 
-# Blueprint для инструмента сносок
-try:
-    from tool_footnotes.routes import footnotes_bp
+app.register_blueprint(footnotes_bp, url_prefix='/footnotes')
 
-    app.register_blueprint(footnotes_bp, url_prefix='/footnotes')
-    app.logger.info("Blueprint 'footnotes_bp' registered successfully with prefix /footnotes")
-except ImportError:
-    app.logger.error("Failed to import blueprint 'footnotes_bp'. Footnotes tool will be unavailable.")
-except Exception as e:
-    app.logger.error(f"Error registering blueprint 'footnotes_bp': {e}", exc_info=True)
-
-
-# --- КОНЕЦ РЕГИСТРАЦИИ ---
-
+app.register_blueprint(foreign_agents_bp)
 
 # --- Маршрут по умолчанию ---
 @app.route('/')
