@@ -38,15 +38,21 @@ class WordsList:
 
         if logging:
             words_list_old = self.load()
-            deleted_words = list(set(words_list) - set(words_list_old))
-            added_words = list(set(words_list_old) - set(words_list))
+            added_words = list(set(words_list) - set(words_list_old))
+            deleted_words = list(set(words_list_old) - set(words_list))
             now = datetime.now()
             date = now.strftime('%Y-%m-%d')
 
-            key_deleted_words = key_list + self.get_log_key(f'{date}:deleted')
-            key_added_words = key_list + self.get_log_key(f'{date}:added')
-            r.rpush(key_deleted_words, *deleted_words)
-            r.rpush(key_added_words, *added_words)
+            key_deleted_words = self.get_log_key(f'{date}:deleted')
+            key_added_words = self.get_log_key(f'{date}:added')
+            r.delete(key_deleted_words)
+            r.delete(key_added_words)
+
+            if deleted_words:
+                r.rpush(key_deleted_words, *deleted_words)
+
+            if added_words:
+                r.rpush(key_added_words, *added_words)
 
         r.delete(key_list)
         r.rpush(key_list, *words_list)
@@ -57,6 +63,11 @@ class WordsList:
         stored_list = r.lrange(list_key, 0, -1)  # получить весь список
         # элементы возвращаются как байты, декодируем в строки
         return [item.decode('utf-8') for item in stored_list]
+
+    def clear(self):
+        list_key = self.get_list_key()
+        r.delete(list_key)
+        self.clear_log()
 
     def load_logs(self) -> Dict[str, Dict[str, List[str]]]:
         key_logs_pattern = self.get_log_key('*')
@@ -77,13 +88,11 @@ class WordsList:
 
         return logs_by_date
 
-    def clear_log(self, dates: str):
+    def clear_log(self, dates: str = None) -> None:
         if dates is None:
-            # Удаляем все ключи с шаблоном ":log:*"
             pattern = self.get_log_key('*')
             keys_to_delete = [key for key in r.scan_iter(pattern)]
         else:
-            # Составляем список ключей для указанных дат
             keys_to_delete = []
 
             for date in dates:
