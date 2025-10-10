@@ -9,6 +9,8 @@ import redis
 from dotenv import load_dotenv
 
 from blueprints.foreign_agents.routes import foreign_agents_bp
+from blueprints.tool_highlight.routes import highlight_bp
+from blueprints.tool_footnotes.routes import footnotes_bp
 
 load_dotenv()
 
@@ -180,10 +182,6 @@ if not ANALYZERS_READY:
     app.logger.error("         Functionality requiring lemmatization/morphology will be unavailable or limited.")
     app.logger.error("=" * 50)
 # --- КОНЕЦ ---
-
-
-from tool_highlight.routes import highlight_bp
-from tool_footnotes.routes import footnotes_bp
 
 app.register_blueprint(highlight_bp, url_prefix='/highlight')
 
