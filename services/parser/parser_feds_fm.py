@@ -11,7 +11,7 @@ class ParserFedsFM:
             self.loader.get("https://www.fedsfm.ru/documents/terrorists-catalog-portal-act")
 
             # [start] parse persons list
-            js_find_fl_names = """
+            js_find_fl_names = r"""
             function findFLNames() {
                 const names = [];
                 const elements = document.querySelectorAll('#russianFL ol.terrorist-list li');
@@ -40,7 +40,7 @@ class ParserFedsFM:
             # [end]
 
             # [start] parse companies list
-            js_find_ul_names = """
+            js_find_ul_names = r"""
             function findULNames() {
                 console.log('findULNames')
                 const names = [];
