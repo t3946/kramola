@@ -187,7 +187,7 @@ app.register_blueprint(highlight_bp, url_prefix='/highlight')
 
 app.register_blueprint(footnotes_bp, url_prefix='/footnotes')
 
-app.register_blueprint(foreign_agents_bp)
+app.register_blueprint(foreign_agents_bp, url_prefix='/foreign-agents')
 
 # --- Маршрут по умолчанию ---
 @app.route('/')
