@@ -8,5 +8,5 @@ class ListPersons(WordsList):
     def list_key(self) -> str:
         return self.key
 
-    def save(self, words_list: list[str], options) -> None:
-        super().save(words_list, options)
+    def save(self, words_list: list[str], logging = False) -> None:
+        super().save(words_list, logging)
