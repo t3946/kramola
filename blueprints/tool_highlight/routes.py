@@ -10,20 +10,14 @@ from typing import List
 
 from services.analyser import AnalyseData, Analyser
 
-try:
-    import fitz  # PyMuPDF
-
-    FIT_AVAILABLE = True
-except ImportError:
-    FIT_AVAILABLE = False
 
 from flask import (
     request, redirect, url_for, Blueprint, current_app, render_template,
     session, send_file, jsonify
 )
 
-from services.document_service import (
-    save_uploaded_file, extract_lines_from_docx
+from services.highlight_upload_service import (
+    process_file_upload, UploadError
 )
 from services.pymorphy_service import (
     prepare_search_terms,
@@ -35,18 +29,6 @@ from services.highlight_service import (
     analyze_and_highlight_docx, analyze_and_highlight_pdf
 )
 
-try:
-    from utils import load_lines_from_txt
-
-    UTILS_AVAILABLE = True
-except ImportError:
-    UTILS_AVAILABLE = False
-
-
-    def load_lines_from_txt(filepath):
-        current_app.logger.error(
-            f"Function 'load_lines_from_txt' could not be imported from 'utils'. Attempted to load {filepath}")
-        raise FileNotFoundError(f"Utils module or function not found, cannot load {filepath}")
 
 highlight_bp = Blueprint('highlight', __name__, template_folder='templates')
 
@@ -114,8 +96,7 @@ def _perform_highlight_processing(
         search_data_for_highlight = get_highlight_search_data(prepared_data_unified)
         phrase_map_for_highlight = get_highlight_phrase_map(prepared_data_unified)
 
-        if not search_data_for_highlight.get('lemmas') and not search_data_for_highlight.get(
-                'stems') and not phrase_map_for_highlight:
+        if not search_data_for_highlight.get('lemmas') and not search_data_for_highlight.get('stems') and not phrase_map_for_highlight:
             task_result_data['error'] = 'Не удалось извлечь данные для поиска из предоставленных слов/фраз.'
             raise ValueError(task_result_data['error'])
 
@@ -250,112 +231,31 @@ def process_async():
     # Wrap file operations and initial Redis write in a try-finally for cleanup
     # and to ensure we can return 500 if crucial steps fail.
     try:
-        if 'source_file' not in request.files or not request.files['source_file'].filename:
-            return jsonify({'error': 'Загрузите исходный документ (.docx или .pdf)'}), 400
-
-        source_file = request.files['source_file']
-        source_filename_original = source_file.filename
-        source_filename_lower = source_filename_original.lower()
-        is_docx_source = source_filename_lower.endswith('.docx')
-        is_pdf_source = source_filename_lower.endswith('.pdf')
-
-        if not is_docx_source and not is_pdf_source:
-            return jsonify({'error': 'Недопустимый формат исходного файла. Загрузите .docx или .pdf'}), 400
-
-        if is_pdf_source and not FIT_AVAILABLE:
-            return jsonify({'error': 'Обработка PDF файлов недоступна на сервере (PyMuPDF).'}), 400
-
-        file_ext = ".docx" if is_docx_source else ".pdf"
-        source_filename_unique = f"source_{task_id}{file_ext}"
-        source_path = save_uploaded_file(source_file, UPLOAD_DIR, source_filename_unique)
-
-        if not source_path:  # Should already be caught by save_uploaded_file's potential exceptions
-            return jsonify({'error': 'Ошибка при сохранении исходного документа.'}), 500
-
-        logger.info(f"[Req {task_id}] Source file '{source_filename_original}' saved as '{source_filename_unique}'")
-
-        search_lines_from_file = []
-        words_file_input = request.files.get('words_file')
-
-        if words_file_input and words_file_input.filename:
-            words_filename_original = words_file_input.filename
-            words_filename_lower = words_filename_original.lower()
-            logger.info(f"[Req {task_id}] Received words_file: '{words_filename_original}'")
-
-            if not (words_filename_lower.endswith('.docx') or words_filename_lower.endswith('.xlsx')):
-                return jsonify({
-                    'error': 'Файл слов должен быть в формате .docx или .xlsx'}), 400  # Cleanup handled by outer try-except
-
-            if words_filename_lower.endswith('.docx'):
-                words_filename_unique = f"words_{task_id}.docx"
-                words_path = save_uploaded_file(words_file_input, UPLOAD_DIR, words_filename_unique)
-                if not words_path:
-                    return jsonify({'error': 'Ошибка сохранения файла слов (.docx).'}), 500
-                logger.info(f"[Req {task_id}] Words file (.docx) saved as '{words_filename_unique}'")
-                try:
-                    search_lines_from_file = extract_lines_from_docx(words_path)
-                    if not isinstance(search_lines_from_file, list): search_lines_from_file = []
-                    logger.info(
-                        f"[Req {task_id}] Extracted {len(search_lines_from_file)} lines from '{words_filename_original}'")
-                except Exception as e:
-                    logger.error(f"[Req {task_id}] Error reading DOCX words file '{words_path}': {e}", exc_info=True)
-                    search_lines_from_file = []  # Or return error
-            elif words_filename_lower.endswith('.xlsx'):
-                logger.warning(
-                    f"[Req {task_id}] XLSX words file '{words_filename_original}' received. Backend will treat as empty unless explicit XLSX parsing is added.")
-                # words_path is not set for xlsx currently, so it won't be auto-deleted unless saved.
-                search_lines_from_file = []
-
-        search_lines_from_text = []
-        words_text_raw = request.form.get('words_text', '')
-
-        if words_text_raw.strip():
-            lines_from_text = words_text_raw.replace(',', '\n').splitlines()
-            search_lines_from_text = [line.strip() for line in lines_from_text if line.strip()]
-            logger.info(f"[Req {task_id}] Received {len(search_lines_from_text)} lines from textarea.")
-
-        additional_search_lines = []
-        used_predefined_list_names_for_session = []
-        selected_list_keys = request.form.getlist('predefined_list_keys')
-
-        if selected_list_keys:
-            logger.info(f"[Req {task_id}] Selected predefined lists: {selected_list_keys}")
-            for key in selected_list_keys:
-                if not key or key not in PREDEFINED_LISTS:
-                    logger.warning(f"[Req {task_id}] Invalid or unknown predefined list key: '{key}'")
-                    continue
-                filepath = os.path.join(PREDEFINED_LISTS_DIR, f"{key}.txt")
-                display_name = PREDEFINED_LISTS[key]
-                try:
-                    lines = load_lines_from_txt(filepath)
-                    cleaned_lines = [line.strip() for line in lines if line.strip()]
-                    if cleaned_lines:
-                        additional_search_lines.extend(cleaned_lines)
-                        used_predefined_list_names_for_session.append(display_name)
-                        logger.info(
-                            f"[Req {task_id}] Loaded {len(cleaned_lines)} lines from predefined list '{display_name}' ({key}.txt)")
-                except FileNotFoundError:
-                    logger.error(f"[Req {task_id}] Predefined list file not found: {filepath}")
-                except Exception as e:
-                    logger.error(f"[Req {task_id}] Error loading predefined list '{display_name}' ({key}.txt): {e}",
-                                 exc_info=True)
-
-        all_search_lines = search_lines_from_file + search_lines_from_text + additional_search_lines
-        logger.info(
-            f"[Req {task_id}] Total lines before cleaning: {len(all_search_lines)}. From file: {len(search_lines_from_file)}, text: {len(search_lines_from_text)}, predefined: {len(additional_search_lines)}")
-
-        if not all_search_lines:
-            logger.error(f"[Req {task_id}] No word source provided (file, text, or predefined).")
-            return jsonify({'error': 'Укажите источник слов: файл, текстовое поле или выберите список.'}), 400
-
-        unique_lines_dict = {line.strip().lower(): line.strip() for line in all_search_lines if line.strip()}
-        all_search_lines_clean = list(unique_lines_dict.values())
-
-        if not all_search_lines_clean:
-            logger.error(f"[Req {task_id}] All search lines are empty after cleaning.")
-            return jsonify({'error': 'Предоставленные слова/фразы пусты или некорректны.'}), 400
-
-        logger.info(f"[Req {task_id}] Total unique non-empty search lines: {len(all_search_lines_clean)}")
+        # Process file uploads and prepare search terms using dedicated service
+        try:
+            upload_result = process_file_upload(
+                request=request,
+                task_id=task_id,
+                upload_dir=UPLOAD_DIR,
+                predefined_lists_dir=PREDEFINED_LISTS_DIR,
+                predefined_lists=PREDEFINED_LISTS,
+                logger=logger
+            )
+            
+            source_path = upload_result['source_path']
+            source_filename_original = upload_result['source_filename_original']
+            words_path = upload_result['words_path']
+            words_filename_original = upload_result['words_filename_original']
+            all_search_lines_clean = upload_result['all_search_lines_clean']
+            is_docx_source = upload_result['is_docx_source']
+            file_ext = upload_result['file_ext']
+            used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
+            
+        except UploadError as e:
+            return jsonify({'error': e.message}), e.status_code
+        except Exception as e:
+            logger.error(f"[Req {task_id}] Unexpected error during file upload processing: {e}", exc_info=True)
+            return jsonify({'error': 'Ошибка при обработке загруженных файлов.'}), 500
 
         perform_ocr = request.form.get('use_ocr') == 'true'
 
