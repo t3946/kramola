@@ -27,10 +27,10 @@
                 <button class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
             </div>
             <div class="sidebar-menu">
-                <a href="{{ url_for('highlight.index') }}" class="active"><i class="fas fa-file-alt"></i><span>Поиск крамолы</span></a>
-                <a href="{{ url_for('footnotes.index') }}"><i class="fas fa-tags"></i><span>Добавление сносок</span></a>
-                <a href="{{ url_for('foreign_agents.fl') }}"><i class="fas fa-tags"></i><span>Иностранные агенты ФЛ</span></a>
-                <a href="{{ url_for('foreign_agents.ul') }}"><i class="fas fa-tags"></i><span>Иностранные агенты ЮЛ</span></a>
+                <a href="{{ url_for('highlight.index') }}" class="{% if request.endpoint == 'highlight.index' %}active{% endif %}"><i class="fas fa-file-alt"></i><span>Поиск крамолы</span></a>
+                <a href="{{ url_for('footnotes.index') }}" class="{% if request.endpoint == 'footnotes.index' %}active{% endif %}"><i class="fas fa-tags"></i><span>Добавление сносок</span></a>
+                <a href="{{ url_for('foreign_agents.fl') }}" class="{% if request.endpoint == 'foreign_agents.fl' %}active{% endif %}"><i class="fas fa-tags"></i><span>Иностранные агенты ФЛ</span></a>
+                <a href="{{ url_for('foreign_agents.ul') }}" class="{% if request.endpoint == 'foreign_agents.ul' %}active{% endif %}"><i class="fas fa-tags"></i><span>Иностранные агенты ЮЛ</span></a>
             </div>
         </div>
 
