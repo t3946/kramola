@@ -3,12 +3,17 @@ Service for handling file uploads and data preparation for highlight tool.
 """
 
 import os
+import logging
 from typing import List, Dict
 from flask import Request
 
 from services.document_service import save_uploaded_file, extract_lines_from_docx
 from services.highlight_upload.upload_result import UploadResult
 from services.highlight_upload.upload_error import UploadError
+from services.words_list.list_persons import ListPersons
+from services.words_list.list_companies import ListCompanies
+
+logger = logging.getLogger(__name__)
 
 try:
     import fitz  # PyMuPDF
@@ -47,9 +52,9 @@ class HighlightUploadService:
         
         # 3. Get search terms from all sources
         search_terms_result = HighlightUploadService._get_search_terms(
-            request, task_id, words_result, predefined_lists_dir, predefined_lists
+            request, words_result, predefined_lists_dir, predefined_lists
         )
-        
+
         return {
             'source_path': source_result['path'],
             'source_filename_original': source_result['filename_original'],
@@ -141,7 +146,6 @@ class HighlightUploadService:
     @staticmethod
     def _get_search_terms(
         request: Request,
-        task_id: str,
         words_result: Dict,
         predefined_lists_dir: str,
         predefined_lists: dict
@@ -183,7 +187,34 @@ class HighlightUploadService:
         
         if not search_terms:
             raise UploadError('Предоставленные слова/фразы пусты или некорректны.', 400)
+
+        # 6. Process special keys that load from Redis (ino, inu_b)
+        redis_search_lines = []
+
+
+        #[start] add words from selected predefined lists
+        selected_list_keys = predefined_result.get('selected_list_keys', [])
         
+        for key in selected_list_keys:
+            if key == 'ino':
+                lp = ListPersons()
+                persons_words = lp.load()
+                redis_search_lines.extend(persons_words)
+                used_predefined_list_names.append(predefined_lists.get(key, 'Инагенты (ФИО)'))
+
+            elif key == 'inu_b':
+                lc = ListCompanies()
+                companies_words = lc.load()
+                redis_search_lines.extend(companies_words)
+                used_predefined_list_names.append(predefined_lists.get(key, 'Инагенты (Организации)'))
+        
+        # Combine with existing search_terms and deduplicate again
+        all_terms_with_redis = search_terms + redis_search_lines
+        unique_terms_dict = {term.strip().lower(): term.strip() for term in all_terms_with_redis if term.strip()}
+        search_terms = list(unique_terms_dict.values())
+        #[end]
+
+
         return {
             'search_terms': search_terms,
             'used_list_names': used_predefined_list_names
@@ -216,6 +247,9 @@ class HighlightUploadService:
             for key in selected_list_keys:
                 if not key or key not in predefined_lists:
                     continue
+                # Skip Redis-based lists (they are handled separately)
+                if key in ('ino', 'inu_b'):
+                    continue
                 filepath = os.path.join(predefined_lists_dir, f"{key}.txt")
                 display_name = predefined_lists[key]
                 try:
@@ -229,7 +263,8 @@ class HighlightUploadService:
         
         return {
             'search_lines': additional_search_lines,
-            'list_names': used_predefined_list_names
+            'list_names': used_predefined_list_names,
+            'selected_list_keys': selected_list_keys,
         }
 
     @staticmethod
