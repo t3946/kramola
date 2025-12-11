@@ -1,0 +1,31 @@
+{% if changes %}
+<div class="changes-section" style="margin-top: 40px;">
+    <h2>История изменений</h2>
+    {% for date_str, change_data in changes.items() %}
+        <h3>{{ date_str }}</h3>
+        <div class="changes-list">
+            {% if change_data.added %}
+            <div class="added-items">
+                <strong>Добавлено:</strong>
+                <ul>
+                    {% for item in change_data.added %}
+                        <li style="color: #28a745;">+ {{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            {% if change_data.deleted %}
+            <div class="deleted-items">
+                <strong>Удалено:</strong>
+                <ul>
+                    {% for item in change_data.deleted %}
+                        <li style="color: #dc3545;">- {{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+

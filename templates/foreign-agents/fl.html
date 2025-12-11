@@ -5,9 +5,14 @@
 
 {% block content %}
 <div class="container">
-    {% for word in words %}
-        <li>{{ word }}</li>
-    {% endfor %}
+    {% include 'foreign-agents/_changes.html' %}
+
+    <h2>Список</h2>
+    <ul>
+        {% for word in words %}
+            <li>{{ word }}</li>
+        {% endfor %}
+    </ul>
 </div>
 
 {% endblock %}
