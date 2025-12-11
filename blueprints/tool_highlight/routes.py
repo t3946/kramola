@@ -104,19 +104,8 @@ def _perform_highlight_processing(
             analyse_data.readFromDocx(words_path)
             analyser = Analyser(source_path)
             analyser.set_analyse_data(analyse_data)
-            analyser.analyse_and_highlight()
+            analysis_results = analyser.analyse_and_highlight()
             analyser.save(output_path)
-
-            analysis_results = {
-                'word_stats': {
-                    'word': {
-                        'c': 1,
-                        'f': {
-                            'word': 1
-                        }
-                    }
-                }
-            }
         else:
             analysis_results = analyze_and_highlight_pdf(
                 source_path,
