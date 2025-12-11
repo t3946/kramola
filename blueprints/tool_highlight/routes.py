@@ -16,8 +16,8 @@ from flask import (
     session, send_file, jsonify
 )
 
-from services.highlight_upload_service import (
-    process_file_upload, UploadError
+from services.highlight_upload import (
+    HighlightUploadService, UploadError
 )
 from services.pymorphy_service import (
     prepare_search_terms,
@@ -233,20 +233,19 @@ def process_async():
     try:
         # Process file uploads and prepare search terms using dedicated service
         try:
-            upload_result = process_file_upload(
+            upload_result = HighlightUploadService.process_file_upload(
                 request=request,
                 task_id=task_id,
                 upload_dir=UPLOAD_DIR,
                 predefined_lists_dir=PREDEFINED_LISTS_DIR,
-                predefined_lists=PREDEFINED_LISTS,
-                logger=logger
+                predefined_lists=PREDEFINED_LISTS
             )
             
             source_path = upload_result['source_path']
             source_filename_original = upload_result['source_filename_original']
             words_path = upload_result['words_path']
             words_filename_original = upload_result['words_filename_original']
-            all_search_lines_clean = upload_result['all_search_lines_clean']
+            all_search_lines_clean = upload_result['search_terms']
             is_docx_source = upload_result['is_docx_source']
             file_ext = upload_result['file_ext']
             used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
