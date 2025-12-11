@@ -131,6 +131,10 @@ def _perform_highlight_processing(
             analyse_data = AnalyseData()
             analyse_data.readFromDocx(words_path)
 
+                # todo: вот здесь надо добавить логику что если включена галочка "Инагенты (ФИО)" или "Инагенты (Организации)" то надо загрузить список из Redis, тогда вывести сообщение в консоль что выбрано
+
+            logger.info(f"test log")
+
             analyser = Analyser(source_path)
             analyser.set_analyse_data(analyse_data)
             analyser.analyse_and_highlight()
@@ -572,6 +576,8 @@ def results():
         # --- СТАРЫЙ КОД ---
         # return render_template('tool_highlight/results.html', error=last_result_data.get('error'), task_id=task_id_for_template, **last_result_data)
         # --- НУЖНО ДОБАВИТЬ ПЕРЕДАЧУ ПУСТЫХ СПИСКОВ, ЕСЛИ ЕСТЬ ОШИБКА ---
+        # Create a copy of last_result_data without 'error' to avoid duplicate argument
+        template_data = {k: v for k, v in last_result_data.items() if k != 'error'}
         return render_template(
             'tool_highlight/results.html',
             error=last_result_data.get('error'),
@@ -579,7 +585,7 @@ def results():
             word_stats_sorted=[],  # Передаем пустые списки при ошибке
             phrase_stats_sorted=[],
             result_file_missing=False,  # Файла точно нет, если ошибка
-            **last_result_data
+            **template_data
         )
 
     RESULT_DIR = current_app.config.get('RESULT_DIR_HIGHLIGHT', current_app.config.get('RESULT_DIR'))
@@ -618,13 +624,16 @@ def results():
     # ----------------------------------------------------
 
     # Передаем отсортированные списки и флаг отсутствия файла в шаблон
+    # Исключаем ключи, которые передаются явно, чтобы избежать дублирования
+    excluded_keys = {'task_id', 'word_stats_sorted', 'phrase_stats_sorted', 'result_file_missing', '_task_id_ref', 'word_stats', 'phrase_stats'}
+    template_data = {k: v for k, v in last_result_data.items() if k not in excluded_keys}
     return render_template(
         'tool_highlight/results.html',
         task_id=task_id_for_template,
         word_stats_sorted=word_stats_sorted,  # <--- Передаем отсортированный список
         phrase_stats_sorted=phrase_stats_sorted,  # <--- Передаем отсортированный список
         result_file_missing=result_file_missing,  # <--- Передаем флаг
-        **last_result_data  # Передаем остальные данные (filename, time, etc.)
+        **template_data  # Передаем остальные данные (filename, time, etc.)
     )
 
 
