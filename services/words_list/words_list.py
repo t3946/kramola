@@ -1,6 +1,6 @@
 from abc import abstractmethod
-from typing import TypedDict, Dict, List
-from datetime import datetime
+from typing import TypedDict, Dict, List, Any
+from datetime import datetime, date
 from services.redis.connection import get_redis_connection
 
 # from flask import (current_app as app)
@@ -86,6 +86,24 @@ class WordsList:
             logs_by_date[date][log_type] = log_list_decoded
 
         return logs_by_date
+
+    def get_changes_json(self) -> Dict[str, Dict[str, Any]]:
+        logs_by_date = self.load_logs()
+        result = {}
+        
+        for date_str, changes in logs_by_date.items():
+            # Parse date string to date object
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+            
+            result[date_str] = {
+                'date': date_obj,
+                'added': changes.get('added', []),
+                'deleted': changes.get('deleted', []),
+                'added_count': len(changes.get('added', [])),
+                'deleted_count': len(changes.get('deleted', []))
+            }
+        
+        return result
 
     def clear_log(self, dates: str = None) -> None:
         if dates is None:

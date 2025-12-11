@@ -7,6 +7,3 @@ class ListCompanies(WordsList):
     @property
     def list_key(self) -> str:
         return self.key
-
-    def save(self, words_list: list[str], logging = False) -> None:
-        super().save(words_list, logging)
