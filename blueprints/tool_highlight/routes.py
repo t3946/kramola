@@ -100,8 +100,11 @@ def _perform_highlight_processing(
         # analysis_results -- структура вроде {'word_stats': {'word': {'c': 1, 'f': {'word': 1}}}, 'phrase_stats': {}, 'total_matches': 1}
 
         if is_docx_source:
+            # prepare words for search
             analyse_data = AnalyseData()
-            analyse_data.readFromDocx(words_path)
+            analyse_data.readFromList(all_search_lines_clean)
+
+            # search words in document
             analyser = Analyser(source_path)
             analyser.set_analyse_data(analyse_data)
             analysis_results = analyser.analyse_and_highlight()
@@ -225,8 +228,6 @@ def process_async():
             file_ext = upload_result['file_ext']
             used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
 
-            logger.info(f"all_search_lines_clean {all_search_lines_clean}")
-            
         except UploadError as e:
             return jsonify({'error': e.message}), e.status_code
         except Exception as e:

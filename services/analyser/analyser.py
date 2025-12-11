@@ -1,3 +1,6 @@
+import json
+import logging
+
 import docx
 from typing import List, Union
 from collections import defaultdict, Counter
@@ -115,26 +118,26 @@ class Analyser:
         """Обновляет статистику найденных совпадений (фраз и слов)."""
         start_token_idx = match['start_token_idx']
         end_token_idx = match['end_token_idx']
-        
+
         if match['type'] == 'phrase':
             lemma_key = match['lemma_key']
             phrase_key_str = " ".join(lemma_key)
             stats = self.phrase_stats[phrase_key_str]
-            
+
             # Извлекаем оригинальный текст фразы из токенов
             text_parts = []
             for i in range(start_token_idx, end_token_idx + 1):
                 if i < len(tokens):
                     text_parts.append(tokens[i]['text'])
             found_text = "".join(text_parts).strip()
-            
+
             stats['count'] += 1
             stats['forms'][found_text] += 1
         elif match['type'] == 'word':
             lemma_key = match['lemma_key']
             if lemma_key:
                 stats = self.word_stats[lemma_key]
-                
+
                 # Извлекаем оригинальный текст слова из токенов
                 if start_token_idx < len(tokens):
                     found_text = tokens[start_token_idx]['text']
@@ -161,7 +164,7 @@ class Analyser:
         for match in matches:
             start_token_idx = match['start_token_idx']
             end_token_idx = match['end_token_idx']
-            
+
             self.__update_match_statistics(match, tokens)
 
             for i in range(start_token_idx, end_token_idx + 1):
