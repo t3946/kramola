@@ -1,13 +1,11 @@
 from abc import abstractmethod
 from typing import TypedDict, Dict, List
 from datetime import datetime
-
-from pandas.core.indexes.base import trim_front
-
-from services.redis import r
-
 import redis
+# from flask import (current_app as app)
 
+# r = app.redis_client
+r = redis.Redis(host='redis', port=6379, db=0)
 
 class TSaveOptions(TypedDict):
     logging: bool
@@ -45,7 +43,7 @@ class WordsList:
 
             key_deleted_words = self.get_log_key(f'{date}:deleted')
             key_added_words = self.get_log_key(f'{date}:added')
-            r.delete(key_deleted_words)
+            app.redis_client_tasks.delete(key_deleted_words)
             r.delete(key_added_words)
 
             if deleted_words:
