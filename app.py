@@ -57,7 +57,8 @@ root_logger.addHandler(file_handler)  # Добавляем файловый хе
 root_logger.addHandler(stream_handler)  # Добавляем консольный хендлер
 
 # Конфигурация Redis (можно вынести в app.config)
-REDIS_HOST = os.environ.get('REDIS_HOST', 'localhost')
+from services.redis.connection import get_redis_connection, get_redis_host
+REDIS_HOST = get_redis_host()
 REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 REDIS_DB = int(os.environ.get('REDIS_DB_TASKS', 0))  # Отдельная БД для задач
 
@@ -91,11 +92,11 @@ app.config['UPLOAD_DIR_FOOTNOTES'] = os.path.join(BASE_DIR, "uploads", "footnote
 app.config['RESULT_DIR_FOOTNOTES'] = os.path.join(BASE_DIR, "results", "footnotes")
 
 try:
-    # Создаем пул соединений для эффективности
-    redis_pool = redis.ConnectionPool(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
-    # decode_responses=True чтобы ключи и значения были строками, а не байтами
-    app.redis_client_tasks = redis.Redis(connection_pool=redis_pool)
-    app.redis_client_tasks.ping()  # Проверяем соединение
+    # Create Redis connection using utility function
+    # decode_responses=True to get strings instead of bytes
+    app.redis_client_tasks = get_redis_connection(db=REDIS_DB, decode_responses=True)
+    app.redis_client = app.redis_client_tasks
+    app.redis_client_tasks.ping()  # Check connection
     app.logger.info(f"Successfully connected to Redis for task storage at {REDIS_HOST}:{REDIS_PORT}, DB: {REDIS_DB}")
 except redis.exceptions.ConnectionError as e:
     app.logger.error(f"Could not connect to Redis for task storage: {e}. Task status persistence will not work.")
