@@ -87,18 +87,9 @@ def _perform_highlight_processing(
     final_status_for_redis = 'FAILURE'
 
     try:
-        if not all_search_lines_clean:
-            task_result_data['error'] = 'Список слов/фраз для поиска пуст.'
-            raise ValueError(task_result_data['error'])
-
-        logger.info(f"[Task {task_id}] Preparing {len(all_search_lines_clean)} search terms...")
         prepared_data_unified = prepare_search_terms(all_search_lines_clean)
         search_data_for_highlight = get_highlight_search_data(prepared_data_unified)
         phrase_map_for_highlight = get_highlight_phrase_map(prepared_data_unified)
-
-        if not search_data_for_highlight.get('lemmas') and not search_data_for_highlight.get('stems') and not phrase_map_for_highlight:
-            task_result_data['error'] = 'Не удалось извлечь данные для поиска из предоставленных слов/фраз.'
-            raise ValueError(task_result_data['error'])
 
         reset_caches()
         result_filename_task = f"highlighted_{task_id}{file_ext}"
@@ -111,11 +102,6 @@ def _perform_highlight_processing(
         if is_docx_source:
             analyse_data = AnalyseData()
             analyse_data.readFromDocx(words_path)
-
-                # todo: вот здесь надо добавить логику что если включена галочка "Инагенты (ФИО)" или "Инагенты (Организации)" то надо загрузить список из Redis, тогда вывести сообщение в консоль что выбрано
-
-            logger.info(f"test log")
-
             analyser = Analyser(source_path)
             analyser.set_analyse_data(analyse_data)
             analyser.analyse_and_highlight()
@@ -249,6 +235,8 @@ def process_async():
             is_docx_source = upload_result['is_docx_source']
             file_ext = upload_result['file_ext']
             used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
+
+            logger.info(f"all_search_lines_clean {all_search_lines_clean}")
             
         except UploadError as e:
             return jsonify({'error': e.message}), e.status_code
