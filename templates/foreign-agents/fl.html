@@ -3,12 +3,19 @@
 {% block title %}Иностранные агенты ФЛ{% endblock %}
 {% block page_title %}Иностранные агенты (Физические лица){% endblock %}
 
+{% block head_extra %}
+{% include 'foreign-agents/_spoiler_styles.html' %}
+{% endblock %}
+
 {% block content %}
 <div class="container">
     {% include 'foreign-agents/_changes.html' %}
 
-    <h2>Список</h2>
-    <ul>
+    <h2 class="spoiler-header collapsed">
+        <span class="spoiler-arrow">▼</span>
+        Список ({{ words|length }})
+    </h2>
+    <ul class="spoiler-content scrollable-list">
         {% for word in words %}
             <li>{{ word }}</li>
         {% endfor %}

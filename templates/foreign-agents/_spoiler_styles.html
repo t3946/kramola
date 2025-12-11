@@ -1,0 +1,38 @@
+<style>
+.spoiler-header {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.spoiler-arrow {
+    transition: transform 0.3s;
+    display: inline-block;
+}
+.spoiler-header.collapsed .spoiler-arrow {
+    transform: rotate(-90deg);
+}
+.spoiler-content {
+    max-height: 500px;
+    overflow-y: auto;
+    display: none;
+}
+.spoiler-header:not(.collapsed) + .spoiler-content {
+    display: block;
+}
+.scrollable-list {
+    max-height: 500px;
+    overflow-y: auto;
+}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.spoiler-header').forEach(header => {
+        header.addEventListener('click', () => {
+            header.classList.toggle('collapsed');
+        });
+    });
+});
+</script>
+

@@ -2,12 +2,19 @@
 <div class="changes-section" style="margin-top: 40px;">
     <h2>История изменений</h2>
     {% for date_str, change_data in changes.items() %}
-        <h3>{{ date_str }}</h3>
-        <div class="changes-list">
+        {% set added_count = change_data.added|length %}
+        {% set deleted_count = change_data.deleted|length %}
+        {% set total_count = added_count + deleted_count %}
+        
+        <h3>{{ date_str }} ({{ total_count }})</h3>
+        <div>
             {% if change_data.added %}
-            <div class="added-items">
-                <strong>Добавлено:</strong>
-                <ul>
+            <div class="added-items" style="margin-bottom: 15px;">
+                <strong class="spoiler-header collapsed">
+                    <span class="spoiler-arrow">▼</span>
+                    Добавлено ({{ added_count }}):
+                </strong>
+                <ul class="spoiler-content scrollable-list">
                     {% for item in change_data.added %}
                         <li style="color: #28a745;">+ {{ item }}</li>
                     {% endfor %}
@@ -16,8 +23,11 @@
             {% endif %}
             {% if change_data.deleted %}
             <div class="deleted-items">
-                <strong>Удалено:</strong>
-                <ul>
+                <strong class="spoiler-header collapsed">
+                    <span class="spoiler-arrow">▼</span>
+                    Удалено ({{ deleted_count }}):
+                </strong>
+                <ul class="spoiler-content scrollable-list">
                     {% for item in change_data.deleted %}
                         <li style="color: #dc3545;">- {{ item }}</li>
                     {% endfor %}
