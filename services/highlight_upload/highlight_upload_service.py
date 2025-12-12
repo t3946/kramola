@@ -189,7 +189,7 @@ class HighlightUploadService:
             raise UploadError('Предоставленные слова/фразы пусты или некорректны.', 400)
 
         # 6. Process special keys that load from Redis (ino, inu_b)
-        redis_search_lines = []
+        search_terms_from_lists = []
 
 
         #[start] add words from selected predefined lists
@@ -199,21 +199,46 @@ class HighlightUploadService:
             if key == 'ino':
                 lp = ListPersons()
                 persons_words = lp.load()
-                redis_search_lines.extend(persons_words)
-                used_predefined_list_names.append(predefined_lists.get(key, 'Инагенты (ФИО)'))
+                # Преобразуем в список, если это не список
+                search_terms_from_lists.extend(persons_words)
+
+                if persons_words:
+                    # redis_search_lines.extend(persons_words)
+                    used_predefined_list_names.append(predefined_lists.get(key, 'Инагенты (ФИО)'))
+
+                    # Извлекаем только фамилии из ФИО
+                    surnames = set()
+
+                    for person in persons_words:
+                        # Проверяем, что это строка
+                        if not isinstance(person, str):
+                            continue
+                        person_clean = person.strip()
+                        if not person_clean:
+                            continue
+                        # Разделяем по пробелам
+                        parts = person_clean.split()
+                        # Проверяем, что это похоже на ФИО (минимум 2 слова)
+                        if len(parts) >= 2:
+                            surname = parts[0].strip()
+                            if surname:
+                                surnames.add(surname)
+
+                    surnames = sorted(surnames)
+
+                    search_terms_from_lists.extend(surnames)
 
             elif key == 'inu_b':
                 lc = ListCompanies()
                 companies_words = lc.load()
-                redis_search_lines.extend(companies_words)
+                search_terms_from_lists.extend(companies_words)
                 used_predefined_list_names.append(predefined_lists.get(key, 'Инагенты (Организации)'))
         
         # Combine with existing search_terms and deduplicate again
-        all_terms_with_redis = search_terms + redis_search_lines
+        all_terms_with_redis = search_terms + search_terms_from_lists
         unique_terms_dict = {term.strip().lower(): term.strip() for term in all_terms_with_redis if term.strip()}
         search_terms = list(unique_terms_dict.values())
         #[end]
-
 
         return {
             'search_terms': search_terms,
