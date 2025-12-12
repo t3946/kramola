@@ -77,14 +77,3 @@ def main():
 if __name__ == '__main__':
     exit_code = main()
     sys.exit(exit_code)
-
-# todo: add to cron
-# 
-# # Run every day at 7:00
-# 0 7 * * * cd /path/to/kramola && /usr/bin/python3 commands/parse_lists.py >> log/cron_parse.log 2>&1
-# # Run every day at 7:00
-# 0 7 * * * cd /path/to/kramola && /path/to/venv/bin/python commands/parse_lists.py >> log/cron_parse.log 2>&1
-# # Run every day at 7:00
-# 0 7 * * * /usr/bin/python3 /path/to/kramola/commands/parse_lists.py >> /path/to/kramola/log/cron_parse.log 2>&1
-#
-# Logs will be here: log/parse_lists.log
