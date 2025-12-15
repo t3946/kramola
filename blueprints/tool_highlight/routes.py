@@ -63,13 +63,13 @@ def _perform_highlight_processing(
     logger = current_app.logger
     redis_client = _get_redis_client()
 
-    logger.info(f"[Task {task_id}] Background processing started for '{source_filename_original}'. OCR: {perform_ocr}")
+    logger.info(f"[Task {task_id}] Background processing started for '{source_filename_original or 'lists only'}'. OCR: {perform_ocr}")
     start_time_task = time.time()
 
     if redis_client:
         try:
             redis_client.hmset(f"task:{task_id}", {
-                "state": "PROCESSING", "status_message": "Обработка документа..."
+                "state": "PROCESSING", "status_message": "Обработка документа..." if source_path else "Обработка списков..."
             })
             redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
         except Exception as e_redis:
@@ -87,50 +87,63 @@ def _perform_highlight_processing(
     final_status_for_redis = 'FAILURE'
 
     try:
-        prepared_data_unified = prepare_search_terms(all_search_lines_clean)
-        search_data_for_highlight = get_highlight_search_data(prepared_data_unified)
-        phrase_map_for_highlight = get_highlight_phrase_map(prepared_data_unified)
-
-        reset_caches()
-        result_filename_task = f"highlighted_{task_id}{file_ext}"
-        output_path = os.path.join(RESULT_DIR, result_filename_task)
-        logger.info(f"[Task {task_id}] Analysis type: {file_ext}. Output: {output_path}")
-
-        # [start] perform analyze
-        # analysis_results -- структура вроде {'word_stats': {'word': {'c': 1, 'f': {'word': 1}}}, 'phrase_stats': {}, 'total_matches': 1}
-
-        if is_docx_source:
-            # prepare words for search
-            analyse_data = AnalyseData()
-            analyse_data.readFromList(all_search_lines_clean)
-
-            # search words in document
-            analyser = Analyser(source_path)
-            analyser.set_analyse_data(analyse_data)
-            analysis_results = analyser.analyse_and_highlight()
-            analyser.save(output_path)
+        # Если нет исходного документа, просто возвращаем информацию о списках
+        if not source_path:
+            logger.info(f"[Task {task_id}] No source document provided. Returning list information only.")
+            # Подготавливаем данные для статистики списков (без обработки документа)
+            prepared_data_unified = prepare_search_terms(all_search_lines_clean)
+            # Возвращаем пустую статистику, так как документ не обрабатывался
+            task_result_data['word_stats'] = {}
+            task_result_data['phrase_stats'] = {}
+            task_result_data['total_matches'] = 0
+            final_status_for_redis = 'SUCCESS'
+            logger.info(f"[Task {task_id}] List processing completed. Lists: {used_predefined_list_names_for_session}")
         else:
-            analysis_results = analyze_and_highlight_pdf(
-                source_path,
-                search_data_for_highlight,
-                phrase_map_for_highlight,
-                output_path,
-                use_ocr=perform_ocr
-            )
+            # Обычная обработка с документом
+            prepared_data_unified = prepare_search_terms(all_search_lines_clean)
+            search_data_for_highlight = get_highlight_search_data(prepared_data_unified)
+            phrase_map_for_highlight = get_highlight_phrase_map(prepared_data_unified)
 
-        if analysis_results is None:
-            task_result_data['error'] = 'Ошибка анализа документа (сервис анализа вернул None).'
-            raise ValueError(task_result_data['error'])
+            reset_caches()
+            result_filename_task = f"highlighted_{task_id}{file_ext}"
+            output_path = os.path.join(RESULT_DIR, result_filename_task)
+            logger.info(f"[Task {task_id}] Analysis type: {file_ext}. Output: {output_path}")
 
-        # [end]
+            # [start] perform analyze
+            # analysis_results -- структура вроде {'word_stats': {'word': {'c': 1, 'f': {'word': 1}}}, 'phrase_stats': {}, 'total_matches': 1}
 
-        if os.path.exists(output_path) and os.path.isfile(output_path):
-            task_result_data['result_filename'] = result_filename_task
+            if is_docx_source:
+                # prepare words for search
+                analyse_data = AnalyseData()
+                analyse_data.readFromList(all_search_lines_clean)
 
-        task_result_data.update(analysis_results)
-        logger.info(
-            f"[Task {task_id}] Analysis successful. Matches: {task_result_data.get('total_matches', 0)}. File: {result_filename_task or 'N/A'}")
-        final_status_for_redis = 'SUCCESS'
+                # search words in document
+                analyser = Analyser(source_path)
+                analyser.set_analyse_data(analyse_data)
+                analysis_results = analyser.analyse_and_highlight()
+                analyser.save(output_path)
+            else:
+                analysis_results = analyze_and_highlight_pdf(
+                    source_path,
+                    search_data_for_highlight,
+                    phrase_map_for_highlight,
+                    output_path,
+                    use_ocr=perform_ocr
+                )
+
+            if analysis_results is None:
+                task_result_data['error'] = 'Ошибка анализа документа (сервис анализа вернул None).'
+                raise ValueError(task_result_data['error'])
+
+            # [end]
+
+            if os.path.exists(output_path) and os.path.isfile(output_path):
+                task_result_data['result_filename'] = result_filename_task
+
+            task_result_data.update(analysis_results)
+            logger.info(
+                f"[Task {task_id}] Analysis successful. Matches: {task_result_data.get('total_matches', 0)}. File: {result_filename_task or 'N/A'}")
+            final_status_for_redis = 'SUCCESS'
 
     except Exception as e:
         logger.error(f"[Task {task_id}] Error during background processing: {e}", exc_info=True)
@@ -227,6 +240,11 @@ def process_async():
             is_docx_source = upload_result['is_docx_source']
             file_ext = upload_result['file_ext']
             used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
+            
+            # Если нет исходного документа, но есть списки, устанавливаем значения по умолчанию
+            if not source_path and used_predefined_list_names_for_session:
+                is_docx_source = None
+                file_ext = None
 
         except UploadError as e:
             return jsonify({'error': e.message}), e.status_code
@@ -241,7 +259,7 @@ def process_async():
             try:
                 redis_client.hmset(f"task:{task_id}", {
                     "state": "PENDING", "status_message": "Задача принята в очередь",
-                    "source_filename": source_filename_original
+                    "source_filename": source_filename_original or "Списки для поиска"
                 })
                 redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
                 logger.info(f"[Req {task_id}] Task state PENDING saved to Redis.")

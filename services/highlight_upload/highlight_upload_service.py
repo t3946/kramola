@@ -179,15 +179,12 @@ class HighlightUploadService:
                 foreign_agents_result['list_names']
         )
 
-        if not all_search_lines:
+        if not len(predefined_result.get('selected_list_keys', [])) and not all_search_lines and not search_lines_from_text:
             raise UploadError('Укажите источник слов: файл, текстовое поле или выберите список.', 400)
 
         # Clean and deduplicate
         unique_lines_dict = {line.strip().lower(): line.strip() for line in all_search_lines if line.strip()}
         search_terms = list(unique_lines_dict.values())
-
-        if not search_terms:
-            raise UploadError('Предоставленные слова/фразы пусты или некорректны.', 400)
 
         # 6. Process special keys that load from Redis (ino, inu_b)
         search_terms_from_lists = []

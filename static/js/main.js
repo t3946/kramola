@@ -146,44 +146,64 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const sourceFileSelected = sourceFileInput.files.length > 0;
         const formAction = uploadForm.getAttribute('action') || '';
+        console.log(`formAction: ${formAction}`);
         // Важно: Асинхронная форма может иметь другой action, например, /highlight/process_async
         const isHighlightForm = formAction.includes('highlight.process') || formAction.includes('highlight.process_async');
         const isFootnotesForm = formAction.includes('footnotes.process');
+        console.log(`isHighlightForm: ${isHighlightForm}, isFootnotesForm: ${isFootnotesForm}, sourceFileSelected: ${sourceFileSelected}`);
 
-        if (!sourceFileSelected) {
-            console.log("Ошибка: Исходный документ не выбран.");
-            let errorText = 'Ошибка: Необходимо загрузить исходный документ';
-            if (isFootnotesForm) {
-                errorText += ' (.docx).';
-            } else if (isHighlightForm) { // Явно для highlight
-                errorText += ' (.docx или .pdf).';
-            } else { // Общий случай, если не одна из известных форм
-                errorText += '.';
-            }
-             if (clientErrorMessage) {
-                clientErrorMessage.textContent = errorText;
-                clientErrorMessage.style.display = 'block';
-            }
-            const sourceButton = document.querySelector('button[onclick*="source_file"]');
-            if (sourceButton && sourceButton.style) sourceButton.style.border = '2px solid red !important';
-            else if (sourceFileInput && sourceFileInput.style) sourceFileInput.style.border = '2px solid red !important';
-            window.scrollTo(0, 0);
-            return false;
-        }
-
+        // Для highlight формы: проверяем наличие документа ИЛИ готовых списков
         if (isHighlightForm) {
             console.log("Форма 'Выделение слов'. Проверка источников слов...");
             const wordsFileSelected = wordsFileInput ? wordsFileInput.files.length > 0 : false;
             const wordsTextEntered = wordsTextarea ? wordsTextarea.value.trim().length > 0 : false;
             let predefinedListSelected = false;
-            predefinedCheckboxes.forEach(checkbox => {
-                if (checkbox.checked) predefinedListSelected = true;
-            });
+            if (predefinedCheckboxes && predefinedCheckboxes.length > 0) {
+                predefinedCheckboxes.forEach(checkbox => {
+                    if (checkbox && checkbox.checked) {
+                        predefinedListSelected = true;
+                    }
+                });
+            }
+            console.log(`Найдено чекбоксов: ${predefinedCheckboxes ? predefinedCheckboxes.length : 0}, выбрано: ${predefinedListSelected}`);
             const selectedMethod = document.querySelector('input[name="input-method"]:checked')?.value || 'file';
 
-            if (!predefinedListSelected &&
-                ((selectedMethod === 'file' && !wordsFileSelected) || (selectedMethod === 'text' && !wordsTextEntered))
-            ) {
+            // Проверяем наличие источника слов
+            const hasWordsSource = predefinedListSelected ||
+                (selectedMethod === 'file' && wordsFileSelected) ||
+                (selectedMethod === 'text' && wordsTextEntered);
+
+            console.log(`Валидация: sourceFileSelected=${sourceFileSelected}, predefinedListSelected=${predefinedListSelected}, hasWordsSource=${hasWordsSource}`);
+
+            // Ошибка должна появляться только если НЕ выбран документ И НЕ выбрана ни одна галочка в шаге 3
+            if (!sourceFileSelected && !hasWordsSource) {
+                console.log("Ошибка: Не выбран документ и не выбран источник слов.");
+                if (clientErrorMessage) {
+                    clientErrorMessage.textContent = 'Ошибка: Необходимо загрузить исходный документ (.docx или .pdf) или выбрать готовый список для поиска.';
+                    clientErrorMessage.style.display = 'block';
+                }
+                const sourceButton = document.querySelector('button[onclick*="source_file"]');
+                if (sourceButton && sourceButton.style) sourceButton.style.border = '2px solid red !important';
+                else if (sourceFileInput && sourceFileInput.style) sourceFileInput.style.border = '2px solid red !important';
+                
+                if (!predefinedListSelected &&
+                    ((selectedMethod === 'file' && !wordsFileSelected) || (selectedMethod === 'text' && !wordsTextEntered))
+                ) {
+                    if (selectedMethod === 'file' && !wordsFileSelected) {
+                        const btn = document.querySelector('button[onclick*="words_file"]');
+                        if (btn && btn.style) btn.style.border = '2px solid red !important';
+                        else if (wordsFileInput && wordsFileInput.style) wordsFileInput.style.border = '2px solid red !important';
+                    } else if (selectedMethod === 'text' && !wordsTextEntered) {
+                        if (wordsTextarea && wordsTextarea.style) wordsTextarea.style.border = '2px solid red !important';
+                    }
+                    if (checkboxGroup && checkboxGroup.style) checkboxGroup.style.border = '2px solid red !important';
+                }
+                window.scrollTo(0, 0);
+                return false;
+            }
+
+            // Проверяем наличие источника слов (если документ выбран, но нет источника слов)
+            if (sourceFileSelected && !hasWordsSource) {
                 if (clientErrorMessage) {
                     clientErrorMessage.textContent = 'Ошибка: Укажите источник слов - загрузите файл, введите текст или выберите готовый список.';
                     clientErrorMessage.style.display = 'block';
@@ -196,6 +216,37 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (wordsTextarea && wordsTextarea.style) wordsTextarea.style.border = '2px solid red !important';
                 }
                 if (checkboxGroup && checkboxGroup.style) checkboxGroup.style.border = '2px solid red !important';
+                window.scrollTo(0, 0);
+                return false;
+            }
+
+            // Если дошли сюда, значит валидация прошла успешно - очищаем ошибки
+            console.log("Валидация прошла успешно для highlight формы. sourceFileSelected=" + sourceFileSelected + ", hasWordsSource=" + hasWordsSource);
+            resetHighlights();
+            if (clientErrorMessage) {
+                clientErrorMessage.textContent = '';
+                clientErrorMessage.style.display = 'none';
+            }
+            // Явно возвращаем true для highlight формы, если валидация прошла
+            console.log("--- validateFields успешно завершена для highlight ---");
+            return true;
+        } else {
+            // Для других форм (footnotes и т.д.): документ обязателен
+            if (!sourceFileSelected) {
+                console.log("Ошибка: Исходный документ не выбран.");
+                let errorText = 'Ошибка: Необходимо загрузить исходный документ';
+                if (isFootnotesForm) {
+                    errorText += ' (.docx).';
+                } else { // Общий случай, если не одна из известных форм
+                    errorText += '.';
+                }
+                if (clientErrorMessage) {
+                    clientErrorMessage.textContent = errorText;
+                    clientErrorMessage.style.display = 'block';
+                }
+                const sourceButton = document.querySelector('button[onclick*="source_file"]');
+                if (sourceButton && sourceButton.style) sourceButton.style.border = '2px solid red !important';
+                else if (sourceFileInput && sourceFileInput.style) sourceFileInput.style.border = '2px solid red !important';
                 window.scrollTo(0, 0);
                 return false;
             }
