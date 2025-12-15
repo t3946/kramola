@@ -331,14 +331,20 @@ def process_async():
 @highlight_bp.route('/results')
 def results():
     logger = current_app.logger
-    last_result_data = session.get('last_result_data_highlight')
-
+    task_id = request.args.get('task_id')
+    
+    if not task_id:
+        logger.warning("Access to /results without task_id parameter. Redirecting to index.")
+        return redirect(url_for('highlight.index'))
+    
+    from services.task.result import TaskResult
+    last_result_data = TaskResult.load(task_id)
+    
     if not last_result_data:
-        logger.warning("Access to /results without last_result_data_highlight in session. Redirecting to index.")
+        logger.warning(f"Access to /results with task_id {task_id} but no result data found. Redirecting to index.")
         return redirect(url_for('highlight.index'))
 
-    # Ensure task_id is available for template, even if it's from _task_id_ref
-    task_id_for_template = last_result_data.get('_task_id_ref', 'N/A')
+    task_id_for_template = last_result_data.get('_task_id_ref', task_id)
 
     if last_result_data.get('error'):
         logger.error(

@@ -343,20 +343,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         clearInterval(pollIntervalId);
                         pollIntervalId = null;
                         if(statusTextElement) statusTextElement.textContent = "Обработка завершена! Перенаправление...";
-                        // Для {{ url_for }} в JS, его нужно передать из шаблона, например, через data-атрибут
-                        // или определенную глобальную переменную. Пока захардкодим, если это тестовый URL.
-                        // ПРАВИЛЬНО: window.location.href = document.body.dataset.resultsUrl; (если <body data-results-url="{{ url_for(...) }}">)
-                        window.location.href = "/highlight/results"; // ЗАМЕНИТЕ НА ДИНАМИЧЕСКИЙ URL, ЕСЛИ НУЖНО
+                        window.location.href = `/highlight/results?task_id=${taskId}`;
                     } else if (data.state === 'FAILURE') {
                         clearInterval(pollIntervalId);
                         pollIntervalId = null;
                         hideProcessingState();
                         let errorMsg = data.status || 'Произошла ошибка при обработке файла.';
-                        if(data.result_data_for_session) {
-                             window.location.href = "/highlight/results"; // ЗАМЕНИТЕ НА ДИНАМИЧЕСКИЙ URL
-                        } else {
-                            displayClientError(errorMsg);
-                        }
+                        window.location.href = `/highlight/results?task_id=${taskId}`;
                     } else if (data.state === 'NOT_FOUND') {
                         clearInterval(pollIntervalId);
                         pollIntervalId = null;
