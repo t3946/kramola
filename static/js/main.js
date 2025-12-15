@@ -85,9 +85,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 errorMessage = 'Ошибка: Исходный документ должен быть в формате .docx.';
                 defaultInfoText = 'Файл: docx | файл не выбран';
             } else {
-                allowedExtensionsRegex = /\.docx|\.pdf$/i;
-                errorMessage = 'Ошибка: Исходный документ должен быть в формате .docx или .pdf.';
-                defaultInfoText = 'Файл: docx, pdf | файл не выбран';
+                allowedExtensionsRegex = /\.docx|\.pdf|\.odt$/i;
+                errorMessage = 'Ошибка: Исходный документ должен быть в формате .docx, .pdf или .odt.';
+                defaultInfoText = 'Файл: docx, pdf, odt | файл не выбран';
             }
             if (!allowedExtensionsRegex.test(fileName)) {
                 handleInvalidFile(sourceFileInput, 'button[onclick*="source_file"]', 'source_file_info', defaultInfoText, `${errorMessage} Некорректный файл: ${file.name}`);
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!sourceFileSelected && !hasWordsSource) {
                 console.log("Ошибка: Не выбран документ и не выбран источник слов.");
                 if (clientErrorMessage) {
-                    clientErrorMessage.textContent = 'Ошибка: Необходимо загрузить исходный документ (.docx или .pdf) или выбрать готовый список для поиска.';
+                    clientErrorMessage.textContent = 'Ошибка: Необходимо загрузить исходный документ (.docx, .pdf или .odt) или выбрать готовый список для поиска.';
                     clientErrorMessage.style.display = 'block';
                 }
                 const sourceButton = document.querySelector('button[onclick*="source_file"]');
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
             resetHighlights();
             validateFileExtensions();
             const fileInfo = document.getElementById('source_file_info');
-            if(fileInfo) fileInfo.textContent = this.files.length > 0 ? `Файл: ${this.files[0].name}` : 'Файл: docx, pdf | файл не выбран';
+            if(fileInfo) fileInfo.textContent = this.files.length > 0 ? `Файл: ${this.files[0].name}` : 'Файл: docx, pdf, odt | файл не выбран';
         });
     }
     if (wordsFileInput) {

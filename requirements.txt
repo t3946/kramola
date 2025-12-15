@@ -16,3 +16,4 @@ Flask-Executor
 redis
 python-dotenv
 selenium
+odfpy
