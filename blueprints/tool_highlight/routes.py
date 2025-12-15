@@ -438,3 +438,6 @@ def download_result(filename):
             session['last_result_data_highlight']['error'] = error_msg  # Update session error
             session['last_result_data_highlight']['result_filename'] = None
         return render_template('tool_highlight/index.html', error=error_msg), 404  # Or redirect to results
+
+
+from .api.task_status import check_task_status  # noqa: F401, E402
