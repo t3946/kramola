@@ -222,4 +222,4 @@ if __name__ == '__main__':
 
     print(f"Service stated on {app_host}:{app_port}")
     print(f"Web access http://localhost:{app_port}")
-    app.run(debug=True, host=app_host, port=app_port)
+    app.run(debug=True, use_reloader=True, host=app_host, port=app_port)
