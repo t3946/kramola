@@ -7,3 +7,12 @@ log
 /results*
 /uploads*
 __pycache__
+
+# Node.js
+node_modules/
+package-lock.json
+yarn.lock
+
+# Vite
+dist/
+.vite/

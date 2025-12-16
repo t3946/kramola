@@ -1,4 +1,3 @@
-﻿from flask_socketio import on
 from .rooms.task_progress import TaskProgressRoom
 
 def register_socketio_handlers(socketio):
