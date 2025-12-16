@@ -22,11 +22,24 @@ try:
 except ImportError:
     FIT_AVAILABLE = False
 
-try:
-    from utils import load_lines_from_txt
-except ImportError:
-    def load_lines_from_txt(filepath):
-        raise FileNotFoundError(f"Utils module or function not found, cannot load {filepath}")
+
+def _load_lines_from_txt(filepath):
+    """Загружает строки из текстового файла, удаляя пустые строки и пробелы по краям."""
+    lines = []
+    try:
+        # Используем utf-8-sig для обработки BOM (Byte Order Mark), если он есть
+        # Читаем файл целиком для лучшей производительности
+        with open(filepath, 'r', encoding='utf-8-sig') as f:
+            content = f.read()
+            lines = [line.strip() for line in content.splitlines() if line.strip()]
+        logger.debug(f"Успешно загружено {len(lines)} строк из файла: {filepath}")
+    except FileNotFoundError:
+        logger.error(f"Файл не найден: {filepath}")
+        return []
+    except Exception as e:
+        logger.error(f"Ошибка чтения файла {filepath}: {e}", exc_info=True)
+        return []
+    return lines
 
 
 class HighlightUploadService:
@@ -253,15 +266,10 @@ class HighlightUploadService:
 
             # File-based lists (mat, narkot, yaldo)
             elif key in ('mat', 'narkot', 'yaldo'):
-                # Получаем корень проекта (3 уровня выше от services/highlight_upload/)
-                project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                # Используем относительный путь от корня проекта
-                filepath = os.path.join(project_root, "predefined_lists", f"{key}.txt")
-                lines = load_lines_from_txt(filepath)
-                cleaned_lines = [line.strip() for line in lines if line.strip()]
-                if cleaned_lines:
-                    search_terms_from_lists.extend(cleaned_lines)
-                    used_predefined_list_names.append(display_name)
+                filepath = os.path.join(predefined_lists_dir, f"{key}.txt")
+                lines = _load_lines_from_txt(filepath)
+                search_terms_from_lists.extend(lines)
+                used_predefined_list_names.append(display_name)
 
         # Combine with existing search_terms and deduplicate again
         all_terms_with_lists = search_terms + search_terms_from_lists

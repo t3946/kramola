@@ -7,11 +7,10 @@ def load_lines_from_txt(filepath):
     lines = []
     try:
         # Используем utf-8-sig для обработки BOM (Byte Order Mark), если он есть
+        # Читаем файл целиком для лучшей производительности
         with open(filepath, 'r', encoding='utf-8-sig') as f:
-            for line in f:
-                stripped_line = line.strip()
-                if stripped_line: # Добавляем только непустые строки
-                    lines.append(stripped_line)
+            content = f.read()
+            lines = [line.strip() for line in content.splitlines() if line.strip()]
         logging.debug(f"Успешно загружено {len(lines)} строк из файла: {filepath}")
     except FileNotFoundError:
         logging.error(f"Файл не найден: {filepath}")
