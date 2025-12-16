@@ -5,6 +5,7 @@ import logging
 from concurrent_log_handler import ConcurrentRotatingFileHandler  # <-- Используем этот хендлер
 from flask import Flask, redirect, url_for
 from flask_executor import Executor
+from flask_socketio import SocketIO
 import redis
 from dotenv import load_dotenv
 
@@ -78,6 +79,9 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY',
 app.config['EXECUTOR_TYPE'] = 'thread'  # или 'process'
 app.config['EXECUTOR_MAX_WORKERS'] = 5  # Количество одновременных фоновых задач
 executor = Executor(app)
+
+# Initialize SocketIO
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', logger=True, engineio_logger=True)
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 # Общие директории
@@ -190,6 +194,10 @@ app.register_blueprint(footnotes_bp, url_prefix='/footnotes')
 
 app.register_blueprint(foreign_agents_bp, url_prefix='/foreign-agents')
 
+# Register Socket.IO handlers
+from blueprints.tool_highlight.socketio.socketio_handlers import register_socketio_handlers
+register_socketio_handlers(socketio)
+
 # --- Маршрут по умолчанию ---
 @app.route('/')
 def home():
@@ -222,4 +230,4 @@ if __name__ == '__main__':
 
     print(f"Service stated on {app_host}:{app_port}")
     print(f"Web access http://localhost:{app_port}")
-    app.run(debug=True, use_reloader=True, host=app_host, port=app_port)
+    socketio.run(app, debug=True, use_reloader=True, host=app_host, port=app_port)
