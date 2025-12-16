@@ -163,11 +163,8 @@ class HighlightUploadService:
                 words_path = save_uploaded_file(words_file_input, upload_dir, words_filename_unique)
                 if not words_path:
                     raise UploadError('Ошибка сохранения файла слов (.docx).', 500)
-                try:
-                    search_lines_from_file = extract_lines_from_docx(words_path)
-                    if not isinstance(search_lines_from_file, list):
-                        search_lines_from_file = []
-                except Exception:
+                search_lines_from_file = extract_lines_from_docx(words_path)
+                if not isinstance(search_lines_from_file, list):
                     search_lines_from_file = []
             elif words_filename_lower.endswith('.xlsx'):
                 # words_path is not set for xlsx currently
@@ -193,26 +190,18 @@ class HighlightUploadService:
         # 2. Words from text input
         search_lines_from_text = HighlightUploadService._process_text_input(request)
 
-        # 3. Predefined lists from files
+        # 3. Predefined lists (from files and Redis)
         predefined_result = HighlightUploadService._load_predefined_lists(
             request, predefined_lists_dir, predefined_lists
         )
 
-        # 4. Foreign agents lists from Redis
-        foreign_agents_result = HighlightUploadService._load_foreign_agents_lists(request)
-
-        # 5. Combine all search lines
+        # 4. Combine initial search lines (before predefined lists processing)
         all_search_lines = (
                 search_lines_from_file +
-                search_lines_from_text +
-                predefined_result['search_lines'] +
-                foreign_agents_result['search_lines']
+                search_lines_from_text
         )
 
-        used_predefined_list_names = (
-                predefined_result['list_names'] +
-                foreign_agents_result['list_names']
-        )
+        used_predefined_list_names = []
 
         if not len(predefined_result.get('selected_list_keys', [])) and not all_search_lines and not search_lines_from_text:
             raise UploadError('Укажите источник слов: файл, текстовое поле или выберите список.', 400)
@@ -221,56 +210,63 @@ class HighlightUploadService:
         unique_lines_dict = {line.strip().lower(): line.strip() for line in all_search_lines if line.strip()}
         search_terms = list(unique_lines_dict.values())
 
-        # 6. Process special keys that load from Redis (ino, inu_b)
+        # 5. Process all selected predefined lists (files and Redis)
         search_terms_from_lists = []
-
-        # [start] add words from selected predefined lists
         selected_list_keys = predefined_result.get('selected_list_keys', [])
 
         for key in selected_list_keys:
+            if not key or key not in predefined_lists:
+                continue
+
+            display_name = predefined_lists.get(key, key)
+
+            # Redis-based lists (ino, inu_b)
             if key == 'ino':
                 lp = ListPersons()
                 persons_words = lp.load()
-                # Преобразуем в список, если это не список
-                search_terms_from_lists.extend(persons_words)
-
                 if persons_words:
-                    # redis_search_lines.extend(persons_words)
-                    used_predefined_list_names.append(predefined_lists.get(key, 'Инагенты (ФИО)'))
+                    search_terms_from_lists.extend(persons_words)
+                    used_predefined_list_names.append(display_name)
 
                     # Извлекаем только фамилии из ФИО
                     surnames = set()
-
                     for person in persons_words:
-                        # Проверяем, что это строка
                         if not isinstance(person, str):
                             continue
                         person_clean = person.strip()
                         if not person_clean:
                             continue
-                        # Разделяем по пробелам
                         parts = person_clean.split()
-                        # Проверяем, что это похоже на ФИО (минимум 2 слова)
                         if len(parts) >= 2:
                             surname = parts[0].strip()
                             if surname:
                                 surnames.add(surname)
-
                     surnames = sorted(surnames)
-
                     search_terms_from_lists.extend(surnames)
 
             elif key == 'inu_b':
                 lc = ListCompanies()
                 companies_words = lc.load()
-                search_terms_from_lists.extend(companies_words)
-                used_predefined_list_names.append(predefined_lists.get(key, 'Инагенты (Организации)'))
+                if companies_words:
+                    search_terms_from_lists.extend(companies_words)
+                    used_predefined_list_names.append(display_name)
+
+            # File-based lists (mat, narkot, yaldo)
+            elif key in ('mat', 'narkot', 'yaldo'):
+                # Получаем корень проекта (3 уровня выше от services/highlight_upload/)
+                project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                # Используем относительный путь от корня проекта
+                filepath = os.path.join(project_root, "predefined_lists", f"{key}.txt")
+                lines = load_lines_from_txt(filepath)
+                cleaned_lines = [line.strip() for line in lines if line.strip()]
+                if cleaned_lines:
+                    search_terms_from_lists.extend(cleaned_lines)
+                    used_predefined_list_names.append(display_name)
 
         # Combine with existing search_terms and deduplicate again
-        all_terms_with_redis = search_terms + search_terms_from_lists
-        unique_terms_dict = {term.strip().lower(): term.strip() for term in all_terms_with_redis if term.strip()}
+        all_terms_with_lists = search_terms + search_terms_from_lists
+        unique_terms_dict = {term.strip().lower(): term.strip() for term in all_terms_with_lists if term.strip()}
         search_terms = list(unique_terms_dict.values())
-        # [end]
 
         return {
             'search_terms': search_terms,
@@ -295,63 +291,12 @@ class HighlightUploadService:
             predefined_lists_dir: str,
             predefined_lists: dict
     ) -> Dict:
-        """Load predefined lists from files."""
-        additional_search_lines = []
-        used_predefined_list_names = []
+        """Get selected predefined list keys. Actual loading is done in universal code section."""
         selected_list_keys = request.form.getlist('predefined_list_keys')
 
-        if selected_list_keys:
-            for key in selected_list_keys:
-                if not key or key not in predefined_lists:
-                    continue
-                # Skip Redis-based lists (they are handled separately)
-                if key in ('ino', 'inu_b'):
-                    continue
-                filepath = os.path.join(predefined_lists_dir, f"{key}.txt")
-                display_name = predefined_lists[key]
-                try:
-                    lines = load_lines_from_txt(filepath)
-                    cleaned_lines = [line.strip() for line in lines if line.strip()]
-                    if cleaned_lines:
-                        additional_search_lines.extend(cleaned_lines)
-                        used_predefined_list_names.append(display_name)
-                except (FileNotFoundError, Exception):
-                    pass
-
         return {
-            'search_lines': additional_search_lines,
-            'list_names': used_predefined_list_names,
+            'search_lines': [],
+            'list_names': [],
             'selected_list_keys': selected_list_keys,
         }
 
-    @staticmethod
-    def _load_foreign_agents_lists(request: Request) -> Dict:
-        """Load foreign agents lists from Redis if selected."""
-        foreign_agents_lines = []
-        used_list_names = []
-        predefined_lists_selected = request.form.getlist('predefined_lists[]')
-
-        if "Инагенты (ФИО)" in predefined_lists_selected:
-            try:
-                from services.words_list.list_persons import ListPersons
-                lp = ListPersons()
-                persons_words = lp.load()
-                foreign_agents_lines.extend(persons_words)
-                used_list_names.append("Инагенты (ФИО)")
-            except Exception:
-                pass
-
-        if "Инагенты (Организации)" in predefined_lists_selected:
-            try:
-                from services.words_list.list_companies import ListCompanies
-                lc = ListCompanies()
-                companies_words = lc.load()
-                foreign_agents_lines.extend(companies_words)
-                used_list_names.append("Инагенты (Организации)")
-            except Exception:
-                pass
-
-        return {
-            'search_lines': foreign_agents_lines,
-            'list_names': used_list_names
-        }
