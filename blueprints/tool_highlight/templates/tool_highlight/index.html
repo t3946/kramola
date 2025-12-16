@@ -116,6 +116,14 @@ function loadFileData(filename) {
             <p id="statusText" style="font-style: italic;">Инициализация...</p>
         </div>
 
+        <div class="progressBarContainer" style="margin: 15px 0;">
+            {% set progress_id = 'highlight-progress-bar' %}
+            {% set progress_label = 'Прогресс обработки' %}
+            {% set progress_value = 0 %}
+            {% set progress_color = 'primary' %}
+            {% include 'components/progress_bar.html' with context %}
+        </div>
+
         <div class="action-buttons">
             <button type="button" class="button cancel" onclick="window.location.reload();">Отмена</button>
             <button type="submit" class="button" id="submitButton">Обработать</button>
@@ -130,9 +138,4 @@ function loadFileData(filename) {
 </div>
 {% endblock %}
 
-{% block scripts_extra %}
-<script>
-
-
-</script>
-{% endblock %}
+{% block scripts_extra %}{% endblock %}

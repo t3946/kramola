@@ -1,0 +1,47 @@
+{# 
+    Шаблон компонента ProgressBar для Flask
+    
+    Использование:
+    {% include 'components/progress_bar.html' with context %}
+    
+    Или с параметрами:
+    {% set progress_id = 'my-progress' %}
+    {% set progress_label = 'Загрузка файла...' %}
+    {% set progress_value = 45 %}
+    {% set progress_color = 'primary' %}
+    {% include 'components/progress_bar.html' with context %}
+#}
+
+{# Параметры по умолчанию #}
+{% set progress_id = progress_id | default('progress-bar-' + range(1000, 9999) | random | string) %}
+{% set progress_label = progress_label | default('') %}
+{% set progress_value = progress_value | default(0) %}
+{% set progress_color = progress_color | default('primary') %}
+{% set progress_show_percentage = progress_show_percentage | default(true) %}
+{% set progress_size = progress_size | default('') %}
+{% set progress_class = progress_class | default('') %}
+
+<div class="progress-bar-container {{ progress_size }} {{ progress_class }}" id="{{ progress_id }}">
+    {% if progress_label %}
+        <div class="progress-bar-label">{{ progress_label }}</div>
+    {% endif %}
+    <div class="progress-bar-wrapper">
+        <div class="progress-bar-fill animated progress-bar-{{ progress_color }}" 
+             style="width: {{ progress_value }}%"
+             data-value="{{ progress_value }}">
+            {% if progress_show_percentage %}
+                <span class="progress-bar-text">{{ progress_value | round | int }}%</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{# 
+    Для автоматической инициализации через JS используйте:
+    <div class="progress-bar-auto" 
+         data-label="Загрузка..."
+         data-value="0"
+         data-color="primary"
+         data-show-percentage="true">
+    </div>
+#}

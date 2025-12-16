@@ -3,3 +3,5 @@
 
 import './main-app.js';
 import './error-popup.js';
+import './components/progress-bar.js';
+import './highlight.js';
