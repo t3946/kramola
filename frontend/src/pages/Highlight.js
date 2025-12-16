@@ -4,6 +4,7 @@
  */
 
 import { Page } from './Page.js';
+import socketIOService from '../services/SocketIOService.js';
 
 class Highlight extends Page {
     constructor() {
@@ -21,6 +22,7 @@ class Highlight extends Page {
         
         this.progressBarElement = null;
         this.progressBarInstance = null;
+        this.taskId = null;
         
         this.init();
     }
@@ -58,8 +60,38 @@ class Highlight extends Page {
         // Получаем экземпляр
         this.progressBarInstance = this.progressBarElement.instance;
         
+        // Получаем task_id из URL параметров
+        const urlParams = new URLSearchParams(window.location.search);
+        this.taskId = urlParams.get('task_id') || urlParams.get('check_task_id');
+        
+        // Если есть task_id, подключаемся к Socket.IO комнате
+        if (this.taskId) {
+            this.connectToProgressRoom();
+        }
+        
         // Устанавливаем начальное значение
         this.updateView();
+    }
+    
+    /**
+     * Подключается к Socket.IO комнате прогресса задачи
+     */
+    connectToProgressRoom() {
+        if (!this.taskId) {
+            return;
+        }
+        
+        socketIOService.joinTaskProgress(
+            this.taskId,
+            (data) => {
+                // Обновляем прогресс при получении события progress
+                this.state.progress = data.progress || 0;
+                this.updateView();
+            },
+            (data) => {
+                // Обработка события joined (опционально)
+            }
+        );
     }
     
     /**
@@ -70,10 +102,7 @@ class Highlight extends Page {
             return;
         }
         
-        // Обновляем состояние
-        this.state.progress = 50;
-        
-        // Устанавливаем значение в прогресс-бар
+        // Устанавливаем значение в прогресс-бар из state
         this.progressBarInstance.setValue(this.state.progress);
     }
 }
