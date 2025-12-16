@@ -35,7 +35,7 @@ export default defineConfig({
     emptyOutDir: true, // Очищаем директорию dist при сборке
     minify: false, // Отключаем минификацию в режиме разработки для более быстрой сборки
     rollupOptions: {
-      input: resolve(__dirname, 'frontend/src/main.js'),
+      input: resolve(__dirname, 'frontend/src/Main.js'),
       output: {
         entryFileNames: 'bundle.js',
         format: 'iife',

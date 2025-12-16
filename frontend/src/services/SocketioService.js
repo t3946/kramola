@@ -3,7 +3,7 @@
  * Предоставляет простой интерфейс для подключения к комнатам и подписки на события
  */
 
-class SocketIOService {
+class SocketioService {
     constructor() {
         this.socket = null;
         this.connected = false;
@@ -155,7 +155,7 @@ class SocketIOService {
 }
 
 // Создаем единственный экземпляр сервиса (singleton)
-const socketIOService = new SocketIOService();
+const socketIOService = new SocketioService();
 
 // Экспортируем для использования в других модулях
 export default socketIOService;

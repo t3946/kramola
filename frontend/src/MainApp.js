@@ -1,6 +1,6 @@
-// main.js
+// Main.js
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM загружен, скрипт main.js выполняется.");
+    console.log("DOM загружен, скрипт Main.js выполняется.");
 
     // --- ОБЩИЕ ЭЛЕМЕНТЫ DOM (объявляем один раз) ---
     const uploadForm = document.getElementById('uploadForm');

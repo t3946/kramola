@@ -3,9 +3,9 @@
  * Управляет прогресс-баром на странице выделения слов
  */
 
-import { BasePage } from './base-page.js';
+import { Page } from './Page.js';
 
-class Highlight extends BasePage {
+class Highlight extends Page {
     constructor() {
         super();
         
