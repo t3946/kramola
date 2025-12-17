@@ -6,16 +6,68 @@ priority: 1
 ---
 
 # Be concise
-1. Do not make any try catch/except until you asked about it
-2. Any import should place at the top of file
-3. Do not print any logs until you asked about it
-4. Do not write verbose comments until you asked about it, most comments should be short
+1. Wirte any debug info in english
+2. Do not make any try catch/except until you asked about it
+3. Any import should place at the top of file
+4. Do not print any logs until you asked about it
 5. Write type hints for all functions (JSDoc or Python typing)
 6. Prefer array methods (map, filter) over loops when possible
 
+## Comments
+1. Write any comments in english
+2. Do not write verbose comments until you asked about it, most comments should be short
+3. Comment blocks. You can use comment blocks for describe multiline in two cases: single commands code or Multiple related blocks. Main target of code blocks: split long function logic on several understandable steps
+Example:
+```js
+//[start] multiline single commands
+let a = 1
+let b = 2
+
+a = a + b
+b = a - b
+a = a - b
+//[end]
+
+//[start] Multiple related blocks
+if (a) {
+    console.log(a)
+}
+
+if (b) {
+    console.log(b)
+}
+//[end]
+```
+
 # Code style
 ## Empty line between code blocs
-1. When "if", "for", "return" is not the first line in code block then should place empty line before it
+1. When "if", "for", "return" is not the first line in code block then should place empty line before and after it. Example
+```python
+#[start] BAD
+arr = []
+for i in 5:
+    if i < len(arr):
+        arr.append(i)
+arr.append(0)
+#[end]
+
+#[start] GOOD
+arr = []
+
+for i in 5:
+    if i < len(arr):
+        arr.append(i)
+
+arr.append(0)
+#[end]
+```
+2. In objects, dictionaries, etc definitions avery key on new line. Example:
+```js
+// GOOD this is a short definition
+const o = {x: 1, y: 2}
+// NORMAL
+const o = {lemma: 1, stemma: 2}
+```
 
 # Classes
 1. Most of code logic should be writen in classes.
