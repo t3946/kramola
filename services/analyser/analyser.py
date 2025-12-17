@@ -1,19 +1,15 @@
-import json
-import logging
-
 import docx
 from typing import List, Union, Optional
 from collections import defaultdict, Counter
 
-from docx.enum.text import WD_COLOR_INDEX
 from docx.text.paragraph import Paragraph
 from docx.text.hyperlink import Hyperlink
 from docx.table import Table
 from docx.oxml.ns import qn
-from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink  # CT_R is Complex Type _ Run
+from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analyser import AnalyseData
-from services.common_docx import tokenize_paragraph_universal, tokenize_text
+from services.common_docx import tokenize_text
 from services.highlight_service import _find_matches_in_paragraph_tokens
 from utils.timeit import timeit
 from copy import deepcopy
@@ -34,7 +30,7 @@ class Analyser:
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
 
-    def set_analyse_data(self, analyse_data):
+    def set_analyse_data(self, analyse_data: AnalyseData) -> None:
         self.analyse_data = analyse_data
 
     @staticmethod
@@ -58,14 +54,13 @@ class Analyser:
                 new_run.insert(0, rPr)
 
             highlight = OxmlElement('w:highlight')
-            highlight.set(qn('w:val'), 'green')  # зеленая подсветка (BRIGHT_GREEN)
+            highlight.set(qn('w:val'), 'green')
             rPr.append(highlight)
 
         return new_run
 
-    # find and split run on three new: before, middle and after parts where middle arranged with supplied indices
     @staticmethod
-    def __isolate_new_run_xml(batch, phrase_start_index, phrase_end_index) -> List[CT_R]:
+    def __isolate_new_run_xml(batch: List[CT_R], phrase_start_index: int, phrase_end_index: int) -> List[CT_R]:
         # after Run split operation, batch need to be updated
         new_batch = []
 
@@ -75,8 +70,7 @@ class Analyser:
         for run_source in batch:
             source_run_text_element: CT_Text = run_source.find(qn('w:t'))
 
-            # run has no text
-            if source_run_text_element == None:
+            if source_run_text_element is None:
                 new_batch.append(run_source)
                 continue
 
@@ -116,7 +110,6 @@ class Analyser:
         return new_batch
 
     def __update_match_statistics(self, match: dict, tokens: list) -> None:
-        """Обновляет статистику найденных совпадений (фраз и слов)."""
         start_token_idx = match['start_token_idx']
         end_token_idx = match['end_token_idx']
 
@@ -124,22 +117,21 @@ class Analyser:
             lemma_key = match['lemma_key']
             phrase_key_str = " ".join(lemma_key)
             stats = self.phrase_stats[phrase_key_str]
-
-            # Извлекаем оригинальный текст фразы из токенов
             text_parts = []
+
             for i in range(start_token_idx, end_token_idx + 1):
                 if i < len(tokens):
                     text_parts.append(tokens[i]['text'])
-            found_text = "".join(text_parts).strip()
 
+            found_text = "".join(text_parts).strip()
             stats['count'] += 1
             stats['forms'][found_text] += 1
         elif match['type'] == 'word':
             lemma_key = match['lemma_key']
+
             if lemma_key:
                 stats = self.word_stats[lemma_key]
 
-                # Извлекаем оригинальный текст слова из токенов
                 if start_token_idx < len(tokens):
                     found_text = tokens[start_token_idx]['text']
                     stats['count'] += 1
@@ -192,7 +184,7 @@ class Analyser:
 
         return batches
 
-    def __analyse_paragraph(self, paragraph: Paragraph):
+    def __analyse_paragraph(self, paragraph: Paragraph) -> None:
         batches = Analyser.__split_on_batches(paragraph._element)
 
         for batch in batches:
@@ -203,25 +195,22 @@ class Analyser:
         for link in hyperlinks:
             self.__analyze_link(link._element)
 
-    def __analyze_link(self, link: CT_Hyperlink):
+    def __analyze_link(self, link: CT_Hyperlink) -> None:
         batches = Analyser.__split_on_batches(link)
 
         for batch in batches:
             self.__process_batch(batch)
 
-        return None
-
     @timeit
-    def analyse_and_highlight(self, task_id: Optional[str] = None):
+    def analyse_and_highlight(self, task_id: Optional[str] = None) -> dict:
         #[start] reset stats
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         #[end]
-        
-        # Подсчитываем общее количество элементов для прогресса
+
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables
-        
+
         # [start] count progress max
         progress = None
 
@@ -240,6 +229,7 @@ class Analyser:
         # process paragraphs
         for paragraph in paragraphs:
             self.__analyse_paragraph(paragraph)
+
             if progress:
                 progress.add(1)
 
@@ -254,19 +244,18 @@ class Analyser:
 
                         if progress:
                             progress.add(1)
-        
-        # Финальное обновление прогресса (применяем все накопленные изменения)
+
         if progress:
             progress.flush()
             progress.clear()
 
-        #[start] Возвращаем статистику в том же формате, что и analyze_and_highlight_pdf
+        #[start] return stats in same format as analyze_and_highlight_pdf
         final_ws = {l: {'c': d['count'], 'f': dict(d['forms'])} for l, d in self.word_stats.items()}
         final_ps = {phrase_lemma_str: {'c': d['count'], 'f': dict(d['forms'])} for phrase_lemma_str, d in
                     self.phrase_stats.items()}
         total_matches = sum(d['count'] for d in self.word_stats.values()) + sum(
             d['count'] for d in self.phrase_stats.values())
-        
+
         return {'word_stats': final_ws, 'phrase_stats': final_ps, 'total_matches': total_matches}
         #[end]
 
