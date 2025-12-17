@@ -1,3 +1,11 @@
+---
+description: "This specification describes development rules for modular architecture without frameworks"
+alwaysApply: true
+appliesTo: ["**/*js", "**/*ts"]
+priority: 1
+tags: [javascript, modular]
+---
+
 ***
 
 # Спецификация: Архитектура компонентов на нативном JS

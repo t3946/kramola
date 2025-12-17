@@ -1,0 +1,22 @@
+---
+description: "Common code style rules"
+alwaysApply: true
+appliesTo: ["**/*.js", "**/*.py"]
+priority: 1
+---
+
+# Be concise
+1. Do not make any try catch/except until you asked about it
+2. Any import should place at the top of file
+3. Do not print any logs until you asked about it
+4. Do not write verbose comments until you asked about it, most comments should be short
+5. Write type hints for all functions (JSDoc or Python typing)
+6. Prefer array methods (map, filter) over loops when possible
+
+# Code style
+## Empty line between code blocs
+1. When "if", "for", "return" is not the first line in code block then should place empty line before it
+
+# Classes
+1. Most of code logic should be writen in classes.
+2. If non-static class methods returns void and it can be replaced on return itself then do it.
