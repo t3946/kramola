@@ -11,9 +11,23 @@ class Highlight extends Page {
     constructor() {
         super();
         
-        // Проверяем, что мы на нужной странице
-        if (!this.isCurrentPage('/highlight', 'uploadForm', 'action', 'highlight')) {
+        // Ищем страницу по CSS классу
+        const $pageEl = u('.js-page-highlight');
+        if (!$pageEl.length) {
             return;
+        }
+        
+        // Сохраняем элемент страницы
+        this.$el = $pageEl;
+        this.el = $pageEl.nodes[0];
+        
+        // Ищем прогресс-бар по CSS классу и получаем его instance
+        const $progressBar = u('.js-progress-bar');
+        if ($progressBar.length) {
+            const progressBarEl = $progressBar.nodes[0];
+            if (progressBarEl && progressBarEl.instance) {
+                this.progressBarInstance = progressBarEl.instance;
+            }
         }
         
         // Инициализация
@@ -21,9 +35,14 @@ class Highlight extends Page {
             progress: 0
         };
         
-        this.$progressBarElement = null;
-        this.progressBarInstance = null;
         this.taskId = null;
+        this.isConnectedToRoom = false;
+        
+        // Сохраняем экземпляр для доступа из других скриптов
+        if (!document.app) {
+            document.app = {};
+        }
+        document.app.highlightPageInstance = this;
         
         this.init();
     }
@@ -44,27 +63,22 @@ class Highlight extends Page {
      * Настройка элементов страницы
      */
     setup() {
-        // Находим progress bar элемент через Umbrella.js по классу
-        const $progressBarContainer = u('.progressBarContainer');
-        
-        if (!$progressBarContainer.length) {
-            return;
+        // Если прогресс-бар еще не найден, пробуем найти снова
+        if (!this.progressBarInstance) {
+            const $progressBar = u('.js-progress-bar');
+            if ($progressBar.length) {
+                const progressBarEl = $progressBar.nodes[0];
+                if (progressBarEl && progressBarEl.instance) {
+                    this.progressBarInstance = progressBarEl.instance;
+                }
+            }
         }
-
-        // Находим сам прогресс-бар внутри контейнера
-        this.$progressBarElement = $progressBarContainer.find('.progress-bar-container');
         
-        const nativeEl = this.$progressBarElement.nodes[0];
-        if (!this.$progressBarElement.length || !nativeEl || !nativeEl.instance) {
-            return;
+        // Получаем task_id из URL параметров только если он еще не установлен
+        if (!this.taskId) {
+            const urlParams = new URLSearchParams(window.location.search);
+            this.taskId = urlParams.get('task_id') || urlParams.get('check_task_id');
         }
-
-        // Получаем экземпляр
-        this.progressBarInstance = nativeEl.instance;
-        
-        // Получаем task_id из URL параметров
-        const urlParams = new URLSearchParams(window.location.search);
-        this.taskId = urlParams.get('task_id') || urlParams.get('check_task_id');
         
         // Если есть task_id, подключаемся к Socket.IO комнате
         if (this.taskId) {
@@ -78,22 +92,39 @@ class Highlight extends Page {
     /**
      * Подключается к Socket.IO комнате прогресса задачи
      */
-    connectToProgressRoom() {
+    async connectToProgressRoom() {
         if (!this.taskId) {
             return;
         }
         
-        socketIOService.joinTaskProgress(
-            this.taskId,
-            (data) => {
-                // Обновляем прогресс при получении события progress
-                this.state.progress = data.progress || 0;
-                this.updateView();
-            },
-            (data) => {
-                // Обработка события joined (опционально)
-            }
-        );
+        // Избегаем повторного подключения к той же комнате
+        if (this.isConnectedToRoom) {
+            return;
+        }
+        
+        this.isConnectedToRoom = true;
+        
+        try {
+            await socketIOService.joinTaskProgress(
+                this.taskId,
+                (data) => {
+                    // Обновляем прогресс при получении события progress
+                    console.log('Highlight: Progress event received:', data);
+                    const progressValue = data.progress || 0;
+                    console.log('Highlight: Setting progress to:', progressValue);
+                    this.state.progress = progressValue;
+                    this.updateView();
+                },
+                (data) => {
+                    // Обработка события joined (опционально)
+                    console.log('Highlight: Joined task progress room:', data);
+                }
+            );
+            console.log('Highlight: Successfully joined task progress room for task:', this.taskId);
+        } catch (error) {
+            console.error('Highlight: Failed to join task progress room:', error);
+            this.isConnectedToRoom = false;
+        }
     }
     
     /**
@@ -101,11 +132,45 @@ class Highlight extends Page {
      */
     updateView() {
         if (!this.progressBarInstance) {
+            console.warn('Highlight: progressBarInstance not available');
             return;
         }
         
         // Устанавливаем значение в прогресс-бар из state
-        this.progressBarInstance.setValue(this.state.progress);
+        // Прогресс приходит как процент (0-100), ProgressBar ожидает значение от 0 до max
+        const progressValue = this.state.progress || 0;
+        console.log('Highlight: Updating progress bar with value:', progressValue);
+        this.progressBarInstance.setValue(progressValue);
+    }
+    
+    /**
+     * Устанавливает task_id и подключается к Socket.IO комнате прогресса
+     * @param {string} taskId - ID задачи
+     */
+    async setTaskId(taskId) {
+        if (!taskId) {
+            return;
+        }
+        
+        // Если task_id уже установлен и совпадает, не делаем ничего
+        if (this.taskId === taskId && this.isConnectedToRoom) {
+            return;
+        }
+        
+        // Если был другой task_id, сбрасываем флаг подключения
+        if (this.taskId !== taskId) {
+            this.isConnectedToRoom = false;
+        }
+        
+        this.taskId = taskId;
+        
+        // Убеждаемся, что прогресс-бар инициализирован
+        if (!this.progressBarInstance) {
+            this.setup();
+        }
+        
+        // Подключаемся к комнате прогресса
+        await this.connectToProgressRoom();
     }
 }
 

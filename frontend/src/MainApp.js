@@ -1,6 +1,16 @@
 // Main.js
+import socketIOService from './services/SocketioService.js';
+import BaseComponent from "./components/BaseComponent.js";
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM загружен, скрипт Main.js выполняется.");
+    
+    // Инициализируем подключение к Socket.IO
+    socketIOService.connect().catch(error => {
+        console.error('Failed to connect Socket.IO:', error);
+    });
+
+    BaseComponent.initComponents()
 
     // --- ОБЩИЕ ЭЛЕМЕНТЫ DOM (объявляем один раз) ---
     const uploadForm = document.getElementById('uploadForm');
@@ -467,6 +477,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (ok && data.task_id) { // HTTP 202 Accepted
                     currentTaskId = data.task_id;
                     if(statusTextElement) statusTextElement.textContent = data.message || 'Задача принята, ID: ' + currentTaskId;
+                    
+                    // Передаем task_id в Highlight страницу для подключения к socket комнате
+                    let attempts = 0;
+                    const maxAttempts = 10;
+                    const sendTaskIdToPage = () => {
+                        if (document.app && document.app.highlightPageInstance && typeof document.app.highlightPageInstance.setTaskId === 'function') {
+                            document.app.highlightPageInstance.setTaskId(currentTaskId);
+                        } else if (attempts < maxAttempts) {
+                            // Если экземпляр еще не создан, ждем немного и пробуем снова
+                            attempts++;
+                            setTimeout(sendTaskIdToPage, 100);
+                        }
+                    };
+                    sendTaskIdToPage();
+                    
                     pollTaskStatus(currentTaskId);
                 } else {
                     hideProcessingState();

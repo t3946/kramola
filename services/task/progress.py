@@ -1,6 +1,6 @@
 import time
 from flask import current_app
-
+import logging
 PROGRESS_TTL = 60 * 60 * 24
 PROGRESS_UPDATE_INTERVAL = 0.5  # Минимум 0.5 секунды между обновлениями (2 раза в секунду)
 
@@ -29,10 +29,24 @@ class Progress:
                 redis_client.expire(f"task:{self.task_id}", PROGRESS_TTL)
                 self._pending_delta = 0
                 self._last_update_time = current_time
+                
+                # Отправляем событие прогресса через Socket.IO
+                self._send_progress_event()
             except Exception as e:
                 # Логируем ошибку, но не прерываем выполнение
                 import logging
                 logging.warning(f"Failed to update progress for task {self.task_id}: {e}")
+    
+    def _send_progress_event(self):
+        """Отправляет событие прогресса через Socket.IO"""
+        try:
+            from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
+            progress_value = self.getProgress()
+            TaskProgressRoom.send_progress(self.task_id, progress_value)
+        except Exception as e:
+            # Логируем ошибку, но не прерываем выполнение
+            import logging
+            logging.warning(f"Failed to send progress event for task {self.task_id}: {e}")
     
     def add(self, delta):
         """Add to current progress (with automatic throttling)"""
@@ -47,8 +61,12 @@ class Progress:
             redis_client.expire(f"task:{self.task_id}", PROGRESS_TTL)
             self._pending_delta = 0
             self._last_update_time = time.time()
+            
+            # Отправляем событие прогресса через Socket.IO
+            self._send_progress_event()
 
     def setValue(self, value):
+        logging.info("setValue")
         """Set progress value (bypasses throttling, applies immediately)"""
         # setValue применяется сразу, так как это установка конкретного значения, а не инкремент
         self._pending_delta = 0  # Сбрасываем накопленные изменения
@@ -56,6 +74,9 @@ class Progress:
         redis_client.hset(f"task:{self.task_id}", "progress", value)
         redis_client.expire(f"task:{self.task_id}", PROGRESS_TTL)
         self._last_update_time = time.time()
+        
+        # Отправляем событие прогресса через Socket.IO
+        self._send_progress_event()
     
     def getValue(self):
         """Get progress value"""

@@ -16,9 +16,9 @@ class BaseComponent {
     } else {
       this.$el = u(el);
     }
-    
+
     if (!this.$el.length) throw new Error('Element not found');
-    
+
     // Сохраняем нативный элемент для доступа к dataset и другим нативным свойствам
     this.el = this.$el.nodes[0];
     
@@ -59,8 +59,9 @@ class BaseComponent {
       $elements.each((el) => {
         const $el = u(el);
         const nativeEl = $el.nodes[0];
+
         if (!nativeEl.instance) { // Избегаем повторной инициализации
-          new ComponentClass($el);
+          nativeEl.instance = new ComponentClass($el);
         }
       });
     });

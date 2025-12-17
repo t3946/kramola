@@ -69,12 +69,11 @@ class ProgressBar extends BaseComponent {
     
     // Обновляем CSS переменные
     const percentage = (value / max) * 100;
-    this.$el.css({
-      '--progress-value': value,
-      '--progress-max': max,
-      '--progress-percentage': `${percentage}%`,
-      '--progress-color': color
-    });
+    console.log('ProgressBar: updateView called, value:', value, 'max:', max, 'percentage:', percentage);
+    this.el.style.setProperty('--progress-value', value);
+    this.el.style.setProperty('--progress-max', max);
+    this.el.style.setProperty('--progress-percentage', `${percentage}%`);
+    this.el.style.setProperty('--progress-color', color);
     
     // Обновляем aria-атрибуты для доступности
     this.$el.attr({
@@ -89,21 +88,13 @@ class ProgressBar extends BaseComponent {
     const $fillEl = this.$el.find('.progress-bar-fill');
     
     if ($fillEl.length && $wrapper.length) {
-      $fillEl.css({
-        'width': `${percentage}%`,
-        'background-color': color
-      });
+      // Обновляем только ширину, цвет задается через CSS классы (progress-bar-primary и т.д.)
+      $fillEl.nodes[0].style.width = `${percentage}%`;
       
-      // Обновляем текст процента - размещаем в wrapper, чтобы был всегда по центру
-      let $textEl = $wrapper.find('.progress-bar-text');
-      if (showPercentage) {
-        if (!$textEl.length) {
-          $textEl = u('<span>').addClass('progress-bar-text');
-          $wrapper.append($textEl);
-        }
-        $textEl.text(`${Math.round(percentage)}%`);
-      } else {
-        $textEl.remove();
+      // Обновляем текст процента
+      const textEl = $wrapper.nodes[0].querySelector('.progress-bar-text');
+      if (showPercentage && textEl) {
+        textEl.textContent = `${Math.round(percentage)}%`;
       }
     }
     
@@ -127,7 +118,10 @@ class ProgressBar extends BaseComponent {
   // Публичные методы для удобства использования
   setValue(value) {
     const { max } = this.state();
-    this.state({ value: Math.max(0, Math.min(max, value)) });
+    const clampedValue = Math.max(0, Math.min(max, value));
+    console.log('ProgressBar: setValue called with', value, 'clamped to', clampedValue, 'max:', max);
+    this.state({ value: clampedValue });
+    this.updateView();
   }
 
   getValue() {

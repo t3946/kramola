@@ -21,7 +21,7 @@
 {% set progress_size = progress_size | default('') %}
 {% set progress_class = progress_class | default('') %}
 
-<div class="progress-bar-container {{ progress_size }} {{ progress_class }}" id="{{ progress_id }}">
+<div class="progress-bar-container js-progress-bar {{ progress_size }} {{ progress_class }}" id="{{ progress_id }}" data-value="{{ progress_value }}" data-max="100" data-label="{{ progress_label }}" data-color="{{ progress_color }}" data-show-percentage="{{ 'true' if progress_show_percentage else 'false' }}">
     {% if progress_label %}
     <div class="progress-bar-label">{{ progress_label }}</div>
     {% endif %}

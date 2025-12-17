@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "socket.io-client": "^4.8.1",
     "umbrellajs": "^3.3.3"
   },
   "devDependencies": {
