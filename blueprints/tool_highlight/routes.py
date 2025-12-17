@@ -120,7 +120,7 @@ def _perform_highlight_processing(
                 # search words in document
                 analyser = Analyser(source_path)
                 analyser.set_analyse_data(analyse_data)
-                analysis_results = analyser.analyse_and_highlight()
+                analysis_results = analyser.analyse_and_highlight(task_id=task_id)
                 analyser.save(output_path)
             else:
                 analysis_results = analyze_and_highlight_pdf(

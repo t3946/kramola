@@ -2,7 +2,7 @@ import json
 import logging
 
 import docx
-from typing import List, Union
+from typing import List, Union, Optional
 from collections import defaultdict, Counter
 
 from docx.enum.text import WD_COLOR_INDEX
@@ -17,6 +17,7 @@ from services.common_docx import tokenize_paragraph_universal, tokenize_text
 from services.highlight_service import _find_matches_in_paragraph_tokens
 from utils.timeit import timeit
 from copy import deepcopy
+from services.task.progress import Progress
 
 
 class Analyser:
@@ -211,27 +212,54 @@ class Analyser:
         return None
 
     @timeit
-    def analyse_and_highlight(self):
+    def analyse_and_highlight(self, task_id: Optional[str] = None):
         #[start] reset stats
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         #[end]
         
+        # Подсчитываем общее количество элементов для прогресса
         paragraphs: List[Paragraph] = self.document.paragraphs
+        tables: List[Table] = self.document.tables
+        
+        # [start] count progress max
+        progress = None
 
+        if task_id is not None:
+            total_table_paragraphs = 0
+
+            for table in tables:
+                for row in table.rows:
+                    for cell in row.cells:
+                        total_table_paragraphs += len(cell.paragraphs)
+
+            total_items = len(paragraphs) + total_table_paragraphs
+            progress = Progress(task_id, max_value=total_items)
+        # [end]
+
+        # process paragraphs
         for paragraph in paragraphs:
             self.__analyse_paragraph(paragraph)
+            if progress:
+                progress.add(1)
 
-        tables: List[Table] = self.document.tables
-
+        # process tables
         for table in tables:
             for row in table.rows:
                 for cell in row.cells:
-                    paragraphs: List[Paragraph] = cell.paragraphs
+                    cell_paragraphs: List[Paragraph] = cell.paragraphs
 
-                    for paragraph in paragraphs:
+                    for paragraph in cell_paragraphs:
                         self.__analyse_paragraph(paragraph)
+
+                        if progress:
+                            progress.add(1)
         
+        # Финальное обновление прогресса (применяем все накопленные изменения)
+        if progress:
+            progress.flush()
+            progress.clear()
+
         #[start] Возвращаем статистику в том же формате, что и analyze_and_highlight_pdf
         final_ws = {l: {'c': d['count'], 'f': dict(d['forms'])} for l, d in self.word_stats.items()}
         final_ps = {phrase_lemma_str: {'c': d['count'], 'f': dict(d['forms'])} for phrase_lemma_str, d in
