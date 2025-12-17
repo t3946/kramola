@@ -1,15 +1,15 @@
-{# 
-    Шаблон компонента ProgressBar для Flask
-    
-    Использование:
-    {% include 'components/progress_bar.html' with context %}
-    
-    Или с параметрами:
-    {% set progress_id = 'my-progress' %}
-    {% set progress_label = 'Загрузка файла...' %}
-    {% set progress_value = 45 %}
-    {% set progress_color = 'primary' %}
-    {% include 'components/progress_bar.html' with context %}
+{#
+Шаблон компонента ProgressBar для Flask
+
+Использование:
+{% include 'components/progress_bar.html' with context %}
+
+Или с параметрами:
+{% set progress_id = 'my-progress' %}
+{% set progress_label = 'Загрузка файла...' %}
+{% set progress_value = 45 %}
+{% set progress_color = 'primary' %}
+{% include 'components/progress_bar.html' with context %}
 #}
 
 {# Параметры по умолчанию #}
@@ -23,25 +23,26 @@
 
 <div class="progress-bar-container {{ progress_size }} {{ progress_class }}" id="{{ progress_id }}">
     {% if progress_label %}
-        <div class="progress-bar-label">{{ progress_label }}</div>
+    <div class="progress-bar-label">{{ progress_label }}</div>
     {% endif %}
     <div class="progress-bar-wrapper">
-        <div class="progress-bar-fill animated progress-bar-{{ progress_color }}" 
+        {% if progress_show_percentage %}
+        <span class="progress-bar-text">{{ progress_value | round | int }}%</span>
+        {% endif %}
+
+        <div class="progress-bar-fill animated progress-bar-{{ progress_color }}"
              style="width: {{ progress_value }}%"
              data-value="{{ progress_value }}">
-            {% if progress_show_percentage %}
-                <span class="progress-bar-text">{{ progress_value | round | int }}%</span>
-            {% endif %}
         </div>
     </div>
 </div>
 
-{# 
-    Для автоматической инициализации через JS используйте:
-    <div class="progress-bar-auto" 
-         data-label="Загрузка..."
-         data-value="0"
-         data-color="primary"
-         data-show-percentage="true">
-    </div>
+{#
+Для автоматической инициализации через JS используйте:
+<div class="progress-bar-auto"
+     data-label="Загрузка..."
+     data-value="0"
+     data-color="primary"
+     data-show-percentage="true">
+</div>
 #}

@@ -85,19 +85,21 @@ class ProgressBar extends BaseComponent {
     });
     
     // Обновляем визуальное отображение
+    const $wrapper = this.$el.find('.progress-bar-wrapper');
     const $fillEl = this.$el.find('.progress-bar-fill');
-    if ($fillEl.length) {
+    
+    if ($fillEl.length && $wrapper.length) {
       $fillEl.css({
         'width': `${percentage}%`,
         'background-color': color
       });
       
-      // Обновляем текст процента
-      let $textEl = $fillEl.find('.progress-bar-text');
+      // Обновляем текст процента - размещаем в wrapper, чтобы был всегда по центру
+      let $textEl = $wrapper.find('.progress-bar-text');
       if (showPercentage) {
         if (!$textEl.length) {
           $textEl = u('<span>').addClass('progress-bar-text');
-          $fillEl.append($textEl);
+          $wrapper.append($textEl);
         }
         $textEl.text(`${Math.round(percentage)}%`);
       } else {
