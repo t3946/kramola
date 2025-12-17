@@ -8,6 +8,9 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "dependencies": {
+    "umbrellajs": "^3.3.3"
+  },
   "devDependencies": {
     "vite": "^5.0.0"
   }

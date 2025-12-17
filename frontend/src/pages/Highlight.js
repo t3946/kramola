@@ -5,6 +5,7 @@
 
 import { Page } from './Page.js';
 import socketIOService from '../services/SocketIOService.js';
+import u from 'umbrellajs';
 
 class Highlight extends Page {
     constructor() {
@@ -20,7 +21,7 @@ class Highlight extends Page {
             progress: 0
         };
         
-        this.progressBarElement = null;
+        this.$progressBarElement = null;
         this.progressBarInstance = null;
         this.taskId = null;
         
@@ -43,22 +44,23 @@ class Highlight extends Page {
      * Настройка элементов страницы
      */
     setup() {
-        // Находим progress bar элемент через DOM по классу
-        const progressBarContainer = document.querySelector('.progressBarContainer');
+        // Находим progress bar элемент через Umbrella.js по классу
+        const $progressBarContainer = u('.progressBarContainer');
         
-        if (!progressBarContainer) {
+        if (!$progressBarContainer.length) {
             return;
         }
 
         // Находим сам прогресс-бар внутри контейнера
-        this.progressBarElement = progressBarContainer.querySelector('.progress-bar-container');
+        this.$progressBarElement = $progressBarContainer.find('.progress-bar-container');
         
-        if (!this.progressBarElement || !this.progressBarElement.instance) {
+        const nativeEl = this.$progressBarElement.nodes[0];
+        if (!this.$progressBarElement.length || !nativeEl || !nativeEl.instance) {
             return;
         }
 
         // Получаем экземпляр
-        this.progressBarInstance = this.progressBarElement.instance;
+        this.progressBarInstance = nativeEl.instance;
         
         // Получаем task_id из URL параметров
         const urlParams = new URLSearchParams(window.location.search);

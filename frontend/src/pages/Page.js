@@ -1,7 +1,10 @@
 /**
  * Базовый класс для страниц
  * Предоставляет общую функциональность проверки страницы
+ * Использует Umbrella.js для работы с DOM
  */
+import u from 'umbrellajs';
+
 export class Page {
     /**
      * Проверяет, является ли текущая страница нужной страницей
@@ -20,9 +23,9 @@ export class Page {
         
         // Проверяем наличие специфичных элементов страницы
         if (elementId && elementAttribute && attributePattern) {
-            const element = document.getElementById(elementId);
-            if (element) {
-                const attributeValue = element.getAttribute(elementAttribute) || '';
+            const $element = u(`#${elementId}`);
+            if ($element.length) {
+                const attributeValue = $element.attr(elementAttribute) || '';
                 if (attributeValue.includes(attributePattern)) {
                     return true;
                 }
