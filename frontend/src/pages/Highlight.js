@@ -21,6 +21,8 @@ class Highlight extends Page {
     this.state = { progress: 0 };
     this.taskId = null;
     this.isConnectedToRoom = false;
+    this.currentTaskStatus = null;
+    this.statusMessage = null;
     
     if (!document.app) {
       document.app = {};
@@ -48,9 +50,13 @@ class Highlight extends Page {
     
     if (this.taskId) {
       this.connectToProgressRoom();
+      this.showTaskProgress();
+    } else {
+      this.hideTaskProgress();
     }
     
     this.updateView();
+    this.updateStatusView();
   }
   
   findProgressBar() {
@@ -76,12 +82,33 @@ class Highlight extends Page {
     }
     
     this.isConnectedToRoom = true;
+    this.showTaskProgress();
     
     await socketIOService.joinTaskProgress(
       this.taskId,
       (data) => {
         this.state.progress = data.progress || 0;
         this.updateView();
+      },
+      null,
+      (data) => {
+        if (data.state !== this.currentTaskStatus) {
+          const oldStatus = this.currentTaskStatus;
+          this.currentTaskStatus = data.state;
+          this.statusMessage = data.status;
+          
+          console.log(`Task status changed: ${oldStatus || 'null'} -> ${data.state}`, {
+            taskId: this.taskId,
+            status: data.status,
+            state: data.state
+          });
+          
+          this.updateStatusView();
+          
+          if (data.state === 'SUCCESS') {
+            this.redirectToResults();
+          }
+        }
       }
     );
   }
@@ -109,6 +136,7 @@ class Highlight extends Page {
     
     if (this.taskId !== taskId) {
       this.isConnectedToRoom = false;
+      this.hideTaskProgress();
     }
     
     this.taskId = taskId;
@@ -117,7 +145,65 @@ class Highlight extends Page {
       this.setup();
     }
     
-    await this.connectToProgressRoom();
+    if (this.taskId) {
+      await this.connectToProgressRoom();
+    }
+  }
+
+  /**
+   * Обновляет отображение статуса задачи в HTML
+   * @returns {void}
+   */
+  updateStatusView() {
+    const $statusEl = u('.js-task-status');
+    
+    if (!$statusEl.length) {
+      return;
+    }
+    
+    if (this.currentTaskStatus) {
+      const statusText = this.statusMessage || this.currentTaskStatus;
+      $statusEl.text(statusText);
+      $statusEl.attr('data-state', this.currentTaskStatus);
+    } else {
+      $statusEl.text('Ожидание...');
+      $statusEl.attr('data-state', '');
+    }
+  }
+
+  /**
+   * Перенаправляет на страницу результатов
+   * @returns {void}
+   */
+  redirectToResults() {
+    if (!this.taskId) {
+      return;
+    }
+    
+    const resultsUrl = `/highlight/results?task_id=${this.taskId}`;
+    window.location.href = resultsUrl;
+  }
+
+  /**
+   * Показывает блок прогресса задачи
+   * @returns {void}
+   */
+  showTaskProgress() {
+    const $container = u('.js-task-progress-container');
+    if ($container.length && $container.nodes[0]) {
+      $container.nodes[0].style.display = 'block';
+    }
+  }
+
+  /**
+   * Скрывает блок прогресса задачи
+   * @returns {void}
+   */
+  hideTaskProgress() {
+    const $container = u('.js-task-progress-container');
+    if ($container.length && $container.nodes[0]) {
+      $container.nodes[0].style.display = 'none';
+    }
   }
 }
 

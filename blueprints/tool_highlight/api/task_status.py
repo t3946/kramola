@@ -36,6 +36,9 @@ def check_task_status(task_id):
                     redis_client.hmset(f"task:{task_id}",
                                        {"state": "PROCESSING", "status_message": "Задача выполняется..."})
                     redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
+                    
+                    from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
+                    TaskProgressRoom.send_status(task_id, "PROCESSING", "Задача выполняется...")
                 except Exception as e_redis_run:
                     logger.error(f"Task {task_id}: Redis error updating to PROCESSING: {e_redis_run}")
             elif not task_info_from_redis_initial:

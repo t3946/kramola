@@ -111,12 +111,15 @@ function loadFileData(filename) {
             <div class="note">Включите для поиска текста на изображениях или в сложных PDF. Работает значительно медленнее!</div>
         </div>
 
-        <div class="progressBarContainer" style="margin: 15px 0;">
-            {% set progress_id = 'highlight-progress-bar' %}
-            {% set progress_label = 'Прогресс обработки' %}
-            {% set progress_value = 0 %}
-            {% set progress_color = 'primary' %}
-            {% include 'components/progress_bar.html' with context %}
+        <div class="card js-task-progress-container" style="margin: 15px 0; display: none;">
+            <div class="js-task-status" data-state="">Ожидание...</div>
+
+            <div class="progressBarContainer" style="margin: 15px 0;">
+                {% set progress_id = 'highlight-progress-bar' %}
+                {% set progress_value = 0 %}
+                {% set progress_color = 'primary' %}
+                {% include 'components/progress_bar.html' with context %}
+            </div>
         </div>
 
         <div class="action-buttons">

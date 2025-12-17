@@ -68,10 +68,14 @@ def _perform_highlight_processing(
 
     if redis_client:
         try:
+            status_message = "Обработка документа..." if source_path else "Обработка списков..."
             redis_client.hmset(f"task:{task_id}", {
-                "state": "PROCESSING", "status_message": "Обработка документа..." if source_path else "Обработка списков..."
+                "state": "PROCESSING", "status_message": status_message
             })
             redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
+            
+            from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
+            TaskProgressRoom.send_status(task_id, "PROCESSING", status_message)
         except Exception as e_redis:
             logger.error(f"[Task {task_id}] Redis error (set PROCESSING): {e_redis}", exc_info=True)
 
@@ -154,14 +158,18 @@ def _perform_highlight_processing(
 
         if redis_client:
             try:
+                status_message = "Обработка успешно завершена." if final_status_for_redis == 'SUCCESS' else task_result_data.get(
+                    'error', 'Неизвестная ошибка')
                 redis_payload = {
                     "state": final_status_for_redis,
-                    "status_message": "Обработка успешно завершена." if final_status_for_redis == 'SUCCESS' else task_result_data.get(
-                        'error', 'Неизвестная ошибка'),
+                    "status_message": status_message,
                     "result_data_json": json.dumps(task_result_data)
                 }
                 redis_client.hmset(f"task:{task_id}", redis_payload)
                 redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
+                
+                from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
+                TaskProgressRoom.send_status(task_id, final_status_for_redis, status_message)
             except Exception as e_redis:
                 logger.error(f"[Task {task_id}] Redis error (final update): {e_redis}", exc_info=True)
 
@@ -263,6 +271,9 @@ def process_async():
                 })
                 redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
                 logger.info(f"[Req {task_id}] Task state PENDING saved to Redis.")
+                
+                from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
+                TaskProgressRoom.send_status(task_id, "PENDING", "Задача принята в очередь")
             except Exception as e_redis:
                 logger.error(f"[Req {task_id}] Redis error (initial save PENDING): {e_redis}", exc_info=True)
                 # Fail fast if Redis can't save initial state. Cleanup handled by outer except.

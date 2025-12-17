@@ -194,10 +194,6 @@ app.register_blueprint(footnotes_bp, url_prefix='/footnotes')
 
 app.register_blueprint(foreign_agents_bp, url_prefix='/foreign-agents')
 
-# Register test API blueprint
-from blueprints.tool_highlight.api.test.socket import test_socket_bp
-app.register_blueprint(test_socket_bp, url_prefix='/api/test')
-
 # Register Socket.IO handlers
 from blueprints.tool_highlight.socketio.socketio_handlers import register_socketio_handlers
 register_socketio_handlers(socketio)

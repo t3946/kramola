@@ -60,8 +60,9 @@ class SocketioService {
      * @param {string} taskId - ID задачи
      * @param {Function} onProgress - Callback для события progress
      * @param {Function} onJoined - Callback для события joined
+     * @param {Function} onStatus - Callback для события task_status
      */
-    async joinTaskProgress(taskId, onProgress = null, onJoined = null) {
+    async joinTaskProgress(taskId, onProgress = null, onJoined = null, onStatus = null) {
         if (!this.socket || !this.connected) {
             await this.connect();
         }
@@ -104,6 +105,18 @@ class SocketioService {
             };
             this.socket.on('joined', joinedHandler);
             handlers.push({ event: 'joined', handler: joinedHandler });
+        }
+
+        if (onStatus) {
+            const statusHandler = (data) => {
+                if (data.task_id === taskId) {
+                    onStatus(data);
+                } else {
+                    console.warn('Status event task_id mismatch:', data.task_id, 'expected:', taskId);
+                }
+            };
+            this.socket.on('task_status', statusHandler);
+            handlers.push({ event: 'task_status', handler: statusHandler });
         }
 
         // Сохраняем информацию о комнате
