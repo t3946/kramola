@@ -24,24 +24,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkboxGroup = document.querySelector('.checkbox-group');
     const inputMethodRadios = document.querySelectorAll('input[name="input-method"]');
 
-    // Элементы для отображения статуса АСИНХРОННОЙ обработки
-    const processingMessageDiv = document.getElementById('processingMessage');
-    const loaderIcon = document.getElementById('loaderIcon');
-    const statusTextElement = document.getElementById('statusText');
-
-    // Элемент preloader из старой логики (если все еще нужен для чего-то, иначе можно удалить)
-    const preloader = document.getElementById('preloader'); // Убедитесь, что этот элемент есть в HTML, если используется
-
     // --- ПРОВЕРКА НАЛИЧИЯ КЛЮЧЕВЫХ ЭЛЕМЕНТОВ (ВАЖНО!) ---
     if (!uploadForm) console.error("ОШИБКА: Элемент uploadForm не найден!");
     if (!submitButton) console.error("ОШИБКА: Элемент submitButton не найден!");
     if (!sourceFileInput) console.error("ОШИБКА: Элемент sourceFileInput не найден!");
     if (!clientErrorMessage) console.warn("Предупреждение: clientErrorMessage не найден.");
-
-    // Для асинхронной логики
-    if (!processingMessageDiv) console.error("ОШИБКА АСИНХ: Элемент processingMessageDiv не найден!");
-    if (!loaderIcon) console.error("ОШИБКА АСИНХ: Элемент loaderIcon не найден!");
-    if (!statusTextElement) console.error("ОШИБКА АСИНХ: Элемент statusTextElement не найден!");
 
 
     // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ИЗ ВЕРХНЕЙ ЧАСТИ (валидация и т.д.) ---
@@ -343,7 +330,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- ЛОГИКА АСИНХРОННОЙ ОТПРАВКИ И ОПРОСА СТАТУСА (из нижней части) ---
     let currentTaskId = null;
-    let pollIntervalId = null;
 
     function displayClientError(message) {
         if (serverErrorMessage && serverErrorMessage.style) serverErrorMessage.style.display = 'none';
@@ -360,12 +346,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function showProcessingState(message = "Ваш файл обрабатывается. Пожалуйста, подождите...") {
-        // Важно: Убедитесь, что эти элементы есть в HTML!
-        if (processingMessageDiv && processingMessageDiv.style) processingMessageDiv.style.display = 'block';
-        if (loaderIcon && loaderIcon.style) loaderIcon.style.display = 'block'; // или 'inline-block' или 'flex' в зависимости от вашего CSS
-        if (statusTextElement) statusTextElement.textContent = message;
-
+    function showProcessingState() {
         if (submitButton) {
             submitButton.disabled = true;
             submitButton.textContent = 'Обрабатывается...';
@@ -373,59 +354,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function hideProcessingState() {
-        if (processingMessageDiv && processingMessageDiv.style) processingMessageDiv.style.display = 'none';
-        if (loaderIcon && loaderIcon.style) loaderIcon.style.display = 'none';
-        if (statusTextElement) statusTextElement.textContent = '';
-
         if (submitButton) {
             submitButton.disabled = false;
             submitButton.textContent = 'Обработать';
         }
-    }
-
-    function pollTaskStatus(taskId) {
-        if (pollIntervalId) clearInterval(pollIntervalId);
-
-        pollIntervalId = setInterval(() => {
-            fetch(`/highlight/task_status/${taskId}`) // Убедитесь, что URL правильный
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().catch(() => {
-                            throw new Error(`Ошибка сервера: ${response.status} ${response.statusText}`);
-                        });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if(statusTextElement) statusTextElement.textContent = data.status || 'Проверка статуса...';
-                    console.log("Task status:", data);
-
-                    if (data.state === 'SUCCESS') {
-                        clearInterval(pollIntervalId);
-                        pollIntervalId = null;
-                        if(statusTextElement) statusTextElement.textContent = "Обработка завершена! Перенаправление...";
-                        window.location.href = `/highlight/results?task_id=${taskId}`;
-                    } else if (data.state === 'FAILURE') {
-                        clearInterval(pollIntervalId);
-                        pollIntervalId = null;
-                        hideProcessingState();
-                        let errorMsg = data.status || 'Произошла ошибка при обработке файла.';
-                        window.location.href = `/highlight/results?task_id=${taskId}`;
-                    } else if (data.state === 'NOT_FOUND') {
-                        clearInterval(pollIntervalId);
-                        pollIntervalId = null;
-                        hideProcessingState();
-                        displayClientError('Задача не найдена на сервере. Попробуйте снова.');
-                    }
-                })
-                .catch(error => {
-                    console.error('Ошибка при проверке статуса:', error);
-                    clearInterval(pollIntervalId);
-                    pollIntervalId = null;
-                    hideProcessingState();
-                    displayClientError('Не удалось проверить статус задачи: ' + error.message);
-                });
-        }, 3000);
     }
 
     // ОСНОВНОЙ ОБРАБОТЧИК ОТПРАВКИ ФОРМЫ (АСИНХРОННЫЙ)
@@ -476,7 +408,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const { ok, status, data } = responseData;
                 if (ok && data.task_id) { // HTTP 202 Accepted
                     currentTaskId = data.task_id;
-                    if(statusTextElement) statusTextElement.textContent = data.message || 'Задача принята, ID: ' + currentTaskId;
                     
                     // Передаем task_id в Highlight страницу для подключения к socket комнате
                     let attempts = 0;
@@ -491,8 +422,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     };
                     sendTaskIdToPage();
-                    
-                    pollTaskStatus(currentTaskId);
                 } else {
                     hideProcessingState();
                     let errorMsg = 'Произошла ошибка.';
@@ -514,14 +443,6 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error("Не найден submitButton или uploadForm для асинхронной отправки.");
     }
 
-    // Проверка ID задачи при загрузке страницы
-    const urlParams = new URLSearchParams(window.location.search);
-    const checkTaskId = urlParams.get('check_task_id');
-    if (checkTaskId) {
-        currentTaskId = checkTaskId;
-        showProcessingState('Проверяем статус предыдущей задачи...');
-        pollTaskStatus(currentTaskId);
-    }
 
     // Скрытие серверной ошибки через некоторое время (из старого кода)
     if (serverErrorMessage) {
