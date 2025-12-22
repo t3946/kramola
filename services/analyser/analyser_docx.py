@@ -9,7 +9,7 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analyser import AnalyseData
-from services.analyser.fulltext_search import FulltextSearch, Match, Token
+from services.analyser.fulltext_search import FulltextSearch, Match, Token, SearchStrategy
 from utils.timeit import timeit
 from copy import deepcopy
 from services.task.progress import Progress
@@ -150,6 +150,7 @@ class AnalyserDocx:
             found_matches = FulltextSearch.search_token_sequences(
                 source_tokens,
                 search_tokens,
+                SearchStrategy.STRICT_ORDER_FUZZY_PUNCT
             )
 
             lemma_key = tuple(token['lemma'] for token in search_tokens if token['lemma'])

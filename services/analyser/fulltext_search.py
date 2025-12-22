@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Optional, TypedDict, Tuple
 from services.pymorphy_service import _get_lemma, _get_stem, CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
-from services.analyser.strategies import FuzzyWordsStrictOrderStrategy
+from services.analyser.strategies import FuzzyWordsStrictOrderStrategy, StrictOrderFuzzyPunctStrategy
 
 TOKENIZE_PATTERN_UNIVERSAL = re.compile(r"(\w+)|([^\w\s]+)|(\s+)", re.UNICODE)
 PYMORPHY_AVAILABLE = True
@@ -82,7 +82,7 @@ class FulltextSearch:
         if strategy == SearchStrategy.FUZZY_WORDS_STRICT_ORDER:
             return FuzzyWordsStrictOrderStrategy()
         elif strategy == SearchStrategy.STRICT_ORDER_FUZZY_PUNCT:
-            raise NotImplementedError("STRICT_ORDER_FUZZY_PUNCT strategy not implemented yet")
+            return StrictOrderFuzzyPunctStrategy()
 
         return FulltextSearch._default_strategy
 
