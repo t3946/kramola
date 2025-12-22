@@ -1,25 +1,23 @@
-from typing import List
+from typing import List, Dict
 from services.document_service import extract_lines_from_docx
-from services.pymorphy_service import prepare_search_terms, get_highlight_search_data, get_highlight_phrase_map
+from services.analyser.fulltext_search import FulltextSearch, Token
 
 
 class AnalyseData:
-    lemmas: list[str]
-    stems: list[str]
-    phrase_map: dict
+    tokens: Dict[str, List[Token]]
 
     def __init__(self, terms = None):
+        self.tokens = {}
+
         if terms is not None:
-            self.readFromList(terms)
+            self.read_from_list(terms)
 
-    def readFromList(self, terms: List[str]):
-        prepared_data_unified = prepare_search_terms(terms)
-        search_data_for_highlight = get_highlight_search_data(prepared_data_unified)
+    def read_from_list(self, terms: List[str]):
+        for term in terms:
+            if term and term.strip():
+                text = term.strip()
+                self.tokens[text] = FulltextSearch.tokenize_text(text)
 
-        self.lemmas = search_data_for_highlight.get('lemmas')
-        self.stems = search_data_for_highlight.get('stems')
-        self.phrase_map = get_highlight_phrase_map(prepared_data_unified)
-
-    def readFromDocx(self, path):
+    def read_from_docx(self, path):
         terms = extract_lines_from_docx(path)
-        self.readFromList(terms)
+        self.read_from_list(terms)

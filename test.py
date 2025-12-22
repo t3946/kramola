@@ -7,7 +7,7 @@ def russian_history():
     doc = docx.Document(source_path)
 
     analyse_data = AnalyseData()
-    analyse_data.readFromDocx(f"./notes/tests/russian-history/Слова.docx")
+    analyse_data.read_from_docx(f"./notes/tests/russian-history/Слова.docx")
 
     analyser = AnalyserDocx(doc)
     analyser.set_analyse_data(analyse_data)
@@ -22,7 +22,7 @@ def the_fall_of_robespierre():
     doc = docx.Document(source_path)
 
     analyse_data = AnalyseData()
-    analyse_data.readFromDocx(f"./notes/tests/the-fall-of-robespierre/words.docx")
+    analyse_data.read_from_docx(f"./notes/tests/the-fall-of-robespierre/words.docx")
 
     analyser = AnalyserDocx(doc)
     analyser.set_analyse_data(analyse_data)

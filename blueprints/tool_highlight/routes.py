@@ -119,7 +119,7 @@ def _perform_highlight_processing(
             if is_docx_source:
                 # prepare words for search
                 analyse_data = AnalyseData()
-                analyse_data.readFromList(all_search_lines_clean)
+                analyse_data.read_from_list(all_search_lines_clean)
 
                 # search words in document
                 analyser = AnalyserDocx(source_path)

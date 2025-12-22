@@ -185,12 +185,13 @@ class FulltextSearch:
         return True
 
     @staticmethod
-    def _search_token_sequences(
+    def search_token_sequences(
         source_tokens: List[Token],
         search_tokens: List[Token]
-    ) -> List[Match]:
+    ) -> List[Tuple[int, int]]:
         """
         Search token sequences.
+        Returns (start, end) where start and end are source tokens indices.
         """
         matches = []
         search_len = len(search_tokens)
@@ -204,10 +205,7 @@ class FulltextSearch:
             match_found = FulltextSearch._compare_token_sequences(sub_sequence, search_tokens)
 
             if match_found :
-                matches.append({
-                    'start_token_idx': i,
-                    'end_token_idx': i + search_len - 1,
-                })
+                matches.append([i, i + search_len - 1])
 
                 i += search_len
             else :

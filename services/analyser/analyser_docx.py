@@ -9,9 +9,7 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analyser import AnalyseData
-from services.analyser.fulltext_search import FulltextSearch
-from services.highlight_service import _find_matches_in_paragraph_tokens
-from services.analyser.fulltext_search import Match
+from services.analyser.fulltext_search import FulltextSearch, Match, Token
 from utils.timeit import timeit
 from copy import deepcopy
 from services.task.progress import Progress
@@ -110,7 +108,7 @@ class AnalyserDocx:
 
         return new_batch
 
-    def __update_match_statistics(self, match: dict, tokens: list) -> None:
+    def __update_match_statistics(self, match: Match, tokens: list) -> None:
         start_token_idx = match['start_token_idx']
         end_token_idx = match['end_token_idx']
 
@@ -145,14 +143,26 @@ class AnalyserDocx:
         for run in batch:
             text += run.text
 
-        source_tokens = FulltextSearch.tokenize_text(text)
-        phrase_map = self.analyse_data.phrase_map if self.analyse_data.phrase_map else {}
-        matches: List[Match] = _find_matches_in_paragraph_tokens(
-            source_tokens,
-            self.analyse_data.lemmas,
-            self.analyse_data.stems,
-            phrase_map
-        )
+        source_tokens: List[Token] = FulltextSearch.tokenize_text(text)
+        matches: List[Match] = []
+
+        for _, search_tokens in self.analyse_data.tokens.items():
+            found_matches = FulltextSearch.search_token_sequences(
+                source_tokens,
+                search_tokens,
+            )
+
+            lemma_key = tuple(token['lemma'] for token in search_tokens if token['lemma'])
+            match_type = 'word' if len(search_tokens) == 1 else 'phrase'
+
+            for start_index, end_index in found_matches:
+                matches.append({
+                    'start_token_idx': start_index,
+                    'end_token_idx': end_index,
+                    'lemma_key': lemma_key,
+                    'type': match_type,
+                    'match_type': 'lemma',
+                })
         # [end]
 
         for match in matches:
