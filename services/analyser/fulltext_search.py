@@ -1,11 +1,10 @@
 import re
 from typing import List, Optional, TypedDict, Tuple
-from services.pymorphy_service import _get_lemma, _get_stem, CYRILLIC_PATTERN
+from services.pymorphy_service import _get_lemma, _get_stem, CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
 
 TOKENIZE_PATTERN_UNIVERSAL = re.compile(r"(\w+)|([^\w\s]+)|(\s+)", re.UNICODE)
 PYMORPHY_AVAILABLE = True
-
 
 USE_STEM_FALLBACK = True
 STOP_WORDS_RU = {
@@ -63,6 +62,7 @@ class FulltextSearch:
     Provides methods for text tokenization and matching
     by words and phrases using lemmatization and stemming.
     """
+
     @staticmethod
     def tokenize_text(text: str) -> List[Token]:
         """
@@ -76,6 +76,8 @@ class FulltextSearch:
             - 'lemma': str | None - lemma (only for type='word')
             - 'stem': str | None - stem (only for type='word')
         """
+        ensure_models_loaded()
+
         tokens = []
         full_text = text
 
@@ -149,6 +151,38 @@ class FulltextSearch:
         stop_words_set = STOP_WORDS_RU if is_russian else STOP_WORDS_EN
 
         return lemma in stop_words_set
+
+    @staticmethod
+    def _compare_token_sequences(
+            source_tokens: List[Token],
+            search_tokens: List[Token]
+    ) -> bool:
+        """
+        Compares two token sequences of the same length.
+        Match is considered if lemmas or stems match.
+        Returns (is_match, match_type) where match_type: 'lemma' or 'stem' or None
+        """
+        if len(source_tokens) != len(search_tokens):
+            return False
+
+        for t1, t2 in zip(source_tokens, search_tokens):
+            if t1['type'] != t2['type']:
+                return False
+
+            match_by_text = t1['text'] == t2['text']
+            match_by_lemma = False
+            match_by_stem = False
+
+            if t1['type'] == 'word':
+                match_by_lemma = t1['lemma'] == t2['lemma']
+                match_by_stem = t1['stem'] == t2['stem']
+
+            match = match_by_text or match_by_lemma or match_by_stem
+
+            if not match:
+                return False
+
+        return True
 
     @staticmethod
     def _check_phrase_match(
