@@ -1,7 +1,9 @@
 import re
+from enum import Enum
 from typing import List, Optional, TypedDict, Tuple
 from services.pymorphy_service import _get_lemma, _get_stem, CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
+from services.analyser.strategies import FuzzyWordsStrictOrderStrategy
 
 TOKENIZE_PATTERN_UNIVERSAL = re.compile(r"(\w+)|([^\w\s]+)|(\s+)", re.UNICODE)
 PYMORPHY_AVAILABLE = True
@@ -55,6 +57,12 @@ class Match(TypedDict):
     match_type: str
 
 
+class SearchStrategy(Enum):
+    """Search strategy enum."""
+    FUZZY_WORDS_STRICT_ORDER = "fuzzy_words_strict_order"
+    STRICT_ORDER_FUZZY_PUNCT = "strict_order_fuzzy_punct"
+
+
 class FulltextSearch:
     """
     Implements fulltext search algorithms.
@@ -62,6 +70,21 @@ class FulltextSearch:
     Provides methods for text tokenization and matching
     by words and phrases using lemmatization and stemming.
     """
+
+    _default_strategy = FuzzyWordsStrictOrderStrategy()
+
+    @staticmethod
+    def _get_strategy(strategy: Optional[SearchStrategy] = None):
+        """Get strategy instance by enum value."""
+        if strategy is None:
+            return FulltextSearch._default_strategy
+
+        if strategy == SearchStrategy.FUZZY_WORDS_STRICT_ORDER:
+            return FuzzyWordsStrictOrderStrategy()
+        elif strategy == SearchStrategy.STRICT_ORDER_FUZZY_PUNCT:
+            raise NotImplementedError("STRICT_ORDER_FUZZY_PUNCT strategy not implemented yet")
+
+        return FulltextSearch._default_strategy
 
     @staticmethod
     def tokenize_text(text: str) -> List[Token]:
@@ -155,60 +178,45 @@ class FulltextSearch:
     @staticmethod
     def _compare_token_sequences(
             source_tokens: List[Token],
-            search_tokens: List[Token]
+            search_tokens: List[Token],
+            strategy: Optional[SearchStrategy] = None
     ) -> bool:
         """
         Compares two token sequences of the same length.
-        Match is considered if lemmas or stems match.
-        Returns (is_match, match_type) where match_type: 'lemma' or 'stem' or None
+        Match is considered according to selected strategy.
+        Works only with FUZZY_WORDS_STRICT_ORDER strategy.
+        
+        Args:
+            source_tokens: Tokens from source text
+            search_tokens: Tokens from search query
+            strategy: Search strategy to use (default: FUZZY_WORDS_STRICT_ORDER)
+            
+        Returns:
+            True if sequences match according to strategy, False otherwise
         """
-        if len(source_tokens) != len(search_tokens):
-            return False
-
-        for t1, t2 in zip(source_tokens, search_tokens):
-            if t1['type'] != t2['type']:
-                return False
-
-            match_by_text = t1['text'] == t2['text']
-            match_by_lemma = False
-            match_by_stem = False
-
-            if t1['type'] == 'word':
-                match_by_lemma = t1['lemma'] == t2['lemma']
-                match_by_stem = t1['stem'] == t2['stem']
-
-            match = match_by_text or match_by_lemma or match_by_stem
-
-            if not match:
-                return False
-
-        return True
+        strategy_instance = FulltextSearch._get_strategy(strategy)
+        
+        if not isinstance(strategy_instance, FuzzyWordsStrictOrderStrategy):
+            raise ValueError("_compare_token_sequences is only available for FUZZY_WORDS_STRICT_ORDER strategy")
+        
+        return strategy_instance._compare_token_sequences(source_tokens, search_tokens)
 
     @staticmethod
     def search_token_sequences(
         source_tokens: List[Token],
-        search_tokens: List[Token]
+        search_tokens: List[Token],
+        strategy: Optional[SearchStrategy] = None
     ) -> List[Tuple[int, int]]:
         """
         Search token sequences.
-        Returns (start, end) where start and end are source tokens indices.
+        
+        Args:
+            source_tokens: Tokens from source text
+            search_tokens: Tokens from search query
+            strategy: Search strategy to use (default: FUZZY_WORDS_STRICT_ORDER)
+            
+        Returns:
+            List of tuples (start, end) where start and end are source tokens indices.
         """
-        matches = []
-        search_len = len(search_tokens)
-
-        if search_len == 0: return []
-
-        i = 0
-
-        while i + search_len - 1 < len(source_tokens):
-            sub_sequence = source_tokens[i:i+search_len]
-            match_found = FulltextSearch._compare_token_sequences(sub_sequence, search_tokens)
-
-            if match_found :
-                matches.append([i, i + search_len - 1])
-
-                i += search_len
-            else :
-                i += 1
-
-        return matches
+        strategy_instance = FulltextSearch._get_strategy(strategy)
+        return strategy_instance.search_token_sequences(source_tokens, search_tokens)

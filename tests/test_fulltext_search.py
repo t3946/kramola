@@ -307,7 +307,7 @@ class TestFulltextSearch:
             source_tokens = FulltextSearch.tokenize_text(source_text)
             search_tokens = FulltextSearch.tokenize_text(search_text)
 
-            matches = FulltextSearch._search_token_sequences(source_tokens, search_tokens)
+            matches = FulltextSearch.search_token_sequences(source_tokens, search_tokens)
 
             assert len(matches) == expected_matches_count, (
                 f"Test case {i + 1} failed:\n"
@@ -330,23 +330,24 @@ class TestFulltextSearch:
                 )
 
                 match = matches[j]
+                actual_start, actual_end = match
 
-                assert match['start_token_idx'] == expected_start, (
+                assert actual_start == expected_start, (
                     f"Test case {i + 1} failed:\n"
                     f"  Source: '{source_text}'\n"
                     f"  Search: '{search_text}'\n"
-                    f"  Match {j + 1}: expected start_token_idx = {expected_start}\n"
-                    f"  Got: {match['start_token_idx']}\n"
+                    f"  Match {j + 1}: expected start = {expected_start}\n"
+                    f"  Got: {actual_start}\n"
                     f"  Match: {match}\n"
                     f"  Source tokens: {[(t['text'], t['type']) for t in source_tokens]}"
                 )
 
-                assert match['end_token_idx'] == expected_end, (
+                assert actual_end == expected_end, (
                     f"Test case {i + 1} failed:\n"
                     f"  Source: '{source_text}'\n"
                     f"  Search: '{search_text}'\n"
-                    f"  Match {j + 1}: expected end_token_idx = {expected_end}\n"
-                    f"  Got: {match['end_token_idx']}\n"
+                    f"  Match {j + 1}: expected end = {expected_end}\n"
+                    f"  Got: {actual_end}\n"
                     f"  Match: {match}\n"
                     f"  Source tokens: {[(t['text'], t['type']) for t in source_tokens]}"
                 )
