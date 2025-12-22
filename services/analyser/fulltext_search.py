@@ -39,6 +39,15 @@ STOP_WORDS_EN = {
 }
 
 
+class Token(TypedDict):
+    text: str
+    start: int
+    end: int
+    type: str
+    lemma: Optional[str]
+    stem: Optional[str]
+
+
 class Match(TypedDict):
     type: str
     start_token_idx: int
@@ -55,7 +64,7 @@ class FulltextSearch:
     by words and phrases using lemmatization and stemming.
     """
     @staticmethod
-    def tokenize_text(text: str) -> List[dict]:
+    def tokenize_text(text: str) -> List[Token]:
         """
         Universal text tokenization for fulltext search.
 
@@ -172,7 +181,7 @@ class FulltextSearch:
 
     @staticmethod
     def find_matches(
-            source_tokens: List[dict],
+            source_tokens: List[Token],
             search_lemmas_set: Optional[set],
             search_stems_set: Optional[set],
             search_phrase_lemmas_map: Optional[dict],
@@ -299,9 +308,8 @@ class FulltextSearch:
                     )
 
                     if is_match:
-                        match_type_str = 'word' if phrase_len == 1 else 'phrase'
                         matches.append({
-                            'type': match_type_str,
+                            'type': 'word' if phrase_len == 1 else 'phrase',
                             'start_token_idx': start_actual_token_idx,
                             'end_token_idx': end_actual_token_idx,
                             'lemma_key': phrase_lemma_tuple,
