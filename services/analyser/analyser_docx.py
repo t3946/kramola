@@ -9,14 +9,15 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analyser import AnalyseData
-from services.common_docx import tokenize_text
+from services.analyser.fulltext_search import FulltextSearch
 from services.highlight_service import _find_matches_in_paragraph_tokens
+from services.analyser.fulltext_search import Match
 from utils.timeit import timeit
 from copy import deepcopy
 from services.task.progress import Progress
 
 
-class Analyser:
+class AnalyserDocx:
     document: docx.Document
     analyse_data: AnalyseData
     word_stats: defaultdict
@@ -91,8 +92,8 @@ class Analyser:
                 # needs to avoid cases "This is an apple" -> "This is anapple"
                 source_run_text_element.set(qn('xml:space'), 'preserve')
 
-                run_match = Analyser.__clone_run(run_source, part_match, True)
-                run_after = Analyser.__clone_run(run_source, part_after_match)
+                run_match = AnalyserDocx.__clone_run(run_source, part_match, True)
+                run_after = AnalyserDocx.__clone_run(run_source, part_after_match)
                 source_run_text_element.text = part_before_match
                 run_source.addnext(run_match)
                 run_match.addnext(run_after)
@@ -113,8 +114,9 @@ class Analyser:
         start_token_idx = match['start_token_idx']
         end_token_idx = match['end_token_idx']
 
+        lemma_key = match['lemma_key']
+
         if match['type'] == 'phrase':
-            lemma_key = match['lemma_key']
             phrase_key_str = " ".join(lemma_key)
             stats = self.phrase_stats[phrase_key_str]
             text_parts = []
@@ -127,10 +129,9 @@ class Analyser:
             stats['count'] += 1
             stats['forms'][found_text] += 1
         elif match['type'] == 'word':
-            lemma_key = match['lemma_key']
-
-            if lemma_key:
-                stats = self.word_stats[lemma_key]
+            if lemma_key and len(lemma_key) == 1:
+                word_lemma = lemma_key[0]
+                stats = self.word_stats[word_lemma]
 
                 if start_token_idx < len(tokens):
                     found_text = tokens[start_token_idx]['text']
@@ -144,10 +145,10 @@ class Analyser:
         for run in batch:
             text += run.text
 
-        tokens = tokenize_text(text)
+        source_tokens = FulltextSearch.tokenize_text(text)
         phrase_map = self.analyse_data.phrase_map if self.analyse_data.phrase_map else {}
-        matches = _find_matches_in_paragraph_tokens(
-            tokens,
+        matches: List[Match] = _find_matches_in_paragraph_tokens(
+            source_tokens,
             self.analyse_data.lemmas,
             self.analyse_data.stems,
             phrase_map
@@ -158,10 +159,10 @@ class Analyser:
             start_token_idx = match['start_token_idx']
             end_token_idx = match['end_token_idx']
 
-            self.__update_match_statistics(match, tokens)
+            self.__update_match_statistics(match, source_tokens)
 
             for i in range(start_token_idx, end_token_idx + 1):
-                token = tokens[i]
+                token = source_tokens[i]
                 batch = self.__isolate_new_run_xml(batch, token['start'], token['end'])
 
     @staticmethod
@@ -185,7 +186,7 @@ class Analyser:
         return batches
 
     def __analyse_paragraph(self, paragraph: Paragraph) -> None:
-        batches = Analyser.__split_on_batches(paragraph._element)
+        batches = AnalyserDocx.__split_on_batches(paragraph._element)
 
         for batch in batches:
             self.__process_batch(batch)
@@ -196,7 +197,7 @@ class Analyser:
             self.__analyze_link(link._element)
 
     def __analyze_link(self, link: CT_Hyperlink) -> None:
-        batches = Analyser.__split_on_batches(link)
+        batches = AnalyserDocx.__split_on_batches(link)
 
         for batch in batches:
             self.__process_batch(batch)

@@ -8,7 +8,7 @@ import json  # Для сериализации/десериализации да
 from collections import Counter
 from typing import List
 
-from services.analyser import AnalyseData, Analyser
+from services.analyser import AnalyseData, AnalyserDocx
 
 
 from flask import (
@@ -122,7 +122,7 @@ def _perform_highlight_processing(
                 analyse_data.readFromList(all_search_lines_clean)
 
                 # search words in document
-                analyser = Analyser(source_path)
+                analyser = AnalyserDocx(source_path)
                 analyser.set_analyse_data(analyse_data)
                 analysis_results = analyser.analyse_and_highlight(task_id=task_id)
                 analyser.save(output_path)
