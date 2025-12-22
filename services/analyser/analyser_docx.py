@@ -251,9 +251,18 @@ class AnalyserDocx:
             progress.clear()
 
         #[start] return stats in same format as analyze_and_highlight_pdf
-        final_ws = {l: {'c': d['count'], 'f': dict(d['forms'])} for l, d in self.word_stats.items()}
-        final_ps = {phrase_lemma_str: {'c': d['count'], 'f': dict(d['forms'])} for phrase_lemma_str, d in
-                    self.phrase_stats.items()}
+        final_ws = {
+            l: {
+                'c': d['count'],
+                'f': dict(d['forms'])
+            } for l, d in self.word_stats.items()
+        }
+        final_ps = {
+            phrase_lemma_str: {
+                'c': d['count'],
+                'f': dict(d['forms'])
+            } for phrase_lemma_str, d in self.phrase_stats.items()
+        }
         total_matches = sum(d['count'] for d in self.word_stats.values()) + sum(
             d['count'] for d in self.phrase_stats.values())
 
