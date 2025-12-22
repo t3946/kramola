@@ -234,9 +234,129 @@ class TestFulltextSearch:
 
             print(f"Test case {i + 1} passed ({description}): '{text}'")
 
+    test_cases_search_token_sequences = [
+        {
+            'source': 'привет мир',
+            'search': 'привет',
+            'expected_matches': 1,
+            'expected_indices': [(0, 0)]
+        },
+        {
+            'source': 'привет мир привет',
+            'search': 'привет',
+            'expected_matches': 2,
+            'expected_indices': [(0, 0), (4, 4)]
+        },
+        {
+            'source': 'привет мир как дела',
+            'search': 'привет мир',
+            'expected_matches': 1,
+            'expected_indices': [(0, 2)]
+        },
+        {
+            'source': 'привет мир привет мир',
+            'search': 'привет мир',
+            'expected_matches': 2,
+            'expected_indices': [(0, 2), (4, 6)]
+        },
+        {
+            'source': 'машина едет быстро',
+            'search': 'машины едут',
+            'expected_matches': 1,
+            'expected_indices': [(0, 2)]
+        },
+        {
+            'source': 'кот сидит на стуле',
+            'search': 'собака бежит',
+            'expected_matches': 0,
+            'expected_indices': []
+        },
+        {
+            'source': 'тест теста тесту',
+            'search': 'тест',
+            'expected_matches': 3,
+            'expected_indices': [(0, 0), (2, 2), (4, 4)]
+        },
+        {
+            'source': 'привет',
+            'search': 'привет мир',
+            'expected_matches': 0,
+            'expected_indices': []
+        },
+        {
+            'source': 'Hello world hello',
+            'search': 'hello',
+            'expected_matches': 2,
+            'expected_indices': [(0, 0), (4, 4)]
+        },
+        {
+            'source': 'один два три один два',
+            'search': 'один два',
+            'expected_matches': 2,
+            'expected_indices': [(0, 2), (6, 8)]
+        }
+    ]
+
+    def test_search_token_sequences(self):
+        for i, test_case in enumerate(self.test_cases_search_token_sequences):
+            source_text = test_case['source']
+            search_text = test_case['search']
+            expected_matches_count = test_case['expected_matches']
+            expected_indices = test_case['expected_indices']
+
+            source_tokens = FulltextSearch.tokenize_text(source_text)
+            search_tokens = FulltextSearch.tokenize_text(search_text)
+
+            matches = FulltextSearch._search_token_sequences(source_tokens, search_tokens)
+
+            assert len(matches) == expected_matches_count, (
+                f"Test case {i + 1} failed:\n"
+                f"  Source: '{source_text}'\n"
+                f"  Search: '{search_text}'\n"
+                f"  Expected matches count: {expected_matches_count}\n"
+                f"  Got matches count: {len(matches)}\n"
+                f"  Matches: {matches}\n"
+                f"  Source tokens: {[(t['text'], t['type']) for t in source_tokens]}\n"
+                f"  Search tokens: {[(t['text'], t['type']) for t in search_tokens]}"
+            )
+
+            for j, (expected_start, expected_end) in enumerate(expected_indices):
+                assert j < len(matches), (
+                    f"Test case {i + 1} failed:\n"
+                    f"  Source: '{source_text}'\n"
+                    f"  Search: '{search_text}'\n"
+                    f"  Expected match {j + 1} at indices ({expected_start}, {expected_end})\n"
+                    f"  Got: only {len(matches)} matches"
+                )
+
+                match = matches[j]
+
+                assert match['start_token_idx'] == expected_start, (
+                    f"Test case {i + 1} failed:\n"
+                    f"  Source: '{source_text}'\n"
+                    f"  Search: '{search_text}'\n"
+                    f"  Match {j + 1}: expected start_token_idx = {expected_start}\n"
+                    f"  Got: {match['start_token_idx']}\n"
+                    f"  Match: {match}\n"
+                    f"  Source tokens: {[(t['text'], t['type']) for t in source_tokens]}"
+                )
+
+                assert match['end_token_idx'] == expected_end, (
+                    f"Test case {i + 1} failed:\n"
+                    f"  Source: '{source_text}'\n"
+                    f"  Search: '{search_text}'\n"
+                    f"  Match {j + 1}: expected end_token_idx = {expected_end}\n"
+                    f"  Got: {match['end_token_idx']}\n"
+                    f"  Match: {match}\n"
+                    f"  Source tokens: {[(t['text'], t['type']) for t in source_tokens]}"
+                )
+
+            print(f"Test case {i + 1} passed: '{source_text}' search '{search_text}' -> {len(matches)} matches")
+
 
 if __name__ == '__main__':
     test_instance = TestFulltextSearch()
     test_instance.test_compare_token_sequences()
     test_instance.test_tokenize_text()
+    test_instance.test_search_token_sequences()
     print("All tests passed!")

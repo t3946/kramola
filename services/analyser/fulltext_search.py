@@ -185,6 +185,37 @@ class FulltextSearch:
         return True
 
     @staticmethod
+    def _search_token_sequences(
+        source_tokens: List[Token],
+        search_tokens: List[Token]
+    ) -> List[Match]:
+        """
+        Search token sequences.
+        """
+        matches = []
+        search_len = len(search_tokens)
+
+        if search_len == 0: return []
+
+        i = 0
+
+        while i + search_len - 1 < len(source_tokens):
+            sub_sequence = source_tokens[i:i+search_len]
+            match_found = FulltextSearch._compare_token_sequences(sub_sequence, search_tokens)
+
+            if match_found :
+                matches.append({
+                    'start_token_idx': i,
+                    'end_token_idx': i + search_len - 1,
+                })
+
+                i += search_len
+            else :
+                i += 1
+
+        return matches
+
+    @staticmethod
     def _check_phrase_match(
             window_lemmas: List[str],
             window_stems: List[str],
