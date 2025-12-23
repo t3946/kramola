@@ -55,3 +55,36 @@ class TokenDictionary:
             candidates.update(self.text_lower_index.get(token['text'].lower(), []))
 
         return candidates
+
+    def has_token(self, token: 'Token') -> bool:
+        """
+        Check if token exists in dictionary.
+        
+        Args:
+            token: Token to check
+            
+        Returns:
+            True if token can be found in dictionary, False otherwise
+        """
+        if token['lemma'] and token['lemma'] in self.lemma_index:
+            return True
+        if token['stem'] and token['stem'] in self.stem_index:
+            return True
+        if token['text']:
+            if token['text'] in self.text_index:
+                return True
+            if token['text'].lower() in self.text_lower_index:
+                return True
+        return False
+
+    def filter_tokens(self, tokens: 'List[Token]') -> 'List[Token]':
+        """
+        Filter tokens list, keeping only tokens that exist in dictionary.
+        
+        Args:
+            tokens: List of tokens to filter
+            
+        Returns:
+            List of tokens that exist in dictionary
+        """
+        return [token for token in tokens if self.has_token(token)]

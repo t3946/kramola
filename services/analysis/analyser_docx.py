@@ -1,6 +1,6 @@
 import docx
 import time
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple, Dict
 from collections import defaultdict, Counter
 
 from docx.text.paragraph import Paragraph
@@ -11,6 +11,8 @@ from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analysis import AnalysisData
 from services.fulltext_search.fulltext_search import FulltextSearch, Match, Token, SearchStrategy
+from services.fulltext_search.dictionary import TokenDictionary
+from services.fulltext_search.phrase import Phrase
 from utils.timeit import timeit
 from copy import deepcopy
 from services.task.progress import Progress
@@ -22,6 +24,12 @@ class AnalyserDocx:
     word_stats: defaultdict
     phrase_stats: defaultdict
     _tokenize_time_total: float
+    # Dictionary built from entire document text, used to filter out search phrases list
+    # that cannot match (where at least one word is missing in document)
+    _global_document_dictionary: Optional[TokenDictionary]
+    # Pre-filtered phrases list: only phrases where all words exist in document
+    # This avoids checking phrases that cannot match during batch processing
+    _search_phrases: List[Phrase]
 
     def __init__(self, document: Union[docx.Document, str]):
         if isinstance(document, str):
@@ -31,6 +39,8 @@ class AnalyserDocx:
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self._tokenize_time_total = 0.0
+        self._global_document_dictionary = None
+        self._search_phrases = []
 
     def set_analyse_data(self, analyse_data: AnalysisData) -> None:
         self.analyse_data = analyse_data
@@ -142,35 +152,30 @@ class AnalyserDocx:
     def __search_all_phrases_optimized(
         self,
         source_tokens: List[Token],
-        search_phrases: List[tuple]
+        search_phrases: List[Phrase]
     ) -> List[Match]:
         """Search all phrases using optimized strategy with dictionary."""
         if not source_tokens or not search_phrases:
             return []
 
         fulltext_search = FulltextSearch(source_tokens)
-        search_phrases_list = [(phrase_text, search_tokens) for phrase_text, search_tokens in search_phrases]
-        phrase_results = fulltext_search.search_all(search_phrases_list, SearchStrategy.FUZZY_WORDS_PUNCT)
+        search_phrases_for_search: List[Tuple[str, List[Token]]] = [
+            (phrase.phrase, phrase.tokens) for phrase in search_phrases
+        ]
+        phrase_results = fulltext_search.search_all(search_phrases_for_search, SearchStrategy.FUZZY_WORDS_PUNCT)
         matches: List[Match] = []
 
-        phrase_data_cache = {}
+        phrase_dict = {phrase.phrase: phrase for phrase in search_phrases}
 
         for phrase_text, found_matches in phrase_results:
-            if phrase_text not in phrase_data_cache:
-                search_tokens = self.analyse_data.tokens[phrase_text]
-                search_words = [t for t in search_tokens if t['type'] == 'word']
+            phrase = phrase_dict[phrase_text]
+            search_words = [t for t in phrase.tokens if t['type'] == 'word']
 
-                if len(search_words) == 0:
-                    phrase_data_cache[phrase_text] = None
-                    continue
+            if len(search_words) == 0:
+                continue
 
-                lemma_key = tuple(token['lemma'] for token in search_words if token['lemma'])
-                match_type = 'word' if len(search_words) == 1 else 'phrase'
-                phrase_data_cache[phrase_text] = (lemma_key, match_type)
-            else:
-                if phrase_data_cache[phrase_text] is None:
-                    continue
-                lemma_key, match_type = phrase_data_cache[phrase_text]
+            lemma_key = tuple(token['lemma'] for token in search_words if token['lemma'])
+            match_type = 'word' if len(search_words) == 1 else 'phrase'
 
             for start_token_idx, end_token_idx in found_matches:
                 matches.append({
@@ -194,8 +199,10 @@ class AnalyserDocx:
         source_tokens: List[Token] = FulltextSearch.tokenize_text(text)
         self._tokenize_time_total += time.time() - start_time
 
-        search_phrases = list(self.analyse_data.tokens.items())
-        matches: List[Match] = self.__search_all_phrases_optimized(source_tokens, search_phrases)
+        matches: List[Match] = self.__search_all_phrases_optimized(
+            source_tokens,
+            self._search_phrases
+        )
         # [end]
 
         for match in matches:
@@ -245,12 +252,63 @@ class AnalyserDocx:
         for batch in batches:
             self.__process_batch(batch)
 
+    def __build_global_dictionary(self) -> TokenDictionary:
+        """Build dictionary from entire document text."""
+        full_text = ''
+
+        paragraphs: List[Paragraph] = self.document.paragraphs
+        tables: List[Table] = self.document.tables
+
+        for paragraph in paragraphs:
+            full_text += paragraph.text + ' '
+
+        for table in tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        full_text += paragraph.text + ' '
+
+        all_tokens = FulltextSearch.tokenize_text(full_text)
+
+        return TokenDictionary(all_tokens)
+
+    def __filter_phrases_by_dictionary(
+        self, 
+        search_phrases: List[Tuple[str, List[Token]]], 
+        dictionary: TokenDictionary
+    ) -> List[Phrase]:
+        """Filter phrases: exclude those where at least one word is missing in dictionary."""
+        filtered_phrases: List[Phrase] = []
+
+        for phrase_text, search_tokens in search_phrases:
+            search_words = [t for t in search_tokens if t['type'] == 'word']
+
+            if len(search_words) == 0:
+                continue
+
+            filtered_words = dictionary.filter_tokens(search_words)
+
+            if len(filtered_words) == len(search_words):
+                filtered_phrases.append(Phrase(phrase_text))
+
+        return filtered_phrases
+
     @timeit
     def analyse_and_highlight(self, task_id: Optional[str] = None) -> dict:
         #[start] reset stats
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         #[end]
+
+        # build global dictionary and filter search phrases by it
+        if self.analyse_data and self.analyse_data.tokens:
+            self._global_document_dictionary = self.__build_global_dictionary()
+            phrase_tokens_pairs: List[Tuple[str, List[Token]]] = list(self.analyse_data.tokens.items())
+            self._search_phrases = self.__filter_phrases_by_dictionary(
+                phrase_tokens_pairs, self._global_document_dictionary
+            )
+        else:
+            self._search_phrases = []
 
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables
