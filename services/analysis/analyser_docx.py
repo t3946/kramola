@@ -153,15 +153,24 @@ class AnalyserDocx:
         phrase_results = fulltext_search.search_all(search_phrases_list, SearchStrategy.FUZZY_WORDS_PUNCT)
         matches: List[Match] = []
 
+        phrase_data_cache = {}
+
         for phrase_text, found_matches in phrase_results:
-            search_tokens = self.analyse_data.tokens[phrase_text]
-            search_words = [t for t in search_tokens if t['type'] == 'word']
+            if phrase_text not in phrase_data_cache:
+                search_tokens = self.analyse_data.tokens[phrase_text]
+                search_words = [t for t in search_tokens if t['type'] == 'word']
 
-            if len(search_words) == 0:
-                continue
+                if len(search_words) == 0:
+                    phrase_data_cache[phrase_text] = None
+                    continue
 
-            lemma_key = tuple(token['lemma'] for token in search_words if token['lemma'])
-            match_type = 'word' if len(search_words) == 1 else 'phrase'
+                lemma_key = tuple(token['lemma'] for token in search_words if token['lemma'])
+                match_type = 'word' if len(search_words) == 1 else 'phrase'
+                phrase_data_cache[phrase_text] = (lemma_key, match_type)
+            else:
+                if phrase_data_cache[phrase_text] is None:
+                    continue
+                lemma_key, match_type = phrase_data_cache[phrase_text]
 
             for start_token_idx, end_token_idx in found_matches:
                 matches.append({

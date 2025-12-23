@@ -42,7 +42,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                 first_word = search_words[0]
                 candidate_starts = dictionary.find_candidate_positions(first_word)
 
-                for start_idx in sorted(candidate_starts):
+                for start_idx in candidate_starts:
                     source_i = start_idx
                     search_j = 0
                     match_start = None
@@ -221,7 +221,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             candidate_starts = dictionary.find_candidate_positions(first_word)
             matches = []
 
-            for start_idx in sorted(candidate_starts):
+            for start_idx in candidate_starts:
                 match_result = self._verify_phrase_match(source_tokens, search_words, start_idx)
 
                 if match_result:

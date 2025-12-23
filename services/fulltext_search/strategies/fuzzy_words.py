@@ -60,6 +60,24 @@ class FuzzyWordsStrategy(BaseSearchStrategy):
         if search_len == 0:
             return []
 
+        source_len = len(source_tokens)
+
+        if dictionary is not None and len(search_tokens) > 0:
+            first_token = search_tokens[0]
+            candidate_starts = dictionary.find_candidate_positions(first_token)
+
+            for i in sorted(candidate_starts):
+                if i + search_len - 1 >= source_len:
+                    continue
+
+                sub_sequence = source_tokens[i:i+search_len]
+                match_found = self._compare_token_sequences(sub_sequence, search_tokens)
+
+                if match_found:
+                    matches.append((i, i + search_len - 1))
+
+            return matches
+
         i = 0
 
         while i + search_len - 1 < len(source_tokens):

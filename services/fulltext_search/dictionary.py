@@ -22,6 +22,7 @@ class TokenDictionary:
         self.lemma_index: Dict[str, List[int]] = defaultdict(list)
         self.stem_index: Dict[str, List[int]] = defaultdict(list)
         self.text_index: Dict[str, List[int]] = defaultdict(list)
+        self.text_lower_index: Dict[str, List[int]] = defaultdict(list)
         self.source_tokens = source_tokens
 
         for i, token in enumerate(source_tokens):
@@ -31,6 +32,7 @@ class TokenDictionary:
                 if token['stem']:
                     self.stem_index[token['stem']].append(i)
                 self.text_index[token['text']].append(i)
+                self.text_lower_index[token['text'].lower()].append(i)
 
     def find_candidate_positions(self, token: 'Token') -> Set[int]:
         """
@@ -50,5 +52,6 @@ class TokenDictionary:
             candidates.update(self.stem_index.get(token['stem'], []))
         if token['text']:
             candidates.update(self.text_index.get(token['text'], []))
+            candidates.update(self.text_lower_index.get(token['text'].lower(), []))
 
         return candidates

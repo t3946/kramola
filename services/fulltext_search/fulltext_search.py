@@ -164,14 +164,14 @@ class FulltextSearch:
                 search_phrases_tokens,
                 self.dictionary
             )
-        else:
-            results = []
 
-            for phrase_text, text_or_tokens in search_phrases:
-                matches = self.search(text_or_tokens, strategy)
-                results.append((phrase_text, matches))
+        results = []
 
-            return results
+        for phrase_text, text_or_tokens in search_phrases:
+            matches = self.search(text_or_tokens, strategy)
+            results.append((phrase_text, matches))
+
+        return results
 
     @staticmethod
     def tokenize_text(text: str) -> List[Token]:
