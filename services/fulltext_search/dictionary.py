@@ -1,6 +1,8 @@
-from typing import List, Dict, Set
+from typing import List, Dict, Set, TYPE_CHECKING
 from collections import defaultdict
-from services.fulltext_search.fulltext_search import Token
+
+if TYPE_CHECKING:
+    from services.fulltext_search.fulltext_search import Token
 
 
 class TokenDictionary:
@@ -10,7 +12,7 @@ class TokenDictionary:
     Provides O(1) lookup for token positions by different attributes.
     """
 
-    def __init__(self, source_tokens: List[Token]):
+    def __init__(self, source_tokens: 'List[Token]'):
         """
         Build dictionary from source tokens.
         
@@ -30,7 +32,7 @@ class TokenDictionary:
                     self.stem_index[token['stem']].append(i)
                 self.text_index[token['text']].append(i)
 
-    def find_candidate_positions(self, token: Token) -> Set[int]:
+    def find_candidate_positions(self, token: 'Token') -> Set[int]:
         """
         Find all positions where token can match.
         
