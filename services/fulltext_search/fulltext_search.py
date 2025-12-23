@@ -4,8 +4,8 @@ from typing import List, Optional, TypedDict, Tuple, Union
 from services.pymorphy_service import CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
 from services.fulltext_search.strategies import (
-    FuzzyWordsStrictOrderStrategy,
-    StrictOrderFuzzyPunctStrategy
+    FuzzyWordsStrategy,
+    FuzzyWordsPunctStrategy
 )
 from services.fulltext_search.dictionary import TokenDictionary
 
@@ -63,8 +63,8 @@ class Match(TypedDict):
 
 class SearchStrategy(Enum):
     """Search strategy enum."""
-    FUZZY_WORDS_STRICT_ORDER = "fuzzy_words_strict_order"
-    STRICT_ORDER_FUZZY_PUNCT = "strict_order_fuzzy_punct"
+    FUZZY_WORDS = "fuzzy_words"
+    FUZZY_WORDS_PUNCT = "fuzzy_words_punct"
 
 
 class FulltextSearch:
@@ -75,7 +75,7 @@ class FulltextSearch:
     by words and phrases using lemmatization and stemming.
     """
 
-    _default_strategy = FuzzyWordsStrictOrderStrategy()
+    _default_strategy = FuzzyWordsStrategy()
 
     def __init__(self, source: Union[str, List[Token]]):
         """
@@ -97,10 +97,10 @@ class FulltextSearch:
         if strategy is None:
             return FulltextSearch._default_strategy
 
-        if strategy == SearchStrategy.FUZZY_WORDS_STRICT_ORDER:
-            return FuzzyWordsStrictOrderStrategy()
-        elif strategy == SearchStrategy.STRICT_ORDER_FUZZY_PUNCT:
-            return StrictOrderFuzzyPunctStrategy()
+        if strategy == SearchStrategy.FUZZY_WORDS:
+            return FuzzyWordsStrategy()
+        elif strategy == SearchStrategy.FUZZY_WORDS_PUNCT:
+            return FuzzyWordsPunctStrategy()
 
         return FulltextSearch._default_strategy
 
@@ -114,7 +114,7 @@ class FulltextSearch:
         
         Args:
             text: Search text (str) or list of tokens to search for
-            strategy: Search strategy to use (default: FUZZY_WORDS_STRICT_ORDER)
+            strategy: Search strategy to use (default: FUZZY_WORDS)
             
         Returns:
             List of tuples (start, end) where start and end are source tokens indices.
@@ -141,7 +141,7 @@ class FulltextSearch:
         
         Args:
             search_phrases: List of (phrase_text, text_or_tokens) tuples
-            strategy: Search strategy to use (default: FUZZY_WORDS_STRICT_ORDER)
+            strategy: Search strategy to use (default: FUZZY_WORDS)
             
         Returns:
             List of (phrase_text, matches) tuples where matches is list of (start, end) tuples
@@ -271,20 +271,20 @@ class FulltextSearch:
         """
         Compares two token sequences of the same length.
         Match is considered according to selected strategy.
-        Works only with FUZZY_WORDS_STRICT_ORDER strategy.
+        Works only with FUZZY_WORDS strategy.
         
         Args:
             source_tokens: Tokens from source text
             search_tokens: Tokens from search query
-            strategy: Search strategy to use (default: FUZZY_WORDS_STRICT_ORDER)
+            strategy: Search strategy to use (default: FUZZY_WORDS)
             
         Returns:
             True if sequences match according to strategy, False otherwise
         """
         strategy_instance = FulltextSearch._get_strategy(strategy)
         
-        if not isinstance(strategy_instance, FuzzyWordsStrictOrderStrategy):
-            raise ValueError("_compare_token_sequences is only available for FUZZY_WORDS_STRICT_ORDER strategy")
+        if not isinstance(strategy_instance, FuzzyWordsStrategy):
+            raise ValueError("_compare_token_sequences is only available for FUZZY_WORDS strategy")
         
         return strategy_instance._compare_token_sequences(source_tokens, search_tokens)
 
@@ -300,7 +300,7 @@ class FulltextSearch:
         Args:
             source_tokens: Tokens from source text
             search_tokens: Tokens from search query
-            strategy: Search strategy to use (default: FUZZY_WORDS_STRICT_ORDER)
+            strategy: Search strategy to use (default: FUZZY_WORDS)
             
         Returns:
             List of tuples (start, end) where start and end are source tokens indices.

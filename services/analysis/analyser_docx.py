@@ -150,7 +150,7 @@ class AnalyserDocx:
 
         fulltext_search = FulltextSearch(source_tokens)
         search_phrases_list = [(phrase_text, search_tokens) for phrase_text, search_tokens in search_phrases]
-        phrase_results = fulltext_search.search_all(search_phrases_list, SearchStrategy.STRICT_ORDER_FUZZY_PUNCT)
+        phrase_results = fulltext_search.search_all(search_phrases_list, SearchStrategy.FUZZY_WORDS_PUNCT)
         matches: List[Match] = []
 
         for phrase_text, found_matches in phrase_results:

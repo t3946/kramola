@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from services.fulltext_search.fulltext_search import Token
 
 
-class StrictOrderFuzzyPunctStrategy(BaseSearchStrategy):
+class FuzzyWordsPunctStrategy(BaseSearchStrategy):
     """
     Search strategy with strict word order but fuzzy punctuation.
     
