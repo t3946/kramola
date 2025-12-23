@@ -48,9 +48,9 @@
                         {% for lemma, data in word_stats_sorted %}
                             <tr data-lemma="{{ lemma }}">
                                 <td>{{ lemma }}</td>
-                                <td>{{ data.c }}</td>
+                                <td>{{ data.count }}</td>
                                 <td>
-                                    {% for form, count in data.f.items() | sort %}
+                                    {% for form, count in data.forms.items() | sort %}
                                         <span class="word-form" data-lemma="{{ lemma }}" data-original="{{ form }}">
                                             {{ form }} ({{ count }})
                                         </span>
@@ -84,10 +84,10 @@
                         {% for phrase_lemma_str, data in phrase_stats_sorted %}
                             <tr data-phrase="{{ phrase_lemma_str }}">
                                 <td>{{ phrase_lemma_str }}</td>
-                                <td>{{ data.c }}</td>
+                                <td>{{ data.count }}</td>
                                 <td>
-                                    {% if data.f %}
-                                        {% for form, count in data.f.items() | sort %}
+                                    {% if data.forms %}
+                                        {% for form, count in data.forms.items() | sort %}
                                             <span class="phrase-form" data-phrase-lemma="{{ phrase_lemma_str }}" data-original="{{ form }}">
                                                 "{{ form }}" ({{ count }})
                                             </span>
