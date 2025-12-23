@@ -1,9 +1,13 @@
 import re
 from enum import Enum
-from typing import List, Optional, TypedDict, Tuple
-from services.pymorphy_service import _get_lemma, _get_stem, CYRILLIC_PATTERN, ensure_models_loaded
+from typing import List, Optional, TypedDict, Tuple, Union
+from services.pymorphy_service import CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
-from services.analyser.strategies import FuzzyWordsStrictOrderStrategy, StrictOrderFuzzyPunctStrategy
+from services.fulltext_search.strategies import (
+    FuzzyWordsStrictOrderStrategy,
+    StrictOrderFuzzyPunctStrategy
+)
+from services.fulltext_search.dictionary import TokenDictionary
 
 TOKENIZE_PATTERN_UNIVERSAL = re.compile(r"(\w+)|([^\w\s]+)|(\s+)", re.UNICODE)
 PYMORPHY_AVAILABLE = True
@@ -73,6 +77,20 @@ class FulltextSearch:
 
     _default_strategy = FuzzyWordsStrictOrderStrategy()
 
+    def __init__(self, source: Union[str, List[Token]]):
+        """
+        Initialize FulltextSearch with source text or tokens.
+        
+        Args:
+            source: Source text (str) or list of tokens to search in
+        """
+        if isinstance(source, str):
+            self.source_tokens: List[Token] = FulltextSearch.tokenize_text(source)
+        else:
+            self.source_tokens: List[Token] = source
+
+        self.dictionary: TokenDictionary = TokenDictionary(self.source_tokens)
+
     @staticmethod
     def _get_strategy(strategy: Optional[SearchStrategy] = None):
         """Get strategy instance by enum value."""
@@ -85,6 +103,75 @@ class FulltextSearch:
             return StrictOrderFuzzyPunctStrategy()
 
         return FulltextSearch._default_strategy
+
+    def search(
+        self,
+        text: Union[str, List[Token]],
+        strategy: Optional[SearchStrategy] = None
+    ) -> List[Tuple[int, int]]:
+        """
+        Search for text or tokens in source.
+        
+        Args:
+            text: Search text (str) or list of tokens to search for
+            strategy: Search strategy to use (default: FUZZY_WORDS_STRICT_ORDER)
+            
+        Returns:
+            List of tuples (start, end) where start and end are source tokens indices.
+        """
+        if isinstance(text, str):
+            search_tokens: List[Token] = FulltextSearch.tokenize_text(text)
+        else:
+            search_tokens: List[Token] = text
+
+        strategy_instance = FulltextSearch._get_strategy(strategy)
+        return strategy_instance.search_token_sequences(
+            self.source_tokens,
+            search_tokens,
+            self.dictionary
+        )
+
+    def search_all(
+        self,
+        search_phrases: List[Tuple[str, Union[str, List[Token]]]],
+        strategy: Optional[SearchStrategy] = None
+    ) -> List[Tuple[str, List[Tuple[int, int]]]]:
+        """
+        Search all phrases in one pass.
+        
+        Args:
+            search_phrases: List of (phrase_text, text_or_tokens) tuples
+            strategy: Search strategy to use (default: FUZZY_WORDS_STRICT_ORDER)
+            
+        Returns:
+            List of (phrase_text, matches) tuples where matches is list of (start, end) tuples
+        """
+        strategy_instance = FulltextSearch._get_strategy(strategy)
+        
+        if hasattr(strategy_instance, 'search_all_phrases'):
+            search_phrases_tokens = []
+
+            for phrase_text, text_or_tokens in search_phrases:
+                if isinstance(text_or_tokens, str):
+                    search_tokens = FulltextSearch.tokenize_text(text_or_tokens)
+                else:
+                    search_tokens = text_or_tokens
+
+                search_phrases_tokens.append((phrase_text, search_tokens))
+
+            return strategy_instance.search_all_phrases(
+                self.source_tokens,
+                search_phrases_tokens,
+                self.dictionary
+            )
+        else:
+            results = []
+
+            for phrase_text, text_or_tokens in search_phrases:
+                matches = self.search(text_or_tokens, strategy)
+                results.append((phrase_text, matches))
+
+            return results
 
     @staticmethod
     def tokenize_text(text: str) -> List[Token]:
@@ -219,4 +306,5 @@ class FulltextSearch:
             List of tuples (start, end) where start and end are source tokens indices.
         """
         strategy_instance = FulltextSearch._get_strategy(strategy)
-        return strategy_instance.search_token_sequences(source_tokens, search_tokens)
+        dictionary = TokenDictionary(source_tokens)
+        return strategy_instance.search_token_sequences(source_tokens, search_tokens, dictionary)

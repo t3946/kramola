@@ -1,4 +1,4 @@
-from services.analyser.fulltext_search import FulltextSearch
+from services.fulltext_search.fulltext_search import FulltextSearch
 
 
 class TestFulltextSearch:

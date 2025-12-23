@@ -4,7 +4,7 @@ from typing import Optional
 from docx.shared import RGBColor, Pt
 from docx.text.paragraph import ParagraphFormat
 from docx.text.run import Run
-from services.analyser.fulltext_search import FulltextSearch
+from services.fulltext_search.fulltext_search import FulltextSearch
 
 logger_cd = logging.getLogger(__name__)
 

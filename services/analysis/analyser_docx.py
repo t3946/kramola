@@ -1,4 +1,5 @@
 import docx
+import time
 from typing import List, Union, Optional
 from collections import defaultdict, Counter
 
@@ -8,8 +9,8 @@ from docx.table import Table
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
-from services.analyser import AnalyseData
-from services.analyser.fulltext_search import FulltextSearch, Match, Token, SearchStrategy
+from services.analysis import AnalysisData
+from services.fulltext_search.fulltext_search import FulltextSearch, Match, Token, SearchStrategy
 from utils.timeit import timeit
 from copy import deepcopy
 from services.task.progress import Progress
@@ -17,9 +18,10 @@ from services.task.progress import Progress
 
 class AnalyserDocx:
     document: docx.Document
-    analyse_data: AnalyseData
+    analyse_data: AnalysisData
     word_stats: defaultdict
     phrase_stats: defaultdict
+    _tokenize_time_total: float
 
     def __init__(self, document: Union[docx.Document, str]):
         if isinstance(document, str):
@@ -28,8 +30,9 @@ class AnalyserDocx:
         self.document = document
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
+        self._tokenize_time_total = 0.0
 
-    def set_analyse_data(self, analyse_data: AnalyseData) -> None:
+    def set_analyse_data(self, analyse_data: AnalysisData) -> None:
         self.analyse_data = analyse_data
 
     @staticmethod
@@ -136,6 +139,41 @@ class AnalyserDocx:
                     stats['count'] += 1
                     stats['forms'][found_text.lower()] += 1
 
+    def __search_all_phrases_optimized(
+        self,
+        source_tokens: List[Token],
+        search_phrases: List[tuple]
+    ) -> List[Match]:
+        """Search all phrases using optimized strategy with dictionary."""
+        if not source_tokens or not search_phrases:
+            return []
+
+        fulltext_search = FulltextSearch(source_tokens)
+        search_phrases_list = [(phrase_text, search_tokens) for phrase_text, search_tokens in search_phrases]
+        phrase_results = fulltext_search.search_all(search_phrases_list, SearchStrategy.STRICT_ORDER_FUZZY_PUNCT)
+        matches: List[Match] = []
+
+        for phrase_text, found_matches in phrase_results:
+            search_tokens = self.analyse_data.tokens[phrase_text]
+            search_words = [t for t in search_tokens if t['type'] == 'word']
+
+            if len(search_words) == 0:
+                continue
+
+            lemma_key = tuple(token['lemma'] for token in search_words if token['lemma'])
+            match_type = 'word' if len(search_words) == 1 else 'phrase'
+
+            for start_token_idx, end_token_idx in found_matches:
+                matches.append({
+                    'start_token_idx': start_token_idx,
+                    'end_token_idx': end_token_idx,
+                    'lemma_key': lemma_key,
+                    'type': match_type,
+                    'match_type': 'lemma',
+                })
+
+        return matches
+
     def __process_batch(self, batch: List[CT_R]) -> None:
         text = ''
 
@@ -143,27 +181,12 @@ class AnalyserDocx:
         for run in batch:
             text += run.text
 
+        start_time = time.time()
         source_tokens: List[Token] = FulltextSearch.tokenize_text(text)
-        matches: List[Match] = []
+        self._tokenize_time_total += time.time() - start_time
 
-        for _, search_tokens in self.analyse_data.tokens.items():
-            found_matches = FulltextSearch.search_token_sequences(
-                source_tokens,
-                search_tokens,
-                SearchStrategy.STRICT_ORDER_FUZZY_PUNCT
-            )
-
-            lemma_key = tuple(token['lemma'] for token in search_tokens if token['lemma'])
-            match_type = 'word' if len(search_tokens) == 1 else 'phrase'
-
-            for start_index, end_index in found_matches:
-                matches.append({
-                    'start_token_idx': start_index,
-                    'end_token_idx': end_index,
-                    'lemma_key': lemma_key,
-                    'type': match_type,
-                    'match_type': 'lemma',
-                })
+        search_phrases = list(self.analyse_data.tokens.items())
+        matches: List[Match] = self.__search_all_phrases_optimized(source_tokens, search_phrases)
         # [end]
 
         for match in matches:

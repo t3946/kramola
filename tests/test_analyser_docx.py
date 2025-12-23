@@ -3,8 +3,8 @@ import sys
 from pathlib import Path
 from typing import Dict, Optional, List
 
-from services.analyser.analyser_docx import AnalyserDocx
-from services.analyser.analyse_data import AnalyseData
+from services.analysis.analyser_docx import AnalyserDocx
+from services.analysis.analysis_data import AnalysisData
 
 
 class TestAnalyserDocx:
@@ -64,11 +64,11 @@ class TestAnalyserDocx:
         # [end]
 
         # [start] Create AnalyseData
-        analyse_data = AnalyseData()
+        analyse_data = AnalysisData()
         analyse_data.read_from_list(search_terms)
         # [end]
 
-        # [start] Create analyser and perform analysis
+        # [start] Create analysis and perform analysis
         analyser = AnalyserDocx(str(source_docx_path))
         analyser.set_analyse_data(analyse_data)
         analysis_results = analyser.analyse_and_highlight()

@@ -1,12 +1,12 @@
 import docx
 
-from services.analyser import AnalyserDocx, AnalyseData
+from services.analysis import AnalyserDocx, AnalysisData
 
 def russian_history():
     source_path = f"./notes/tests/russian-history/История древней Руси.docx"
     doc = docx.Document(source_path)
 
-    analyse_data = AnalyseData()
+    analyse_data = AnalysisData()
     analyse_data.read_from_docx(f"./notes/tests/russian-history/Слова.docx")
 
     analyser = AnalyserDocx(doc)
@@ -21,7 +21,7 @@ def the_fall_of_robespierre():
     source_path = f"./notes/tests/the-fall-of-robespierre/source.docx"
     doc = docx.Document(source_path)
 
-    analyse_data = AnalyseData()
+    analyse_data = AnalysisData()
     analyse_data.read_from_docx(f"./notes/tests/the-fall-of-robespierre/words.docx")
 
     analyser = AnalyserDocx(doc)

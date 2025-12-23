@@ -4,8 +4,8 @@ import time
 from pathlib import Path
 from typing import Dict, Optional, List
 
-from services.analyser.analyser_docx import AnalyserDocx
-from services.analyser.analyse_data import AnalyseData
+from services.analysis.analyser_docx import AnalyserDocx
+from services.analysis.analysis_data import AnalysisData
 
 
 class TestAnalyserDocxSpeed:
@@ -40,7 +40,7 @@ class TestAnalyserDocxSpeed:
         """Load search terms from search.txt or search.docx file."""
         if search_path.suffix == '.docx':
             # Load from DOCX using AnalyseData
-            analyse_data = AnalyseData()
+            analyse_data = AnalysisData()
             analyse_data.read_from_docx(str(search_path))
             search_terms = list(analyse_data.tokens.keys())
         else:
@@ -77,12 +77,12 @@ class TestAnalyserDocxSpeed:
 
         # [start] Create AnalyseData - TIMED
         start_time = time.time()
-        analyse_data = AnalyseData()
+        analyse_data = AnalysisData()
         analyse_data.read_from_list(search_terms)
         timing_results['create_analyse_data'] = time.time() - start_time
         # [end]
 
-        # [start] Create analyser - TIMED
+        # [start] Create analysis - TIMED
         start_time = time.time()
         analyser = AnalyserDocx(str(source_docx_path))
         analyser.set_analyse_data(analyse_data)

@@ -1,9 +1,9 @@
 from typing import List, Dict
 from services.document_service import extract_lines_from_docx
-from services.analyser.fulltext_search import FulltextSearch, Token
+from services.fulltext_search.fulltext_search import FulltextSearch, Token
 
 
-class AnalyseData:
+class AnalysisData:
     tokens: Dict[str, List[Token]]
 
     def __init__(self, terms = None):

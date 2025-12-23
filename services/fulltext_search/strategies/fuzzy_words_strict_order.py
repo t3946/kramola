@@ -1,8 +1,9 @@
-from typing import List, Tuple, TYPE_CHECKING
-from services.analyser.strategies.base_strategy import BaseSearchStrategy
+from typing import List, Tuple, TYPE_CHECKING, Optional
+from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 
 if TYPE_CHECKING:
-    from services.analyser.fulltext_search import Token
+    from services.fulltext_search.fulltext_search import Token
+    from services.fulltext_search.dictionary import TokenDictionary
 
 
 class FuzzyWordsStrictOrderStrategy(BaseSearchStrategy):
@@ -46,7 +47,8 @@ class FuzzyWordsStrictOrderStrategy(BaseSearchStrategy):
     def search_token_sequences(
         self,
         source_tokens: 'List[Token]',
-        search_tokens: 'List[Token]'
+        search_tokens: 'List[Token]',
+        dictionary: Optional['TokenDictionary'] = None
     ) -> List[Tuple[int, int]]:
         """
         Search token sequences.

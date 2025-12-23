@@ -8,7 +8,7 @@ import json  # Для сериализации/десериализации да
 from collections import Counter
 from typing import List
 
-from services.analyser import AnalyseData, AnalyserDocx
+from services.analysis import AnalysisData, AnalyserDocx
 
 
 from flask import (
@@ -118,7 +118,7 @@ def _perform_highlight_processing(
 
             if is_docx_source:
                 # prepare words for search
-                analyse_data = AnalyseData()
+                analyse_data = AnalysisData()
                 analyse_data.read_from_list(all_search_lines_clean)
 
                 # search words in document
