@@ -13,6 +13,26 @@ priority: 1
 5. Write type hints for all functions (JSDoc or Python typing)
 6. Prefer array methods (map, filter) over loops when possible
 
+## Typing
+Types are incredible potent. Always specify types for all variables, function parameters and return values.
+
+## Variables naming
+Names should be concise and unambiguous.
+```py
+# good
+x: int = 1
+duration_ms: int = 100
+is_ready: bool = True
+can_flight: bool = False
+
+# bad
+words: list[Phrases] = get_phrases() # the "words" name could confuse – phrases, much more definitely
+data: dict[str, Any] = load_user_profile()  # лучше: user_profile
+calculate: int = 5  # bad: verb!, only functions could be named by verb (or variables linked to it)
+#classic bad names: data, result, info —  where you never don't know what inside
+list_of_ids: list[int] = get_user_ids()  # do not need say type in name, just specify type declaration, better: user_ids
+```
+
 ## Comments
 1. Write any comments in english
 2. Do not write verbose comments until you asked about it, most comments should be short
