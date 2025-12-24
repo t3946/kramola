@@ -53,6 +53,7 @@ def _perform_highlight_processing(
         words_path: str,
         words_filename_original,
         all_search_lines_clean: List[str],
+        selected_list_keys: List[str],
         is_docx_source,
         perform_ocr,
         task_id,
@@ -119,6 +120,12 @@ def _perform_highlight_processing(
             if is_docx_source:
                 # prepare words for search
                 analyse_data = AnalysisData()
+                
+                # Load ready-made Phrase objects from Redis lists
+                redis_list_keys = [key for key in selected_list_keys if key in ('ino', 'inu_b')]
+                if redis_list_keys:
+                    analyse_data.load_predefined_lists(redis_list_keys)
+                
                 analyse_data.read_from_list(all_search_lines_clean)
 
                 # search words in document
@@ -248,6 +255,7 @@ def process_async():
             is_docx_source = upload_result['is_docx_source']
             file_ext = upload_result['file_ext']
             used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
+            selected_list_keys = upload_result.get('selected_list_keys', [])
             
             # Если нет исходного документа, но есть списки, устанавливаем значения по умолчанию
             if not source_path and used_predefined_list_names_for_session:
@@ -306,6 +314,7 @@ def process_async():
             words_path,
             words_filename_original,
             all_search_lines_clean,
+            selected_list_keys,
             is_docx_source,
             perform_ocr,
             task_id,

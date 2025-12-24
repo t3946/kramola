@@ -1,7 +1,9 @@
 from abc import abstractmethod
 from typing import TypedDict, Dict, List, Any
 from datetime import datetime, date
+import json
 from services.redis.connection import get_redis_connection
+from services.fulltext_search.phrase import Phrase
 
 # from flask import (current_app as app)
 
@@ -35,10 +37,14 @@ class WordsList:
     def save(self, words_list: list[str], logging) -> None:
         key_list = WordsList.KEY_PREFIX + self.list_key
 
+        phrases_list: List[Phrase] = [Phrase(word) for word in words_list]
+
         if logging:
-            words_list_old = self.load()
-            added_words = list(set(words_list) - set(words_list_old))
-            deleted_words = list(set(words_list_old) - set(words_list))
+            phrases_list_old = self.load()
+            phrases_old_texts = {phrase.phrase for phrase in phrases_list_old}
+            phrases_new_texts = {phrase.phrase for phrase in phrases_list}
+            added_words = list(phrases_new_texts - phrases_old_texts)
+            deleted_words = list(phrases_old_texts - phrases_new_texts)
             now = datetime.now()
             date = now.strftime('%Y-%m-%d')
 
@@ -48,20 +54,26 @@ class WordsList:
             r.delete(key_added_words)
 
             if deleted_words:
-                r.rpush(key_deleted_words, *deleted_words)
+                r.rpush(key_deleted_words, *[word.encode('utf-8') for word in deleted_words])
 
             if added_words:
-                r.rpush(key_added_words, *added_words)
+                r.rpush(key_added_words, *[word.encode('utf-8') for word in added_words])
 
         r.delete(key_list)
-        r.rpush(key_list, *words_list)
-        print()
+        phrases_json = [phrase.to_json().encode('utf-8') for phrase in phrases_list]
+        r.rpush(key_list, *phrases_json)
 
-    def load(self) -> list[str]:
+    def load(self) -> List[Phrase]:
         list_key = self.get_list_key()
-        stored_list = r.lrange(list_key, 0, -1)  # получить весь список
-        # элементы возвращаются как байты, декодируем в строки
-        return [item.decode('utf-8') for item in stored_list]
+        stored_list = r.lrange(list_key, 0, -1)
+        phrases: List[Phrase] = []
+
+        for item in stored_list:
+            json_str = item.decode('utf-8')
+            phrase = Phrase.from_json(json_str)
+            phrases.append(phrase)
+        
+        return phrases
 
     def clear(self):
         list_key = self.get_list_key()

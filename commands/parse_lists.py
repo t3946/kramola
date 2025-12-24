@@ -52,12 +52,14 @@ def main():
         # Save individuals list
         logger.info("Saving individuals list...")
         lp = ListPersons()
+        lp.clear()
         lp.save(data['namesFL'], logging=True)
         logger.info(f"Saved {len(data['namesFL'])} individuals records")
 
         # Save legal entities list
         logger.info("Saving legal entities list...")
         lc = ListCompanies()
+        lc.clear()
         lc.save(data['namesUL'], logging=True)
         logger.info(f"Saved {len(data['namesUL'])} legal entities records")
 

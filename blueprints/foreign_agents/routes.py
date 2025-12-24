@@ -8,7 +8,8 @@ foreign_agents_bp = Blueprint('foreign_agents', __name__, template_folder='../..
 @foreign_agents_bp.route('/fl')
 def fl():
     lp = ListPersons()
-    words = lp.load()
+    phrases = lp.load()
+    words = [phrase.phrase for phrase in phrases]
     changes = lp.get_changes_json()
     # Sort changes by date (newest first)
     changes_sorted = dict(sorted(changes.items(), key=lambda x: x[0], reverse=True))
@@ -18,7 +19,8 @@ def fl():
 @foreign_agents_bp.route('/ul')
 def ul():
     lc = ListCompanies()
-    words = lc.load()
+    phrases = lc.load()
+    words = [phrase.phrase for phrase in phrases]
     changes = lc.get_changes_json()
     # Sort changes by date (newest first)
     changes_sorted = dict(sorted(changes.items(), key=lambda x: x[0], reverse=True))

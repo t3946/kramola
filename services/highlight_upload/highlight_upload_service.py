@@ -7,6 +7,8 @@ import logging
 from typing import List, Dict
 from flask import Request
 
+from typing import List, Dict
+from flask import Request
 from services.document_service import save_uploaded_file, extract_lines_from_docx, convert_odt_to_docx
 from services.highlight_upload.upload_result import UploadResult
 from services.highlight_upload.upload_error import UploadError
@@ -77,7 +79,8 @@ class HighlightUploadService:
             'search_terms': search_terms_result['search_terms'],
             'is_docx_source': source_result['is_docx'],
             'file_ext': source_result['file_ext'],
-            'used_predefined_list_names': search_terms_result['used_list_names']
+            'used_predefined_list_names': search_terms_result['used_list_names'],
+            'selected_list_keys': search_terms_result.get('selected_list_keys', [])
         }
 
     @staticmethod
@@ -233,20 +236,20 @@ class HighlightUploadService:
 
             display_name = predefined_lists.get(key, key)
 
-            # Redis-based lists (ino, inu_b)
+            # Redis-based lists (ino, inu_b) - only extract texts for search_terms
+            # Actual Phrase objects will be loaded in AnalysisData.load_predefined_lists()
             if key == 'ino':
                 lp = ListPersons()
-                persons_words = lp.load()
-                if persons_words:
-                    search_terms_from_lists.extend(persons_words)
+                persons_phrases = lp.load()
+                if persons_phrases:
+                    persons_texts = [phrase.phrase for phrase in persons_phrases]
+                    search_terms_from_lists.extend(persons_texts)
                     used_predefined_list_names.append(display_name)
 
                     # Извлекаем только фамилии из ФИО
                     surnames = set()
-                    for person in persons_words:
-                        if not isinstance(person, str):
-                            continue
-                        person_clean = person.strip()
+                    for phrase in persons_phrases:
+                        person_clean = phrase.phrase.strip()
                         if not person_clean:
                             continue
                         parts = person_clean.split()
@@ -259,9 +262,10 @@ class HighlightUploadService:
 
             elif key == 'inu_b':
                 lc = ListCompanies()
-                companies_words = lc.load()
-                if companies_words:
-                    search_terms_from_lists.extend(companies_words)
+                companies_phrases = lc.load()
+                if companies_phrases:
+                    companies_texts = [phrase.phrase for phrase in companies_phrases]
+                    search_terms_from_lists.extend(companies_texts)
                     used_predefined_list_names.append(display_name)
 
             # File-based lists (mat, narkot, yaldo)
@@ -278,7 +282,8 @@ class HighlightUploadService:
 
         return {
             'search_terms': search_terms,
-            'used_list_names': used_predefined_list_names
+            'used_list_names': used_predefined_list_names,
+            'selected_list_keys': selected_list_keys
         }
 
     @staticmethod
