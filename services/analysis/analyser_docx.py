@@ -169,7 +169,11 @@ class AnalyserDocx:
         phrase_dict = {phrase.phrase: phrase for phrase in search_phrases}
 
         for phrase_text, found_matches in phrase_results:
-            phrase = phrase_dict[phrase_text]
+            phrase = phrase_dict.get(phrase_text)
+
+            if phrase is None:
+                continue
+
             search_words = [t for t in phrase.tokens if t.type == TokenType.WORD]
 
             if len(search_words) == 0:
@@ -275,14 +279,14 @@ class AnalyserDocx:
 
     def __filter_phrases_by_dictionary(
         self, 
-        search_phrases: List[Tuple[str, List[Token]]], 
+        search_phrases: List[Phrase], 
         dictionary: TokenDictionary
     ) -> List[Phrase]:
         """Filter phrases: exclude those where at least one word is missing in dictionary."""
         filtered_phrases: List[Phrase] = []
 
-        for phrase_text, search_tokens in search_phrases:
-            search_words = [t for t in search_tokens if t.type == TokenType.WORD]
+        for phrase in search_phrases:
+            search_words = [t for t in phrase.tokens if t.type == TokenType.WORD]
 
             if len(search_words) == 0:
                 continue
@@ -290,7 +294,7 @@ class AnalyserDocx:
             filtered_words = dictionary.filter_tokens(search_words)
 
             if len(filtered_words) == len(search_words):
-                filtered_phrases.append(Phrase(phrase_text))
+                filtered_phrases.append(phrase)
 
         return filtered_phrases
 
@@ -302,11 +306,11 @@ class AnalyserDocx:
         #[end]
 
         # build global dictionary and filter search phrases by it
-        if self.analyse_data and self.analyse_data.tokens:
+        if self.analyse_data and self.analyse_data.phrases:
             self._global_document_dictionary = self.__build_global_dictionary()
-            phrase_tokens_pairs: List[Tuple[str, List[Token]]] = list(self.analyse_data.tokens.items())
+            phrases_list = list(self.analyse_data.phrases.values())
             self._search_phrases = self.__filter_phrases_by_dictionary(
-                phrase_tokens_pairs, self._global_document_dictionary
+                phrases_list, self._global_document_dictionary
             )
         else:
             self._search_phrases = []
