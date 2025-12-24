@@ -1,29 +1,19 @@
 # -*- coding: utf-8 -*-
 # --- START OF FILE highlight_service.py ---
-import json
 import os
-import time
 from collections import Counter, defaultdict
-import copy
 import re
 import itertools
 
-from flask import current_app
-
-from services.common_docx import _safe_copy_paragraph_format, _apply_run_style, tokenize_paragraph_universal
-import docx
-from docx.enum.text import WD_COLOR_INDEX
 import pandas as pd
 import fitz
 
-from services.document_service import extract_all_logical_words_from_pdf, is_predominantly_non_alphabetic
-from services.docx_cache import DocxCache
+from services.document_service import extract_all_logical_words_from_pdf
 
 # --- АДАПТИРОВАННЫЕ Импорты из pymorphy_service ---
 from services.pymorphy_service import (
     _get_lemma, _get_stem,  # Базовые функции остаются
     reset_caches,  # <--- НОВОЕ ИМЯ для сброса
-    WORD_TOKENIZE_PATTERN,  # Используется в _find_matches_in_paragraph_tokens через _get_lemma
     CYRILLIC_PATTERN
 )
 
@@ -38,7 +28,6 @@ from utils.timeit import timeit
 # --- Константы ---
 # (Без изменений)
 WORDS_EXTRACT_PATTERN = re.compile(r'[a-zA-Zа-яА-ЯёЁ]+', re.UNICODE)
-HIGHLIGHT_COLOR_DOCX = WD_COLOR_INDEX.BRIGHT_GREEN
 HIGHLIGHT_COLOR_PDF = (0.0, 1.0, 0.0)
 # PUNCT_STRIP_PATTERN = re.compile(r"^[^\w\s]+|[^\w\s]+$", re.UNICODE)
 PUNCT_STRIP_PATTERN = re.compile(r"^[^\w\s]+|[^\w\s]+$", re.UNICODE)
@@ -140,465 +129,32 @@ def find_word_match_multi_stage(
     # Используем новые обертки, которые сами кэшируют
     doc_lemma = _get_lemma(word_for_morph)  # use_cache больше не нужен
     doc_stem = None
+
     if USE_STEM_FALLBACK:
         doc_stem = _get_stem(word_for_morph)  # use_cache больше не нужен
+
     if not doc_lemma:
         doc_lemma = doc_word_lower
+
     if doc_lemma in search_lemmas_set:
         is_russian = bool(CYRILLIC_PATTERN.search(doc_lemma or ''))  # Определяем язык по лемме
         stop_words_set = STOP_WORDS_RU if is_russian else STOP_WORDS_EN
+
         if doc_lemma in stop_words_set:
             return False, None, None
+
         return True, doc_lemma, 'lemma'
+
     if USE_STEM_FALLBACK and doc_stem and doc_stem in search_stems_set:
         is_russian = bool(CYRILLIC_PATTERN.search(doc_lemma or ''))
         stop_words_set = STOP_WORDS_RU if is_russian else STOP_WORDS_EN
+
         if doc_lemma in stop_words_set:
             return False, None, None  # Игнорируем
+
         return True, doc_lemma, 'stem'
+
     return False, None, None
-
-
-# --- Функция воссоздания параграфа DOCX с подсветкой ---
-# (Без изменений)
-def _reconstruct_paragraph_with_highlighting(
-        new_paragraph,
-        old_paragraph,
-        tokens,
-        matches,
-        word_stats,
-        phrase_stats,
-        document_cache: DocxCache
-):
-    try:
-        style_name = old_paragraph.style.name
-        new_paragraph.style = document_cache.getStyle(style_name)
-    except Exception:
-        pass
-
-    try:
-        _safe_copy_paragraph_format(
-            old_paragraph.paragraph_format,
-            new_paragraph.paragraph_format
-        )
-    except Exception:
-        pass
-
-    if not tokens: return
-
-    current_token_idx = 0
-    source_runs = list(old_paragraph.runs)
-    run_char_positions = []
-    current_char_pos = 0
-
-    for run in source_runs:
-        run_len = len(run.text)
-        run_char_positions.append((current_char_pos, current_char_pos + run_len, run))
-        current_char_pos += run_len
-
-    def find_source_run(char_idx_in_para):
-        for start, end, run_obj in run_char_positions:
-            if start <= char_idx_in_para < end: return run_obj
-        return source_runs[-1] if source_runs else None
-
-    # fast
-    for match in matches:
-        match_start_idx = match['start_token_idx']
-        match_end_idx = match['end_token_idx']
-        match_type_val = match['type']
-
-        if match_start_idx > current_token_idx:
-            for i in range(current_token_idx, match_start_idx):
-                token = tokens[i];
-                run_style = find_source_run(token['start'])
-                nr = new_paragraph.add_run(token['text'])
-                if run_style: _apply_run_style(run_style, nr, document_cache, copy_highlight=True)
-
-        text_parts = []
-
-        for i in range(match_start_idx, match_end_idx + 1):
-            token = tokens[i];
-            text_parts.append(token['text'])
-            run_style = find_source_run(token['start'])
-            nr = new_paragraph.add_run(token['text'])
-
-            if run_style: _apply_run_style(run_style, nr, document_cache, copy_highlight=True)
-
-            try:
-                nr.font.highlight_color = HIGHLIGHT_COLOR_DOCX
-            except Exception:
-                pass
-
-        found_text = "".join(text_parts).strip()
-
-        if match_type_val == 'phrase':
-            lemma_key = match['lemma_key'];
-            stats = phrase_stats[" ".join(lemma_key)]
-            stats['count'] += 1;
-            stats['forms'][found_text] += 1
-        elif match_type_val == 'word':
-            lemma_key = match['lemma_key']
-
-            if lemma_key:
-                stats = word_stats[lemma_key]
-                stats['count'] += 1
-                stats['forms'][found_text.lower()] += 1
-
-        current_token_idx = match_end_idx + 1
-
-    # add not highlight runs
-    for i in range(current_token_idx, len(tokens)):
-        token = tokens[i]
-        source_run = find_source_run(token['start'])
-
-        target_run = new_paragraph.add_run(token['text'])
-
-        if source_run:
-            _apply_run_style(
-                source_run,
-                target_run,
-                document_cache,
-                copy_highlight=True
-            )
-
-
-# --- Функция поиска совпадений в токенах параграфа DOCX ---
-# (Изменено использование _get_lemma)
-def _find_matches_in_paragraph_tokens(
-        tokens,
-        search_lemmas_set,
-        search_stems_set,
-        search_phrase_lemmas_map  # Эта карта теперь приходит готовой
-):
-    matches = []
-    matched_token_indices = set()
-    num_tokens = len(tokens)
-
-    # 1. Поиск ФРАЗ
-    if search_phrase_lemmas_map:
-        # Карта уже содержит tuple лемм как ключ
-        # Сортируем ключи (кортежи лемм) по длине для приоритета длинных фраз
-        sorted_phrase_keys = sorted(search_phrase_lemmas_map.keys(), key=len, reverse=True)
-
-        for phrase_lemma_tuple in sorted_phrase_keys:
-            phrase_len = len(phrase_lemma_tuple)
-            if phrase_len < 2: continue
-
-            token_idx = 0
-            while token_idx <= num_tokens - phrase_len:
-                if token_idx in matched_token_indices:
-                    token_idx += 1;
-                    continue
-
-                # Собираем окно токенов-слов
-                window_word_tokens = []
-                current_sub_idx = token_idx
-                needed_words = phrase_len
-                start_actual_token_idx = -1
-                end_actual_token_idx = -1
-
-                while needed_words > 0 and current_sub_idx < num_tokens:
-                    token = tokens[current_sub_idx]
-
-                    if start_actual_token_idx == -1 and token['type'] == 'word':
-                        start_actual_token_idx = current_sub_idx
-
-                    if token['type'] == 'word':
-                        window_word_tokens.append(token)
-                        end_actual_token_idx = current_sub_idx
-                        needed_words -= 1
-                    elif start_actual_token_idx != -1:
-                        end_actual_token_idx = current_sub_idx
-
-                    if current_sub_idx in matched_token_indices:
-                        token_idx = start_actual_token_idx + 1 if start_actual_token_idx != -1 else current_sub_idx + 1
-                        window_word_tokens = [];
-                        break
-                    current_sub_idx += 1
-
-                if not window_word_tokens or len(window_word_tokens) != phrase_len:
-                    if start_actual_token_idx != -1 and token_idx <= start_actual_token_idx:
-                        token_idx = start_actual_token_idx + 1
-                    else:
-                        token_idx += 1
-                    continue
-
-                # Проверяем пересечение со всем диапазоном токенов
-                current_range_indices = set(range(start_actual_token_idx, end_actual_token_idx + 1))
-                if not current_range_indices.intersection(matched_token_indices):
-                    # Лемматизируем слова из окна
-                    window_lemmas = []
-                    valid_window = True
-                    for tok in window_word_tokens:
-                        lemma = _get_lemma(tok['text'])  # Используем новую обертку
-                        if lemma is None:  # Если слово не удалось обработать
-                            valid_window = False;
-                            break
-                        window_lemmas.append(lemma)
-
-                    if valid_window and tuple(window_lemmas) == phrase_lemma_tuple:
-                        # Найдена фраза!
-                        matches.append({
-                            'type': 'phrase',
-                            'start_token_idx': start_actual_token_idx,
-                            'end_token_idx': end_actual_token_idx,
-                            'lemma_key': phrase_lemma_tuple
-                        })
-                        matched_token_indices.update(current_range_indices)
-                        token_idx = end_actual_token_idx + 1;
-                        continue  # Перескакиваем
-
-                # Сдвигаем начало поиска
-                token_idx = start_actual_token_idx + 1 if start_actual_token_idx != -1 else token_idx + 1
-
-    # 2. Поиск ОТДЕЛЬНЫХ СЛОВ
-    for i, token in enumerate(tokens):
-        if i in matched_token_indices: continue
-        if token['type'] == 'word':
-            # Используем find_word_match_multi_stage, который внутри вызывает _get_lemma/_get_stem
-            is_match, match_lemma, match_type_detail = find_word_match_multi_stage(
-                token['text'],
-                search_lemmas_set,
-                search_stems_set
-            )
-            if is_match:
-                matches.append({
-                    'type': 'word',
-                    'start_token_idx': i,
-                    'end_token_idx': i,
-                    'lemma_key': match_lemma,
-                    'word_match_type': match_type_detail  # 'lemma' или 'stem'
-                })
-                matched_token_indices.add(i)
-    matches.sort(key=lambda m: m['start_token_idx'])
-    return matches
-
-
-# --- Основная функция analyze_and_highlight_docx ---
-@timeit
-def analyze_and_highlight_docx(
-        source_path,
-        search_data,
-        search_phrase_lemmas_map,
-        output_path
-):
-    search_lemmas_set = search_data.get('lemmas', set())
-    search_stems_set = search_data.get('stems', set())
-    word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
-    phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
-    total_matches_count = 0
-
-    try:
-        try:
-            source_doc = docx.Document(source_path)
-        except Exception:
-            return None
-
-        result_doc = docx.Document()
-
-        # ... (Копирование стилей и секций без изменений) ...
-        for style in source_doc.styles:
-            if style.type == docx.enum.style.WD_STYLE_TYPE.PARAGRAPH or \
-                    style.type == docx.enum.style.WD_STYLE_TYPE.CHARACTER:
-                try:
-                    target_style = result_doc.styles.add_style(style.name, style.type)
-
-                    if style.base_style and style.base_style.name in result_doc.styles:
-                        target_style.base_style = result_doc.styles[style.base_style.name]
-
-                    if hasattr(style, 'font') and style.font:
-                        if hasattr(target_style, 'font') and target_style.font:
-                            target_style.font.name = style.font.name
-                            target_style.font.size = style.font.size
-
-                    if hasattr(style, 'paragraph_format') and style.paragraph_format:
-                        if hasattr(target_style, 'paragraph_format') and target_style.paragraph_format:
-                            target_style.paragraph_format.alignment = style.paragraph_format.alignment
-
-                except Exception:
-                    pass
-
-        for section_idx, section in enumerate(source_doc.sections):
-            target_section = result_doc.sections[section_idx if section_idx < len(result_doc.sections) else -1]
-            target_section.start_type = section.start_type;
-            target_section.orientation = section.orientation
-            target_section.page_width = section.page_width;
-            target_section.page_height = section.page_height
-            target_section.left_margin = section.left_margin;
-            target_section.right_margin = section.right_margin
-            target_section.top_margin = section.top_margin;
-            target_section.bottom_margin = section.bottom_margin
-            target_section.header_distance = section.header_distance;
-            target_section.footer_distance = section.footer_distance
-
-            if section_idx < len(source_doc.sections) - 1 and len(result_doc.sections) == section_idx + 1:
-                result_doc.add_section(source_doc.sections[section_idx + 1].start_type)
-
-        body_elements = []
-
-        for element in source_doc.element.body:
-            if isinstance(element, docx.oxml.text.paragraph.CT_P):
-                body_elements.append({'type': 'p', 'el': element})
-            elif isinstance(element, docx.oxml.table.CT_Tbl):
-                body_elements.append({'type': 'tbl', 'el': element})
-
-        # save getter results (slow operations)
-        paragraphs = source_doc.paragraphs
-        tables = source_doc.tables
-        document_cache: DocxCache = DocxCache(source_doc)
-
-        # Обработка элементов
-        for item in body_elements:
-            el_type, element = item['type'], item['el']
-            if el_type == 'p':
-                source_p = next((p for p in paragraphs if p._element is element), None)
-
-                if source_p is None: continue
-                new_p = result_doc.add_paragraph()
-                try:
-                    tokens = tokenize_paragraph_universal(source_p)
-
-                    if not tokens:  # Пустой параграф
-                        if source_p.style and hasattr(source_p.style, 'name'):
-                            try:
-                                style_name = source_p.style.name
-                                if style_name in result_doc.styles: new_p.style = result_doc.styles[style_name]
-                            except Exception:
-                                pass
-
-                        _safe_copy_paragraph_format(source_p.paragraph_format, new_p.paragraph_format)
-                    else:  # Непустой параграф
-                        # Используем переданные search_data и search_phrase_lemmas_map
-                        matches = _find_matches_in_paragraph_tokens(
-                            tokens,
-                            search_lemmas_set,
-                            search_stems_set,
-                            search_phrase_lemmas_map
-                        )
-                        _reconstruct_paragraph_with_highlighting(
-                            new_p,
-                            source_p,
-                            tokens,
-                            matches,
-                            word_stats,
-                            phrase_stats,
-                            document_cache
-                        )
-                        total_matches_count += len(matches)
-                except Exception as e_para:
-                    try:  # Fallback
-                        new_p.text = source_p.text
-                        if source_p.style and hasattr(source_p.style, 'name'):
-                            try:
-                                style_name = source_p.style.name
-                                if style_name in result_doc.styles: new_p.style = result_doc.styles[style_name]
-                            except Exception:
-                                pass
-                        if hasattr(source_p, 'paragraph_format'):
-                            _safe_copy_paragraph_format(source_p.paragraph_format, new_p.paragraph_format)
-                    except Exception:
-                        result_doc.add_paragraph(f"[Ошибка обработки параграфа: {e_para}]")
-            elif el_type == 'tbl':
-                source_t = next((t for t in tables if t._element is element), None)
-                if source_t is None: continue
-                try:
-                    new_t = result_doc.add_table(rows=len(source_t.rows), cols=len(source_t.columns))
-                    # ... (копирование стилей и свойств таблицы) ...
-                    if source_t.style and hasattr(source_t.style, 'name'):
-                        try:
-                            style_name = source_t.style.name
-                            if style_name in result_doc.styles: new_t.style = result_doc.styles[style_name]
-                        except Exception:
-                            pass
-                    try:
-                        new_t.autofit = source_t.autofit
-                    except AttributeError:
-                        pass
-                    try:
-                        new_t.alignment = source_t.alignment
-                    except AttributeError:
-                        pass
-
-                    for i, row in enumerate(source_t.rows):
-                        if i >= len(new_t.rows): continue
-                        new_row_cells = new_t.rows[i].cells
-                        for j, cell in enumerate(row.cells):
-                            if j >= len(new_row_cells): continue
-                            target_c = new_row_cells[j];
-                            source_c = cell
-                            for p_idx in range(len(target_c.paragraphs) - 1, -1, -1):
-                                p_to_remove = target_c.paragraphs[p_idx]
-                                p_to_remove._element.getparent().remove(p_to_remove._element)
-                            try:
-                                target_c.vertical_alignment = source_c.vertical_alignment
-                            except Exception:
-                                pass
-
-                            for cell_p in source_c.paragraphs:
-                                new_cp = target_c.add_paragraph()
-                                try:
-                                    tokens = tokenize_paragraph_universal(cell_p)
-                                    if not tokens:  # Пустой параграф ячейки
-                                        if cell_p.style and hasattr(cell_p.style, 'name'):
-                                            try:
-                                                style_name = cell_p.style.name
-                                                if style_name in result_doc.styles: new_cp.style = result_doc.styles[
-                                                    style_name]
-                                            except Exception:
-                                                pass
-                                        if hasattr(cell_p, 'paragraph_format'):
-                                            _safe_copy_paragraph_format(cell_p.paragraph_format,
-                                                                        new_cp.paragraph_format)
-                                    else:  # Непустой параграф ячейки
-                                        # Используем переданные данные
-                                        matches = _find_matches_in_paragraph_tokens(
-                                            tokens, search_lemmas_set, search_stems_set, search_phrase_lemmas_map
-                                        )
-                                        _reconstruct_paragraph_with_highlighting(
-                                            new_cp,
-                                            cell_p,
-                                            tokens,
-                                            matches,
-                                            word_stats,
-                                            phrase_stats,
-                                            document_cache
-                                        )
-                                        total_matches_count += len(matches)
-                                except Exception as e_cp:
-                                    try:  # Fallback ячейки
-                                        new_cp.text = cell_p.text
-                                        if cell_p.style and hasattr(cell_p.style, 'name'):
-                                            try:
-                                                style_name = cell_p.style.name
-                                                if style_name in result_doc.styles: new_cp.style = result_doc.styles[
-                                                    style_name]
-                                            except Exception:
-                                                pass
-                                        if hasattr(cell_p, 'paragraph_format'):
-                                            _safe_copy_paragraph_format(cell_p.paragraph_format,
-                                                                        new_cp.paragraph_format)
-                                    except Exception:
-                                        target_c.add_paragraph(f"[Ошибка параграфа ячейки {i},{j}: {e_cp}]")
-                except Exception as e_tbl:
-                    result_doc.add_paragraph(f"[Ошибка копирования таблицы: {e_tbl}]")
-
-        result_doc.save(output_path)
-        final_ws = {l: {'c': d['count'], 'f': dict(d['forms'])} for l, d in word_stats.items()}
-        final_ps = {phrase_lemma_str: {'c': d['count'], 'f': dict(d['forms'])} for phrase_lemma_str, d in
-                    phrase_stats.items()}
-        # Важно: total_matches_count - это количество совпадений (matches),
-        # а не уникальных слов/фраз. Можно вернуть оба или выбрать одно.
-        # Вернем total_matches, как и раньше.
-        return {'word_stats': final_ws, 'phrase_stats': final_ps, 'total_matches': total_matches_count}
-    except FileNotFoundError:
-        return None
-    except Exception:
-        if os.path.exists(output_path):
-            try:
-                os.remove(output_path)
-            except OSError:
-                pass
-        return None
 
 
 # --- Унифицированная функция analyze_and_highlight_pdf ---

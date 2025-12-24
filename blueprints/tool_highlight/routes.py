@@ -26,7 +26,7 @@ from services.pymorphy_service import (
     reset_caches
 )
 from services.highlight_service import (
-    analyze_and_highlight_docx, analyze_and_highlight_pdf
+    analyze_and_highlight_pdf
 )
 
 
