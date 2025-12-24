@@ -22,7 +22,7 @@ class TestAnalyserDocxSpeed:
             pytest tests/test_analyser_docx_speed.py -s
             pytest tests/test_analyser_docx_speed.py::TestAnalyserDocxSpeed::test_speed -s
     """
-    test_data_dir = Path(__file__).parent / 'data' / 'docx-speed'
+    test_data_dir = Path(__file__).parent / 'analysis' / 'data' / 'docx-speed'
     results_dir = Path(__file__).parent.parent / 'results' / 'test'
     
     def get_test_directories(self) -> List[Path]:
