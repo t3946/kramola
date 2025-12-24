@@ -5,62 +5,35 @@ from typing import Dict, Optional, List
 
 from services.analysis.analyser_docx import AnalyserDocx
 from services.analysis.analysis_data import AnalysisData
+from tests.analysis.test_base import BaseTest
 
 
-class TestAnalyserDocx:
+class TestAnalyserDocx(BaseTest):
     """
     Test class for AnalyserDocx functionality.
     
     Examples:
-        Run all tests via pytest:
-            pytest tests/test_analyser_docx.py
-            python -m pytest tests/test_analyser_docx.py
+        Run all tests via tests:
+            tests tests/test_analyser_docx.py
+            python -m tests tests/test_analyser_docx.py
         
         Run specific test (direct execution):
             python tests/test_analyser_docx.py
             python tests/test_analyser_docx.py single-phrase
     """
-    test_data_dir = Path(__file__).parent / 'analysis' / 'data' / 'docx'
-    results_dir = Path(__file__).parent.parent / 'results' / 'test'
-
-    def get_test_directories(self) -> List[Path]:
-        """Get all test subdirectories from data/docx."""
-        if not self.test_data_dir.exists():
-            return []
-
-        return [
-            subdir for subdir in self.test_data_dir.iterdir()
-            if subdir.is_dir() and (subdir / 'source.docx').exists() and (subdir / 'search.txt').exists()
-        ]
-
-    def load_expected_results(self, test_dir: Path) -> Optional[Dict]:
-        """Load expected results from result.json if it exists."""
-        result_json_path = test_dir / 'result.json'
-
-        if not result_json_path.exists():
-            return None
-
-        with open(result_json_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-
-    def load_search_terms(self, search_txt_path: Path) -> List[str]:
-        """Load search terms from search.txt file."""
-        with open(search_txt_path, 'r', encoding='utf-8') as f:
-            search_terms = [line.strip() for line in f if line.strip()]
-
-        assert len(search_terms) > 0, "No search terms found in search.txt"
-        return search_terms
+    
+    test_data_subdir = 'docx'
+    results_subdir = 'docx'
 
     def run_single_test(self, test_dir: Path) -> Dict:
         """Run analysis for a single test directory."""
         source_docx_path = test_dir / 'source.docx'
-        search_txt_path = test_dir / 'search.txt'
+        search_path = self.find_search_file(test_dir, search_filenames=['search.txt'])
 
         assert source_docx_path.exists(), f"Source file not found: {source_docx_path}"
-        assert search_txt_path.exists(), f"Search file not found: {search_txt_path}"
 
         # [start] Load search terms
-        search_terms = self.load_search_terms(search_txt_path)
+        search_terms = self.load_search_terms(search_path)
         # [end]
 
         # [start] Create AnalyseData
@@ -84,7 +57,7 @@ class TestAnalyserDocx:
 
         # [start] Save results
         test_name = test_dir.name
-        test_results_dir = self.results_dir / 'docx' / test_name
+        test_results_dir = self.results_dir / test_name
         test_results_dir.mkdir(parents=True, exist_ok=True)
 
         output_docx_path = test_results_dir / 'result.docx'
@@ -126,14 +99,18 @@ class TestAnalyserDocx:
 
     def test(self, test_name: Optional[str] = None) -> None:
         """Run tests for all subdirectories in data/docx or specific test if test_name is provided."""
-        test_directories = self.get_test_directories()
+        test_directories = self.get_test_directories(
+            source_filename='source.docx',
+            search_filenames=['search.txt']
+        )
 
         if test_name:
             test_dir_path = self.test_data_dir / test_name
-            if not test_dir_path.exists() or not test_dir_path.is_dir():
-                raise ValueError(f"Test directory not found: {test_name}")
-            if not (test_dir_path / 'source.docx').exists() or not (test_dir_path / 'search.txt').exists():
-                raise ValueError(f"Test directory {test_name} is missing required files (source.docx or search.txt)")
+            self.validate_test_directory(
+                test_dir_path,
+                source_filename='source.docx',
+                search_filenames=['search.txt']
+            )
             test_directories = [test_dir_path]
         else:
             assert len(test_directories) > 0, f"No test directories found in {self.test_data_dir}"

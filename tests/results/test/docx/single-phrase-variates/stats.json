@@ -1,0 +1,12 @@
+{
+    "word_stats": {},
+    "phrase_stats": {
+        "яблоко зелёный": {
+            "count": 4,
+            "forms": {
+                "яблоки зелёные": 4
+            }
+        }
+    },
+    "total_matches": 4
+}
