@@ -1,5 +1,6 @@
 from typing import List
-from .fulltext_search import Token, FulltextSearch
+from .token import Token
+from .fulltext_search import FulltextSearch
 
 
 class Phrase:

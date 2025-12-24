@@ -2,8 +2,10 @@ from typing import List, Tuple, TYPE_CHECKING, Optional
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 
 if TYPE_CHECKING:
-    from services.fulltext_search.fulltext_search import Token
+    from services.fulltext_search.token import Token, TokenType
     from services.fulltext_search.dictionary import TokenDictionary
+else:
+    from services.fulltext_search.token import Token, TokenType
 
 
 class FuzzyWordsStrategy(BaseSearchStrategy):
@@ -26,16 +28,16 @@ class FuzzyWordsStrategy(BaseSearchStrategy):
             return False
 
         for t1, t2 in zip(source_tokens, search_tokens):
-            if t1['type'] != t2['type']:
+            if t1.type != t2.type:
                 return False
 
-            match_by_text = t1['text'] == t2['text']
+            match_by_text = t1.text == t2.text
             match_by_lemma = False
             match_by_stem = False
 
-            if t1['type'] == 'word':
-                match_by_lemma = t1['lemma'] == t2['lemma']
-                match_by_stem = t1['stem'] == t2['stem']
+            if t1.type == TokenType.WORD:
+                match_by_lemma = t1.lemma == t2.lemma
+                match_by_stem = t1.stem == t2.stem
 
             match = match_by_text or match_by_lemma or match_by_stem
 

@@ -1,4 +1,5 @@
 from services.fulltext_search.fulltext_search import FulltextSearch
+from services.fulltext_search.token import TokenType
 
 
 class TestFulltextSearch:
@@ -146,7 +147,7 @@ class TestFulltextSearch:
                 f"  Got: {len(tokens)} tokens"
             )
 
-            word_tokens = [t for t in tokens if t['type'] == 'word']
+            word_tokens = [t for t in tokens if t.type == TokenType.WORD]
 
             if 'expected_lemma' in test_case:
                 expected_lemma = test_case['expected_lemma']
@@ -158,7 +159,7 @@ class TestFulltextSearch:
                     f"  Got: {len(word_tokens)} word tokens"
                 )
 
-                first_word_lemma = word_tokens[0].get('lemma')
+                first_word_lemma = word_tokens[0].lemma
 
                 assert first_word_lemma is not None, (
                     f"Test case {i + 1} failed ({description}):\n"
@@ -192,7 +193,7 @@ class TestFulltextSearch:
                     )
 
                 if 'space_count' in structure:
-                    space_tokens = [t for t in tokens if t['type'] == 'space']
+                    space_tokens = [t for t in tokens if t.type == TokenType.SPACE]
                     actual_space_count = len(space_tokens)
                     expected_space_count = structure['space_count']
 
@@ -204,7 +205,7 @@ class TestFulltextSearch:
                     )
 
                 if 'punct_count' in structure:
-                    punct_tokens = [t for t in tokens if t['type'] == 'punct']
+                    punct_tokens = [t for t in tokens if t.type == TokenType.PUNCTUATION]
                     actual_punct_count = len(punct_tokens)
                     expected_punct_count = structure['punct_count']
 
@@ -217,7 +218,7 @@ class TestFulltextSearch:
 
                 if structure.get('has_lemma'):
                     for word_token in word_tokens:
-                        assert word_token.get('lemma') is not None, (
+                        assert word_token.lemma is not None, (
                             f"Test case {i + 1} failed ({description}):\n"
                             f"  Text: '{text}'\n"
                             f"  Expected: all word tokens should have lemma\n"
@@ -225,12 +226,12 @@ class TestFulltextSearch:
                         )
 
             for token in tokens:
-                assert 'text' in token, f"Token missing 'text' field: {token}"
-                assert 'start' in token, f"Token missing 'start' field: {token}"
-                assert 'end' in token, f"Token missing 'end' field: {token}"
-                assert 'type' in token, f"Token missing 'type' field: {token}"
-                assert 'lemma' in token, f"Token missing 'lemma' field: {token}"
-                assert 'stem' in token, f"Token missing 'stem' field: {token}"
+                assert hasattr(token, 'text'), f"Token missing 'text' field: {token}"
+                assert hasattr(token, 'start'), f"Token missing 'start' field: {token}"
+                assert hasattr(token, 'end'), f"Token missing 'end' field: {token}"
+                assert hasattr(token, 'type'), f"Token missing 'type' field: {token}"
+                assert hasattr(token, 'lemma'), f"Token missing 'lemma' field: {token}"
+                assert hasattr(token, 'stem'), f"Token missing 'stem' field: {token}"
 
             print(f"Test case {i + 1} passed ({description}): '{text}'")
 
@@ -316,8 +317,8 @@ class TestFulltextSearch:
                 f"  Expected matches count: {expected_matches_count}\n"
                 f"  Got matches count: {len(matches)}\n"
                 f"  Matches: {matches}\n"
-                f"  Source tokens: {[(t['text'], t['type']) for t in source_tokens]}\n"
-                f"  Search tokens: {[(t['text'], t['type']) for t in search_tokens]}"
+                f"  Source tokens: {[(t.text, t.type) for t in source_tokens]}\n"
+                f"  Search tokens: {[(t.text, t.type) for t in search_tokens]}"
             )
 
             for j, (expected_start, expected_end) in enumerate(expected_indices):
@@ -339,7 +340,7 @@ class TestFulltextSearch:
                     f"  Match {j + 1}: expected start = {expected_start}\n"
                     f"  Got: {actual_start}\n"
                     f"  Match: {match}\n"
-                    f"  Source tokens: {[(t['text'], t['type']) for t in source_tokens]}"
+                    f"  Source tokens: {[(t.text, t.type) for t in source_tokens]}"
                 )
 
                 assert actual_end == expected_end, (
@@ -349,7 +350,7 @@ class TestFulltextSearch:
                     f"  Match {j + 1}: expected end = {expected_end}\n"
                     f"  Got: {actual_end}\n"
                     f"  Match: {match}\n"
-                    f"  Source tokens: {[(t['text'], t['type']) for t in source_tokens]}"
+                    f"  Source tokens: {[(t.text, t.type) for t in source_tokens]}"
                 )
 
             print(f"Test case {i + 1} passed: '{source_text}' search '{search_text}' -> {len(matches)} matches")

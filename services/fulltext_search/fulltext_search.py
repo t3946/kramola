@@ -8,6 +8,7 @@ from services.fulltext_search.strategies import (
     FuzzyWordsPunctStrategy
 )
 from services.fulltext_search.dictionary import TokenDictionary
+from services.fulltext_search.token import Token, TokenType
 
 TOKENIZE_PATTERN_UNIVERSAL = re.compile(r"(\w+)|([^\w\s]+)|(\s+)", re.UNICODE)
 PYMORPHY_AVAILABLE = True
@@ -42,15 +43,6 @@ STOP_WORDS_EN = {
     "have", "has", "had", "having", "do", "does", "did", "doing",
     "will", "would", "should", "could", "may", "might", "must", "can"
 }
-
-
-class Token(TypedDict):
-    text: str
-    start: int
-    end: int
-    type: str
-    lemma: Optional[str]
-    stem: Optional[str]
 
 
 class Match(TypedDict):
@@ -202,21 +194,21 @@ class FulltextSearch:
 
             if start > current_pos:
                 missed_text = full_text[current_pos:start]
-                tokens.append({
-                    'text': missed_text,
-                    'start': current_pos,
-                    'end': start,
-                    'type': 'punct',
-                    'lemma': None,
-                    'stem': None
-                })
+                tokens.append(Token(
+                    text=missed_text,
+                    start=current_pos,
+                    end=start,
+                    type=TokenType.PUNCTUATION,
+                    lemma=None,
+                    stem=None
+                ))
 
-            token_type = 'punct'
+            token_type = TokenType.PUNCTUATION
             lemma = None
             stem = None
 
             if match.group(1):
-                token_type = 'word'
+                token_type = TokenType.WORD
                 word_lower = text_token.lower()
 
                 if PYMORPHY_AVAILABLE:
@@ -226,28 +218,28 @@ class FulltextSearch:
                     lemma = pymorphy_service._get_lemma(word_lower)
                     stem = pymorphy_service._get_stem(word_lower)
             elif match.group(3):
-                token_type = 'space'
+                token_type = TokenType.SPACE
 
-            tokens.append({
-                'text': text_token,
-                'start': start,
-                'end': end,
-                'type': token_type,
-                'lemma': lemma,
-                'stem': stem
-            })
+            tokens.append(Token(
+                text=text_token,
+                start=start,
+                end=end,
+                type=token_type,
+                lemma=lemma,
+                stem=stem
+            ))
             current_pos = end
 
         if current_pos < len(full_text):
             remaining_text = full_text[current_pos:]
-            tokens.append({
-                'text': remaining_text,
-                'start': current_pos,
-                'end': len(full_text),
-                'type': 'punct',
-                'lemma': None,
-                'stem': None
-            })
+            tokens.append(Token(
+                text=remaining_text,
+                start=current_pos,
+                end=len(full_text),
+                type=TokenType.PUNCTUATION,
+                lemma=None,
+                stem=None
+            ))
 
         return tokens
 

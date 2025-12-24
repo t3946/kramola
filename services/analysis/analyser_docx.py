@@ -10,7 +10,8 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analysis import AnalysisData
-from services.fulltext_search.fulltext_search import FulltextSearch, Match, Token, SearchStrategy
+from services.fulltext_search.fulltext_search import FulltextSearch, Match, SearchStrategy
+from services.fulltext_search.token import Token, TokenType
 from services.fulltext_search.dictionary import TokenDictionary
 from services.fulltext_search.phrase import Phrase
 from utils.timeit import timeit
@@ -134,7 +135,7 @@ class AnalyserDocx:
 
             for i in range(start_token_idx, end_token_idx + 1):
                 if i < len(tokens):
-                    text_parts.append(tokens[i]['text'])
+                    text_parts.append(tokens[i].text)
 
             found_text = "".join(text_parts).strip()
             stats['count'] += 1
@@ -145,7 +146,7 @@ class AnalyserDocx:
                 stats = self.word_stats[word_lemma]
 
                 if start_token_idx < len(tokens):
-                    found_text = tokens[start_token_idx]['text']
+                    found_text = tokens[start_token_idx].text
                     stats['count'] += 1
                     stats['forms'][found_text.lower()] += 1
 
@@ -169,12 +170,12 @@ class AnalyserDocx:
 
         for phrase_text, found_matches in phrase_results:
             phrase = phrase_dict[phrase_text]
-            search_words = [t for t in phrase.tokens if t['type'] == 'word']
+            search_words = [t for t in phrase.tokens if t.type == TokenType.WORD]
 
             if len(search_words) == 0:
                 continue
 
-            lemma_key = tuple(token['lemma'] for token in search_words if token['lemma'])
+            lemma_key = tuple(token.lemma for token in search_words if token.lemma)
             match_type = 'word' if len(search_words) == 1 else 'phrase'
 
             for start_token_idx, end_token_idx in found_matches:
@@ -213,7 +214,7 @@ class AnalyserDocx:
 
             for i in range(start_token_idx, end_token_idx + 1):
                 token = source_tokens[i]
-                batch = self.__isolate_new_run_xml(batch, token['start'], token['end'])
+                batch = self.__isolate_new_run_xml(batch, token.start, token.end)
 
     @staticmethod
     def __split_on_batches(element: Union[CT_P, CT_Hyperlink]) -> List[List[CT_R]]:
@@ -281,7 +282,7 @@ class AnalyserDocx:
         filtered_phrases: List[Phrase] = []
 
         for phrase_text, search_tokens in search_phrases:
-            search_words = [t for t in search_tokens if t['type'] == 'word']
+            search_words = [t for t in search_tokens if t.type == TokenType.WORD]
 
             if len(search_words) == 0:
                 continue

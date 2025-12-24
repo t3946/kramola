@@ -2,8 +2,10 @@ from abc import ABC, abstractmethod
 from typing import List, Tuple, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from services.fulltext_search.fulltext_search import Token
+    from services.fulltext_search.token import Token
     from services.fulltext_search.dictionary import TokenDictionary
+else:
+    from services.fulltext_search.token import Token
 
 
 class BaseSearchStrategy(ABC):

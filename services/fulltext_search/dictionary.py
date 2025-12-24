@@ -2,7 +2,9 @@ from typing import List, Dict, Set, TYPE_CHECKING
 from collections import defaultdict
 
 if TYPE_CHECKING:
-    from services.fulltext_search.fulltext_search import Token
+    from services.fulltext_search.token import Token, TokenType
+else:
+    from services.fulltext_search.token import Token, TokenType
 
 
 class TokenDictionary:
@@ -26,13 +28,13 @@ class TokenDictionary:
         self.source_tokens = source_tokens
 
         for i, token in enumerate(source_tokens):
-            if token['type'] == 'word':
-                if token['lemma']:
-                    self.lemma_index[token['lemma']].append(i)
-                if token['stem']:
-                    self.stem_index[token['stem']].append(i)
-                self.text_index[token['text']].append(i)
-                self.text_lower_index[token['text'].lower()].append(i)
+            if token.type == TokenType.WORD:
+                if token.lemma:
+                    self.lemma_index[token.lemma].append(i)
+                if token.stem:
+                    self.stem_index[token.stem].append(i)
+                self.text_index[token.text].append(i)
+                self.text_lower_index[token.text.lower()].append(i)
 
     def find_candidate_positions(self, token: 'Token') -> Set[int]:
         """
@@ -46,13 +48,13 @@ class TokenDictionary:
         """
         candidates = set()
 
-        if token['lemma']:
-            candidates.update(self.lemma_index.get(token['lemma'], []))
-        if token['stem']:
-            candidates.update(self.stem_index.get(token['stem'], []))
-        if token['text']:
-            candidates.update(self.text_index.get(token['text'], []))
-            candidates.update(self.text_lower_index.get(token['text'].lower(), []))
+        if token.lemma:
+            candidates.update(self.lemma_index.get(token.lemma, []))
+        if token.stem:
+            candidates.update(self.stem_index.get(token.stem, []))
+        if token.text:
+            candidates.update(self.text_index.get(token.text, []))
+            candidates.update(self.text_lower_index.get(token.text.lower(), []))
 
         return candidates
 
@@ -66,14 +68,23 @@ class TokenDictionary:
         Returns:
             True if token can be found in dictionary, False otherwise
         """
-        if token['lemma'] and token['lemma'] in self.lemma_index:
-            return True
-        if token['stem'] and token['stem'] in self.stem_index:
-            return True
-        if token['text']:
-            if token['text'] in self.text_index:
+        # search by lemma
+        if token.lemma and token.lemma in self.lemma_index:
+            for idx in self.lemma_index[token.lemma]:
+                if token.is_equal(self.source_tokens[idx]):
+                    return True
+
+        # search by stem
+        if token.stem and token.stem in self.stem_index:
+            for idx in self.stem_index[token.stem]:
+                if token.is_equal(self.source_tokens[idx]):
+                    return True
+
+        # search by text
+        if token.text:
+            if token.text in self.text_index:
                 return True
-            if token['text'].lower() in self.text_lower_index:
+            if token.text.lower() in self.text_lower_index:
                 return True
         return False
 

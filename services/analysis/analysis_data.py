@@ -1,6 +1,7 @@
 from typing import List, Dict
 from services.document_service import extract_lines_from_docx
-from services.fulltext_search.fulltext_search import FulltextSearch, Token
+from services.fulltext_search.fulltext_search import FulltextSearch
+from services.fulltext_search.token import Token
 
 
 class AnalysisData:

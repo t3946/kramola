@@ -3,7 +3,9 @@ from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 from services.fulltext_search.dictionary import TokenDictionary
 
 if TYPE_CHECKING:
-    from services.fulltext_search.fulltext_search import Token
+    from services.fulltext_search.token import Token, TokenType
+else:
+    from services.fulltext_search.token import Token, TokenType
 
 
 class FuzzyWordsPunctStrategy(BaseSearchStrategy):
@@ -30,13 +32,13 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         if search_len == 0:
             return []
 
-        search_words_count = sum(1 for t in search_tokens if t['type'] == 'word')
+        search_words_count = sum(1 for t in search_tokens if t.type == TokenType.WORD)
 
         if search_words_count == 0:
             return []
 
         if dictionary is not None and len(search_tokens) > 0:
-            search_words = [t for t in search_tokens if t['type'] == 'word']
+            search_words = [t for t in search_tokens if t.type == TokenType.WORD]
 
             if len(search_words) > 0:
                 first_word = search_words[0]
@@ -52,21 +54,21 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                         source_token = source_tokens[source_i]
                         search_token = search_tokens[search_j]
 
-                        if source_token['type'] in ('punct', 'space'):
+                        if source_token.type in (TokenType.PUNCTUATION, TokenType.SPACE):
                             source_i += 1
                             continue
 
-                        if search_token['type'] in ('punct', 'space'):
+                        if search_token.type in (TokenType.PUNCTUATION, TokenType.SPACE):
                             search_j += 1
                             continue
 
                         if match_start is None:
                             match_start = source_i
 
-                        if source_token['type'] == 'word' and search_token['type'] == 'word':
-                            match_by_text = source_token['text'] == search_token['text']
-                            match_by_lemma = source_token['lemma'] == search_token['lemma']
-                            match_by_stem = source_token['stem'] == search_token['stem']
+                        if source_token.type == TokenType.WORD and search_token.type == TokenType.WORD:
+                            match_by_text = source_token.text == search_token.text
+                            match_by_lemma = source_token.lemma == search_token.lemma
+                            match_by_stem = source_token.stem == search_token.stem
 
                             if match_by_text or match_by_lemma and match_by_stem:
                                 source_i += 1
@@ -94,21 +96,21 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                 source_token = source_tokens[source_i]
                 search_token = search_tokens[search_j]
 
-                if source_token['type'] in ('punct', 'space'):
+                if source_token.type in (TokenType.PUNCTUATION, TokenType.SPACE):
                     source_i += 1
                     continue
 
-                if search_token['type'] in ('punct', 'space'):
+                if search_token.type in (TokenType.PUNCTUATION, TokenType.SPACE):
                     search_j += 1
                     continue
 
                 if match_start is None:
                     match_start = source_i
 
-                if source_token['type'] == 'word' and search_token['type'] == 'word':
-                    match_by_text = source_token['text'] == search_token['text']
-                    match_by_lemma = source_token['lemma'] == search_token['lemma']
-                    match_by_stem = source_token['stem'] == search_token['stem']
+                if source_token.type == TokenType.WORD and search_token.type == TokenType.WORD:
+                    match_by_text = source_token.text == search_token.text
+                    match_by_lemma = source_token.lemma == search_token.lemma
+                    match_by_stem = source_token.stem == search_token.stem
 
                     if match_by_text or match_by_lemma or match_by_stem:
                         source_i += 1
@@ -153,7 +155,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         while source_i < source_len and search_j < len(search_words):
             source_token = source_tokens[source_i]
 
-            if source_token['type'] in ('punct', 'space'):
+            if source_token.type in (TokenType.PUNCTUATION, TokenType.SPACE):
                 source_i += 1
                 continue
 
@@ -162,13 +164,13 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             if match_start is None:
                 match_start = source_i
 
-            if source_token['type'] == 'word':
-                source_text = source_token['text']
-                source_lemma = source_token['lemma']
-                source_stem = source_token['stem']
-                search_text = search_token['text']
-                search_lemma = search_token['lemma']
-                search_stem = search_token['stem']
+            if source_token.type == TokenType.WORD:
+                source_text = source_token.text
+                source_lemma = source_token.lemma
+                source_stem = source_token.stem
+                search_text = search_token.text
+                search_lemma = search_token.lemma
+                search_stem = search_token.stem
 
                 if (source_text == search_text or
                     source_lemma == search_lemma or
@@ -211,7 +213,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         results = []
 
         for phrase_text, search_tokens in search_phrases:
-            search_words = [t for t in search_tokens if t['type'] == 'word']
+            search_words = [t for t in search_tokens if t.type == TokenType.WORD]
 
             if len(search_words) == 0:
                 results.append((phrase_text, []))
