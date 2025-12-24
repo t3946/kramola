@@ -33,7 +33,7 @@ class BaseTestHelper:
         """Get results directory based on results_subdir class attribute."""
         if not self.results_subdir:
             raise ValueError("results_subdir must be set as class attribute")
-        return Path(__file__).parent.parent / 'results' / 'test' / self.results_subdir
+        return Path(__file__).parent.parent.parent / 'results' / 'test' / self.results_subdir
 
     def get_test_directories(
             self,
