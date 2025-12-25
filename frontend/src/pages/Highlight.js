@@ -105,7 +105,7 @@ class Highlight extends Page {
           
           this.updateStatusView();
           
-          if (data.state === 'SUCCESS') {
+          if (data.state === 'COMPLETED' && !data.status?.toLowerCase().includes('ошибка') && !data.status?.toLowerCase().includes('error')) {
             this.redirectToResults();
           }
         }

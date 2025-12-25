@@ -91,7 +91,7 @@ def _perform_highlight_processing(
         'error': None, '_task_id_ref': task_id
     }
     output_path = None
-    final_status_for_redis = TaskStatus.FAILURE
+    final_status_for_redis = TaskStatus.COMPLETED
 
     try:
         # Если нет исходного документа, просто возвращаем информацию о списках
@@ -103,7 +103,7 @@ def _perform_highlight_processing(
             task_result_data['word_stats'] = {}
             task_result_data['phrase_stats'] = {}
             task_result_data['total_matches'] = 0
-            final_status_for_redis = TaskStatus.SUCCESS
+            final_status_for_redis = TaskStatus.COMPLETED
             logger.info(f"[Task {task_id}] List processing completed. Lists: {used_predefined_list_names_for_session}")
         else:
             # Обычная обработка с документом
@@ -155,7 +155,7 @@ def _perform_highlight_processing(
             task_result_data.update(analysis_results)
             logger.info(
                 f"[Task {task_id}] Analysis successful. Matches: {task_result_data.get('total_matches', 0)}. File: {result_filename_task or 'N/A'}")
-            final_status_for_redis = TaskStatus.SUCCESS
+            final_status_for_redis = TaskStatus.COMPLETED
 
     except Exception as e:
         logger.error(f"[Task {task_id}] Error during background processing: {e}", exc_info=True)
@@ -166,7 +166,7 @@ def _perform_highlight_processing(
 
         if redis_client:
             try:
-                status_message = "Обработка успешно завершена." if final_status_for_redis == TaskStatus.SUCCESS else task_result_data.get(
+                status_message = "Обработка успешно завершена." if not task_result_data.get('error') else task_result_data.get(
                     'error', 'Неизвестная ошибка')
                 redis_payload = {
                     "state": final_status_for_redis.value,
@@ -192,7 +192,7 @@ def _perform_highlight_processing(
             except Exception as e_del:
                 logger.warning(f"[Task {task_id}] Failed to delete words '{words_path}': {e_del}")
 
-        if final_status_for_redis == TaskStatus.FAILURE and output_path and os.path.exists(output_path):
+        if task_result_data.get('error') and output_path and os.path.exists(output_path):
             try:
                 os.remove(output_path)
                 task_result_data['result_filename'] = None  # Ensure result_filename is cleared
@@ -338,18 +338,18 @@ def process_async():
         current_task_id_in_exc = locals().get('task_id', 'N/A_in_exception')
         logger.error(f"[Req {current_task_id_in_exc}] Error in /process_async: {e}", exc_info=True)
 
-        # Attempt to update Redis to FAILURE if task_id was generated and Redis client available
+        # Attempt to update Redis to COMPLETED if task_id was generated and Redis client available
         if redis_client and current_task_id_in_exc != 'N/A_in_exception':
             try:
                 redis_client.hmset(f"task:{current_task_id_in_exc}", {
-                    "state": TaskStatus.FAILURE.value, "status_message": f'Ошибка при постановке задачи: {str(e)}',
+                    "state": TaskStatus.COMPLETED.value, "status_message": f'Ошибка при постановке задачи: {str(e)}',
                     "result_data_json": json.dumps(
                         {'error': f'Ошибка при постановке задачи: {str(e)}', '_task_id_ref': current_task_id_in_exc})
                 })
                 redis_client.expire(f"task:{current_task_id_in_exc}", REDIS_TASK_TTL)
             except Exception as e_redis_fail:
                 logger.error(
-                    f"[Req {current_task_id_in_exc}] Redis error (update to FAILURE on initial error): {e_redis_fail}")
+                    f"[Req {current_task_id_in_exc}] Redis error (update to COMPLETED on initial error): {e_redis_fail}")
 
         return jsonify({'error': f'Внутренняя ошибка при постановке задачи: {str(e)}'}), 500
     finally:

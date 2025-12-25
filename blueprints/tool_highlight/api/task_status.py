@@ -57,8 +57,13 @@ def check_task_status(task_id):
             if result_data:
                 state_val = task_info_from_redis_initial.get("state") if task_info_from_redis_initial else redis_client.hget(f"task:{task_id}", "state")
                 status_val = task_info_from_redis_initial.get("status_message") if task_info_from_redis_initial else redis_client.hget(f"task:{task_id}", "status_message")
-                state = (state_val.decode() if isinstance(state_val, bytes) else state_val) or TaskStatus.UNKNOWN.value
+                state = state_val.decode() if isinstance(state_val, bytes) else state_val
                 status_msg = (status_val.decode() if isinstance(status_val, bytes) else status_val) or "Статус из Redis"
+                
+                if not state:
+                    logger.warning(f"Task {task_id}: State not found in Redis, defaulting to COMPLETED")
+                    state = TaskStatus.COMPLETED.value
+                
                 logger.info(f"Task {task_id} result successfully retrieved from Redis. State: {state}")
                 _EXECUTOR_FUTURES_REGISTRY.pop(task_id, None)
                 return jsonify({
@@ -70,12 +75,11 @@ def check_task_status(task_id):
             try:
                 result_from_future = active_future.result()
                 TaskResult.save(task_id, result_from_future)
-                is_error = bool(result_from_future.get('error'))
                 final_status_msg = result_from_future.get('error') or 'Задача завершена (результат из future).'
-                logger.info(f"Task {task_id} obtained result directly from future. Error: {is_error}")
+                logger.info(f"Task {task_id} obtained result directly from future.")
                 _EXECUTOR_FUTURES_REGISTRY.pop(task_id, None)
                 return jsonify({
-                    'state': TaskStatus.FAILURE.value if is_error else TaskStatus.SUCCESS.value,
+                    'state': TaskStatus.COMPLETED.value,
                     'status': final_status_msg
                 })
             except Exception as e_future_res_direct:
@@ -86,18 +90,25 @@ def check_task_status(task_id):
                 TaskResult.save(task_id, error_data)
                 _EXECUTOR_FUTURES_REGISTRY.pop(task_id, None)
                 return jsonify({
-                    'state': TaskStatus.FAILURE.value,
+                    'state': TaskStatus.COMPLETED.value,
                     'status': critical_error_msg
                 })
 
     if task_info_from_redis_initial:
-        state = task_info_from_redis_initial.get("state", TaskStatus.UNKNOWN.value)
+        state = task_info_from_redis_initial.get("state")
         status_msg = task_info_from_redis_initial.get("status_message", "Статус из Redis")
+        
+        if state:
+            state = state.decode() if isinstance(state, bytes) else state
+        else:
+            logger.warning(f"Task {task_id}: State not found in Redis, defaulting to COMPLETED")
+            state = TaskStatus.COMPLETED.value
+        
         return jsonify({
-            'state': state.decode() if isinstance(state, bytes) else state,
+            'state': state,
             'status': status_msg.decode() if isinstance(status_msg, bytes) else status_msg
         })
 
     logger.warning(f"Task {task_id} not found in active futures or Redis (final check).")
-    return jsonify({'state': TaskStatus.NOT_FOUND.value, 'status': 'Задача не найдена или информация о ней утеряна.'}), 404
+    return jsonify({'error': 'Задача не найдена или информация о ней утеряна.'}), 404
 
