@@ -303,17 +303,14 @@ class AnalyserDocx:
         #[start] reset stats
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
+        self._search_phrases = []
         #[end]
 
-        # build global dictionary and filter search phrases by it
-        if self.analyse_data and self.analyse_data.phrases:
-            self._global_document_dictionary = self.__build_global_dictionary()
-            phrases_list = list(self.analyse_data.phrases.values())
-            self._search_phrases = self.__filter_phrases_by_dictionary(
-                phrases_list, self._global_document_dictionary
-            )
-        else:
-            self._search_phrases = []
+        #[start] build global dictionary and filter search phrases by it
+        self._global_document_dictionary = self.__build_global_dictionary()
+        phrases_list = list(self.analyse_data.phrases.values())
+        self._search_phrases = self.__filter_phrases_by_dictionary(phrases_list, self._global_document_dictionary)
+        #[end]
 
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables
