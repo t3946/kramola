@@ -3,6 +3,9 @@ from services.document_service import extract_lines_from_docx
 from services.fulltext_search.phrase import Phrase
 from services.words_list.list_persons import ListPersons
 from services.words_list.list_companies import ListCompanies
+from services.words_list.list_profanity import ListProfanity
+from services.words_list.list_prohibited_substances import ListProhibitedSubstances
+from services.words_list.list_swear_words import ListSwearWords
 from services.words_list import PredefinedListKey
 
 
@@ -27,7 +30,10 @@ class AnalysisData:
         """Load ready-made Phrase objects from Redis lists by their keys."""
         list_mapping = {
             PredefinedListKey.FOREIGN_AGENTS_PERSONS: ListPersons,
-            PredefinedListKey.FOREIGN_AGENTS_COMPANIES: ListCompanies
+            PredefinedListKey.FOREIGN_AGENTS_COMPANIES: ListCompanies,
+            PredefinedListKey.PROFANITY: ListProfanity,
+            PredefinedListKey.PROHIBITED_SUBSTANCES: ListProhibitedSubstances,
+            PredefinedListKey.SWEAR_WORDS: ListSwearWords
         }
 
         for key in list_keys:

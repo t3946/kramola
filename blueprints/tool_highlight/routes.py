@@ -122,16 +122,9 @@ def _perform_highlight_processing(
                 # prepare words for search
                 analyse_data = AnalysisData()
                 
-                # Load ready-made Phrase objects from Redis lists
-                redis_list_keys = [
-                    key for key in selected_list_keys 
-                    if (PredefinedListKey(key) if isinstance(key, str) else key) in (
-                        PredefinedListKey.FOREIGN_AGENTS_PERSONS,
-                        PredefinedListKey.FOREIGN_AGENTS_COMPANIES
-                    )
-                ]
-                if redis_list_keys:
-                    analyse_data.load_predefined_lists(redis_list_keys)
+                # Load ready-made Phrase objects from words_list
+                if selected_list_keys:
+                    analyse_data.load_predefined_lists(selected_list_keys)
                 
                 analyse_data.read_from_list(all_search_lines_clean)
 

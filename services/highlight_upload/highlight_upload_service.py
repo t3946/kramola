@@ -7,13 +7,10 @@ import logging
 from typing import List, Dict
 from flask import Request
 
-from typing import List, Dict
-from flask import Request
 from services.document_service import save_uploaded_file, extract_lines_from_docx, convert_odt_to_docx
 from services.highlight_upload.upload_result import UploadResult
 from services.highlight_upload.upload_error import UploadError
-from services.words_list.list_persons import ListPersons
-from services.words_list.list_companies import ListCompanies
+from services.analysis.analysis_data import AnalysisData
 from services.words_list import PredefinedListKey
 
 logger = logging.getLogger(__name__)
@@ -24,25 +21,6 @@ try:
     FIT_AVAILABLE = True
 except ImportError:
     FIT_AVAILABLE = False
-
-
-def _load_lines_from_txt(filepath):
-    """Загружает строки из текстового файла, удаляя пустые строки и пробелы по краям."""
-    lines = []
-    try:
-        # Используем utf-8-sig для обработки BOM (Byte Order Mark), если он есть
-        # Читаем файл целиком для лучшей производительности
-        with open(filepath, 'r', encoding='utf-8-sig') as f:
-            content = f.read()
-            lines = [line.strip() for line in content.splitlines() if line.strip()]
-        logger.debug(f"Успешно загружено {len(lines)} строк из файла: {filepath}")
-    except FileNotFoundError:
-        logger.error(f"Файл не найден: {filepath}")
-        return []
-    except Exception as e:
-        logger.error(f"Ошибка чтения файла {filepath}: {e}", exc_info=True)
-        return []
-    return lines
 
 
 class HighlightUploadService:
@@ -227,62 +205,26 @@ class HighlightUploadService:
         unique_lines_dict = {line.strip().lower(): line.strip() for line in all_search_lines if line.strip()}
         search_terms = list(unique_lines_dict.values())
 
-        # 5. Process all selected predefined lists (files and Redis)
-        search_terms_from_lists = []
+        # 5. Load predefined lists using AnalysisData
         selected_list_keys = predefined_result.get('selected_list_keys', [])
 
-        for key in selected_list_keys:
-            if not key or key not in predefined_lists:
-                continue
+        if selected_list_keys:
+            analysis_data = AnalysisData()
+            analysis_data.load_predefined_lists(selected_list_keys)
 
-            display_name = predefined_lists.get(key, key)
+            # Extract texts from loaded phrases
+            search_terms_from_lists = list(analysis_data.phrases.keys())
 
-            # Convert string key to enum if needed
-            key_enum = PredefinedListKey(key) if isinstance(key, str) else key
-
-            # Redis-based lists (ino, inu_b) - only extract texts for search_terms
-            # Actual Phrase objects will be loaded in AnalysisData.load_predefined_lists()
-            if key_enum == PredefinedListKey.FOREIGN_AGENTS_PERSONS:
-                lp = ListPersons()
-                persons_phrases = lp.load()
-                if persons_phrases:
-                    persons_texts = [phrase.phrase for phrase in persons_phrases]
-                    search_terms_from_lists.extend(persons_texts)
+            # Collect used list names
+            for key in selected_list_keys:
+                if key and key in predefined_lists:
+                    display_name = predefined_lists.get(key, key)
                     used_predefined_list_names.append(display_name)
 
-                    # Извлекаем только фамилии из ФИО
-                    surnames = set()
-                    for phrase in persons_phrases:
-                        person_clean = phrase.phrase.strip()
-                        if not person_clean:
-                            continue
-                        parts = person_clean.split()
-                        if len(parts) >= 2:
-                            surname = parts[0].strip()
-                            if surname:
-                                surnames.add(surname)
-                    surnames = sorted(surnames)
-                    search_terms_from_lists.extend(surnames)
-
-            elif key_enum == PredefinedListKey.FOREIGN_AGENTS_COMPANIES:
-                lc = ListCompanies()
-                companies_phrases = lc.load()
-                if companies_phrases:
-                    companies_texts = [phrase.phrase for phrase in companies_phrases]
-                    search_terms_from_lists.extend(companies_texts)
-                    used_predefined_list_names.append(display_name)
-
-            # File-based lists (mat, narkot, yaldo)
-            elif key_enum in (PredefinedListKey.PROFANITY, PredefinedListKey.PROHIBITED_SUBSTANCES, PredefinedListKey.SWEAR_WORDS):
-                filepath = os.path.join(predefined_lists_dir, f"{key_enum.value}.txt")
-                lines = _load_lines_from_txt(filepath)
-                search_terms_from_lists.extend(lines)
-                used_predefined_list_names.append(display_name)
-
-        # Combine with existing search_terms and deduplicate again
-        all_terms_with_lists = search_terms + search_terms_from_lists
-        unique_terms_dict = {term.strip().lower(): term.strip() for term in all_terms_with_lists if term.strip()}
-        search_terms = list(unique_terms_dict.values())
+            # Combine with existing search_terms and deduplicate again
+            all_terms_with_lists = search_terms + search_terms_from_lists
+            unique_terms_dict = {term.strip().lower(): term.strip() for term in all_terms_with_lists if term.strip()}
+            search_terms = list(unique_terms_dict.values())
 
         return {
             'search_terms': search_terms,
