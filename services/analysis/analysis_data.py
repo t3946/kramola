@@ -3,6 +3,7 @@ from services.document_service import extract_lines_from_docx
 from services.fulltext_search.phrase import Phrase
 from services.words_list.list_persons import ListPersons
 from services.words_list.list_companies import ListCompanies
+from services.words_list import PredefinedListKey
 
 
 class AnalysisData:
@@ -25,13 +26,16 @@ class AnalysisData:
     def load_predefined_lists(self, list_keys: List[str]) -> None:
         """Load ready-made Phrase objects from Redis lists by their keys."""
         list_mapping = {
-            'ino': ListPersons,
-            'inu_b': ListCompanies
+            PredefinedListKey.FOREIGN_AGENTS_PERSONS: ListPersons,
+            PredefinedListKey.FOREIGN_AGENTS_COMPANIES: ListCompanies
         }
 
         for key in list_keys:
-            if key in list_mapping:
-                words_list = list_mapping[key]()
+            # Convert string key to enum if needed
+            key_enum = PredefinedListKey(key) if isinstance(key, str) else key
+            
+            if key_enum in list_mapping:
+                words_list = list_mapping[key_enum]()
                 phrases = words_list.load()
 
                 for phrase in phrases:

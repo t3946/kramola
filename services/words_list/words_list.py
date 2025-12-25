@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import TypedDict, Dict, List, Any
 from datetime import datetime, date
+from enum import Enum
 import json
 from services.redis.connection import get_redis_connection
 from services.fulltext_search.phrase import Phrase
@@ -9,6 +10,14 @@ from services.fulltext_search.phrase import Phrase
 
 # Get Redis connection (bytes mode for compatibility with existing code)
 r = get_redis_connection(decode_responses=False)
+
+
+class PredefinedListKey(str, Enum):
+    FOREIGN_AGENTS_PERSONS = "ino"
+    FOREIGN_AGENTS_COMPANIES = "inu_b"
+    PROFANITY = "mat"
+    PROHIBITED_SUBSTANCES = "narkot"
+    SWEAR_WORDS = "yaldo"
 
 class TSaveOptions(TypedDict):
     logging: bool

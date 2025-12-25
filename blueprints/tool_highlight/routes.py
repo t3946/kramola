@@ -9,6 +9,7 @@ from collections import Counter
 from typing import List
 
 from services.analysis import AnalysisData, AnalyserDocx
+from services.words_list import PredefinedListKey
 
 
 from flask import (
@@ -122,7 +123,13 @@ def _perform_highlight_processing(
                 analyse_data = AnalysisData()
                 
                 # Load ready-made Phrase objects from Redis lists
-                redis_list_keys = [key for key in selected_list_keys if key in ('ino', 'inu_b')]
+                redis_list_keys = [
+                    key for key in selected_list_keys 
+                    if (PredefinedListKey(key) if isinstance(key, str) else key) in (
+                        PredefinedListKey.FOREIGN_AGENTS_PERSONS,
+                        PredefinedListKey.FOREIGN_AGENTS_COMPANIES
+                    )
+                ]
                 if redis_list_keys:
                     analyse_data.load_predefined_lists(redis_list_keys)
                 

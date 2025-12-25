@@ -14,6 +14,7 @@ from services.highlight_upload.upload_result import UploadResult
 from services.highlight_upload.upload_error import UploadError
 from services.words_list.list_persons import ListPersons
 from services.words_list.list_companies import ListCompanies
+from services.words_list import PredefinedListKey
 
 logger = logging.getLogger(__name__)
 
@@ -236,9 +237,12 @@ class HighlightUploadService:
 
             display_name = predefined_lists.get(key, key)
 
+            # Convert string key to enum if needed
+            key_enum = PredefinedListKey(key) if isinstance(key, str) else key
+
             # Redis-based lists (ino, inu_b) - only extract texts for search_terms
             # Actual Phrase objects will be loaded in AnalysisData.load_predefined_lists()
-            if key == 'ino':
+            if key_enum == PredefinedListKey.FOREIGN_AGENTS_PERSONS:
                 lp = ListPersons()
                 persons_phrases = lp.load()
                 if persons_phrases:
@@ -260,7 +264,7 @@ class HighlightUploadService:
                     surnames = sorted(surnames)
                     search_terms_from_lists.extend(surnames)
 
-            elif key == 'inu_b':
+            elif key_enum == PredefinedListKey.FOREIGN_AGENTS_COMPANIES:
                 lc = ListCompanies()
                 companies_phrases = lc.load()
                 if companies_phrases:
@@ -269,8 +273,8 @@ class HighlightUploadService:
                     used_predefined_list_names.append(display_name)
 
             # File-based lists (mat, narkot, yaldo)
-            elif key in ('mat', 'narkot', 'yaldo'):
-                filepath = os.path.join(predefined_lists_dir, f"{key}.txt")
+            elif key_enum in (PredefinedListKey.PROFANITY, PredefinedListKey.PROHIBITED_SUBSTANCES, PredefinedListKey.SWEAR_WORDS):
+                filepath = os.path.join(predefined_lists_dir, f"{key_enum.value}.txt")
                 lines = _load_lines_from_txt(filepath)
                 search_terms_from_lists.extend(lines)
                 used_predefined_list_names.append(display_name)

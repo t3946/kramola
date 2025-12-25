@@ -55,7 +55,8 @@ class TestSpeedFlList(BaseSpeedTest):
         # [start] Create AnalyseData and load from Redis - TIMED
         start_time = time.time()
         analyse_data = AnalysisData()
-        analyse_data.load_predefined_lists(['ino'])
+        from services.words_list import PredefinedListKey
+        analyse_data.load_predefined_lists([PredefinedListKey.FOREIGN_AGENTS_PERSONS])
         timing_results['create_analyse_data'] = time.time() - start_time
         # [end]
 

@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from blueprints.foreign_agents.routes import foreign_agents_bp
 from blueprints.tool_highlight.routes import highlight_bp
 from blueprints.tool_footnotes.routes import footnotes_bp
+from services.words_list import PredefinedListKey
 
 load_dotenv()
 
@@ -112,11 +113,11 @@ except Exception as e_general:
 
 # Формат: 'ключ_файла_без_расширения': 'Отображаемое имя в UI'
 app.config['PREDEFINED_LISTS'] = {
-    "mat": "Матные слова",
-    "narkot": "Запрещенные вещества",
-    "yaldo": "Ругательства",
-    "ino": "Инагенты (ФИО)",
-    "inu_b": "Инагенты (Организации)"
+    PredefinedListKey.PROFANITY.value: "Матные слова",
+    PredefinedListKey.PROHIBITED_SUBSTANCES.value: "Запрещенные вещества",
+    PredefinedListKey.SWEAR_WORDS.value: "Ругательства",
+    PredefinedListKey.FOREIGN_AGENTS_PERSONS.value: "Инагенты (ФИО)",
+    PredefinedListKey.FOREIGN_AGENTS_COMPANIES.value: "Инагенты (Организации)"
 
 }
 

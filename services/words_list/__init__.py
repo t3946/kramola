@@ -1,3 +1,3 @@
-from .words_list import WordsList
+from .words_list import WordsList, PredefinedListKey
 
-__all__ = ['WordsList']
+__all__ = ['WordsList', 'PredefinedListKey']
