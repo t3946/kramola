@@ -1,5 +1,5 @@
 from docx import Document
-from utils.timeit import timeit
+from services.utils.timeit import timeit
 
 
 @timeit

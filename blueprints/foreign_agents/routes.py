@@ -2,6 +2,9 @@ from flask import (Blueprint, render_template)
 
 from services.words_list.list_companies import ListCompanies
 from services.words_list.list_persons import ListPersons
+from services.words_list.list_profanity import ListProfanity
+from services.words_list.list_prohibited_substances import ListProhibitedSubstances
+from services.words_list.list_swear_words import ListSwearWords
 
 foreign_agents_bp = Blueprint('foreign_agents', __name__, template_folder='../../templates')
 
@@ -26,3 +29,27 @@ def ul():
     changes_sorted = dict(sorted(changes.items(), key=lambda x: x[0], reverse=True))
 
     return render_template('foreign-agents/ul.html', words=words, changes=changes_sorted)
+
+@foreign_agents_bp.route('/profanity')
+def profanity():
+    lp = ListProfanity()
+    phrases = lp.load()
+    words = [phrase.phrase for phrase in phrases]
+
+    return render_template('foreign-agents/profanity.html', words=words)
+
+@foreign_agents_bp.route('/prohibited-substances')
+def prohibited_substances():
+    lps = ListProhibitedSubstances()
+    phrases = lps.load()
+    words = [phrase.phrase for phrase in phrases]
+
+    return render_template('foreign-agents/prohibited_substances.html', words=words)
+
+@foreign_agents_bp.route('/swear-words')
+def swear_words():
+    lsw = ListSwearWords()
+    phrases = lsw.load()
+    words = [phrase.phrase for phrase in phrases]
+
+    return render_template('foreign-agents/swear_words.html', words=words)

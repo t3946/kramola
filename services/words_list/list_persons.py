@@ -1,8 +1,8 @@
-from services.words_list import WordsList
+from services.words_list import WordsList, PredefinedListKey
 
 
 class ListPersons(WordsList):
-    key = "persons"
+    key = PredefinedListKey.FOREIGN_AGENTS_PERSONS.value
 
     @property
     def list_key(self) -> str:

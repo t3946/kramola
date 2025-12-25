@@ -14,7 +14,7 @@ from services.fulltext_search.fulltext_search import FulltextSearch, Match, Sear
 from services.fulltext_search.token import Token, TokenType
 from services.fulltext_search.dictionary import TokenDictionary
 from services.fulltext_search.phrase import Phrase
-from utils.timeit import timeit
+from services.utils.timeit import timeit
 from copy import deepcopy
 from services.task.progress import Progress
 

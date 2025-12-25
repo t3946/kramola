@@ -1,6 +1,6 @@
 from docx import Document
 from docx.enum.text import WD_COLOR_INDEX
-from utils.timeit import timeit
+from services.utils.timeit import timeit
 
 @timeit
 def highlight_word(doc_path, target_word, save_path, highlight_color=WD_COLOR_INDEX.YELLOW):

@@ -13,11 +13,11 @@ r = get_redis_connection(decode_responses=False)
 
 
 class PredefinedListKey(str, Enum):
-    FOREIGN_AGENTS_PERSONS = "ino"
-    FOREIGN_AGENTS_COMPANIES = "inu_b"
-    PROFANITY = "mat"
-    PROHIBITED_SUBSTANCES = "narkot"
-    SWEAR_WORDS = "yaldo"
+    FOREIGN_AGENTS_PERSONS = "foreign_agents_persons"
+    FOREIGN_AGENTS_COMPANIES = "foreign_agents_companies"
+    PROFANITY = "profanity"
+    PROHIBITED_SUBSTANCES = "prohibited_substances"
+    SWEAR_WORDS = "swear_words"
 
 class TSaveOptions(TypedDict):
     logging: bool

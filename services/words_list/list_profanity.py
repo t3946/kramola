@@ -1,9 +1,10 @@
 from services.words_list import WordsList, PredefinedListKey
 
 
-class ListCompanies(WordsList):
-    key = PredefinedListKey.FOREIGN_AGENTS_COMPANIES.value
+class ListProfanity(WordsList):
+    key = PredefinedListKey.PROFANITY.value
 
     @property
     def list_key(self) -> str:
         return self.key
+

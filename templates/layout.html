@@ -32,6 +32,9 @@
                 <a href="{{ url_for('footnotes.index') }}" class="{% if request.endpoint == 'footnotes.index' %}active{% endif %}"><i class="fas fa-tags"></i><span>Добавление сносок</span></a>
                 <a href="{{ url_for('foreign_agents.fl') }}" class="{% if request.endpoint == 'foreign_agents.fl' %}active{% endif %}"><i class="fas fa-tags"></i><span>Иностранные агенты ФЛ</span></a>
                 <a href="{{ url_for('foreign_agents.ul') }}" class="{% if request.endpoint == 'foreign_agents.ul' %}active{% endif %}"><i class="fas fa-tags"></i><span>Иностранные агенты ЮЛ</span></a>
+                <a href="{{ url_for('foreign_agents.profanity') }}" class="{% if request.endpoint == 'foreign_agents.profanity' %}active{% endif %}"><i class="fas fa-tags"></i><span>Матные слова</span></a>
+                <a href="{{ url_for('foreign_agents.prohibited_substances') }}" class="{% if request.endpoint == 'foreign_agents.prohibited_substances' %}active{% endif %}"><i class="fas fa-tags"></i><span>Запрещенные вещества</span></a>
+                <a href="{{ url_for('foreign_agents.swear_words') }}" class="{% if request.endpoint == 'foreign_agents.swear_words' %}active{% endif %}"><i class="fas fa-tags"></i><span>Ругательства</span></a>
             </div>
         </div>
 

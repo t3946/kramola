@@ -23,7 +23,7 @@ from services.ocr_service import (
     OCR_LANGUAGES,
     OCR_DPI
 )
-from utils.timeit import timeit
+from services.utils.timeit import timeit
 
 # --- Константы ---
 # (Без изменений)
