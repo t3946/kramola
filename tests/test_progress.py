@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from flask import Flask
-from services.task.progress import Progress
+from services.progress.progress import Progress
 
 PROGRESS_TTL = 60 * 60 * 24
 

@@ -1,7 +1,10 @@
 import docx
 import time
-from typing import List, Union, Optional, Tuple, Dict
+from typing import List, Union, Optional, Tuple, Dict, TYPE_CHECKING
 from collections import defaultdict, Counter
+
+if TYPE_CHECKING:
+    from services.progress.docx.combined_progress import CombinedProgress
 
 from docx.text.paragraph import Paragraph
 from docx.text.hyperlink import Hyperlink
@@ -16,7 +19,7 @@ from services.fulltext_search.dictionary import TokenDictionary
 from services.fulltext_search.phrase import Phrase
 from services.utils.timeit import timeit
 from copy import deepcopy
-from services.task.progress import Progress
+from services.progress.docx.combined_progress import CombinedProgress, ProgressType
 
 
 class AnalyserDocx:
@@ -31,6 +34,7 @@ class AnalyserDocx:
     # Pre-filtered phrases list: only phrases where all words exist in document
     # This avoids checking phrases that cannot match during batch processing
     _search_phrases: List[Phrase]
+    _progress: Optional['CombinedProgress']
 
     def __init__(self, document: Union[docx.Document, str]):
         if isinstance(document, str):
@@ -42,6 +46,7 @@ class AnalyserDocx:
         self._tokenize_time_total = 0.0
         self._global_document_dictionary = None
         self._search_phrases = []
+        self._progress = None
 
     def set_analyse_data(self, analyse_data: AnalysisData) -> None:
         self.analyse_data = analyse_data
@@ -151,9 +156,9 @@ class AnalyserDocx:
                     stats['forms'][found_text.lower()] += 1
 
     def __search_all_phrases_optimized(
-        self,
-        source_tokens: List[Token],
-        search_phrases: List[Phrase]
+            self,
+            source_tokens: List[Token],
+            search_phrases: List[Phrase]
     ) -> List[Match]:
         """Search all phrases using optimized strategy with dictionary."""
         if not source_tokens or not search_phrases:
@@ -259,28 +264,53 @@ class AnalyserDocx:
 
     def __build_global_dictionary(self) -> TokenDictionary:
         """Build dictionary from entire document text."""
-        full_text = ''
-
+        if self._progress:
+            self._progress.setValue(0, ProgressType.PREPARATION)
+        
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables
 
+        # [start] count total paragraphs for progress
+        total_paragraphs = len(paragraphs)
+        
+        for table in tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    total_paragraphs += len(cell.paragraphs)
+        
+        if self._progress:
+            self._progress.setMax(total_paragraphs, ProgressType.PREPARATION)
+        # [end]
+
+        # [start] tokenize and build dictionary gradually
+        all_tokens: List[Token] = []
+
         for paragraph in paragraphs:
-            full_text += paragraph.text + ' '
+            paragraph_tokens = FulltextSearch.tokenize_text(paragraph.text)
+            all_tokens.extend(paragraph_tokens)
+            
+            if self._progress:
+                self._progress.add(1, ProgressType.PREPARATION)
 
         for table in tables:
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
-                        full_text += paragraph.text + ' '
+                        paragraph_tokens = FulltextSearch.tokenize_text(paragraph.text)
+                        all_tokens.extend(paragraph_tokens)
+                        
+                        if self._progress:
+                            self._progress.add(1, ProgressType.PREPARATION)
+        # [end]
 
-        all_tokens = FulltextSearch.tokenize_text(full_text)
+        dictionary = TokenDictionary(all_tokens)
 
-        return TokenDictionary(all_tokens)
+        return dictionary
 
     def __filter_phrases_by_dictionary(
-        self, 
-        search_phrases: List[Phrase], 
-        dictionary: TokenDictionary
+            self,
+            search_phrases: List[Phrase],
+            dictionary: TokenDictionary
     ) -> List[Phrase]:
         """Filter phrases: exclude those where at least one word is missing in dictionary."""
         filtered_phrases: List[Phrase] = []
@@ -289,6 +319,10 @@ class AnalyserDocx:
             search_words = [t for t in phrase.tokens if t.type == TokenType.WORD]
 
             if len(search_words) == 0:
+                # [start] update progress - all progress updates in one place
+                if self._progress:
+                    self._progress.add(1, ProgressType.PREPARATION)
+                # [end]
                 continue
 
             filtered_words = dictionary.filter_tokens(search_words)
@@ -296,29 +330,31 @@ class AnalyserDocx:
             if len(filtered_words) == len(search_words):
                 filtered_phrases.append(phrase)
 
+            # [start] update progress - all progress updates in one place
+            if self._progress:
+                self._progress.add(1, ProgressType.PREPARATION)
+            # [end]
+
         return filtered_phrases
 
     @timeit
     def analyse_and_highlight(self, task_id: Optional[str] = None) -> dict:
-        #[start] reset stats
+        # [start] reset stats
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self._search_phrases = []
-        #[end]
-
-        #[start] build global dictionary and filter search phrases by it
-        self._global_document_dictionary = self.__build_global_dictionary()
-        phrases_list = list(self.analyse_data.phrases.values())
-        self._search_phrases = self.__filter_phrases_by_dictionary(phrases_list, self._global_document_dictionary)
-        #[end]
+        # [end]
 
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables
 
         # [start] count progress max
-        progress = None
+        self._progress = None
 
         if task_id is not None:
+            phrases_list = list(self.analyse_data.phrases.values())
+            preparation_max_value = len(phrases_list) + 1  # +1 for building dictionary
+
             total_table_paragraphs = 0
 
             for table in tables:
@@ -326,16 +362,26 @@ class AnalyserDocx:
                     for cell in row.cells:
                         total_table_paragraphs += len(cell.paragraphs)
 
-            total_items = len(paragraphs) + total_table_paragraphs
-            progress = Progress(task_id, max_value=total_items)
+            search_max_value = len(paragraphs) + total_table_paragraphs
+            self._progress = CombinedProgress(task_id, preparation_max_value, search_max_value)
+        # [end]
+
+        # [start] build global dictionary and filter search phrases by it
+        self._global_document_dictionary = self.__build_global_dictionary()
+        phrases_list = list(self.analyse_data.phrases.values())
+        self._search_phrases = self.__filter_phrases_by_dictionary(
+            phrases_list,
+            self._global_document_dictionary
+        )
         # [end]
 
         # process paragraphs
         for paragraph in paragraphs:
             self.__analyse_paragraph(paragraph)
-
-            if progress:
-                progress.add(1)
+            # [start] update progress - all progress updates in one place
+            if self._progress:
+                self._progress.add(1, ProgressType.SEARCH)
+            # [end]
 
         # process tables
         for table in tables:
@@ -345,15 +391,16 @@ class AnalyserDocx:
 
                     for paragraph in cell_paragraphs:
                         self.__analyse_paragraph(paragraph)
+                        # [start] update progress - all progress updates in one place
+                        if self._progress:
+                            self._progress.add(1, ProgressType.SEARCH)
+                        # [end]
 
-                        if progress:
-                            progress.add(1)
+        if self._progress:
+            self._progress.flush()
+            self._progress.clear()
 
-        if progress:
-            progress.flush()
-            progress.clear()
-
-        #[start] return stats in same format as analyze_and_highlight_pdf
+        # [start] return stats in same format as analyze_and_highlight_pdf
         final_ws = {
             l: {
                 'count': d['count'],
@@ -370,7 +417,7 @@ class AnalyserDocx:
             d['count'] for d in self.phrase_stats.values())
 
         return {'word_stats': final_ws, 'phrase_stats': final_ps, 'total_matches': total_matches}
-        #[end]
+        # [end]
 
     def save(self, output_path: str) -> None:
         self.document.save(output_path)

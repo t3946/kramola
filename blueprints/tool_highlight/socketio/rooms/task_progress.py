@@ -1,6 +1,6 @@
 from flask_socketio import emit, join_room, leave_room
 from flask import current_app
-from services.task.progress import Progress
+from services.progress.progress import Progress
 from blueprints.tool_highlight.routes import _get_redis_client
 
 class TaskProgressRoom:
