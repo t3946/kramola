@@ -10,6 +10,7 @@ from typing import List
 
 from services.analysis import AnalysisData, AnalyserDocx
 from services.words_list import PredefinedListKey
+from services.task import TaskStatus
 
 
 from flask import (
@@ -72,12 +73,12 @@ def _perform_highlight_processing(
         try:
             status_message = "Обработка документа..." if source_path else "Обработка списков..."
             redis_client.hmset(f"task:{task_id}", {
-                "state": "PROCESSING", "status_message": status_message
+                "state": TaskStatus.PROCESSING.value, "status_message": status_message
             })
             redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
             
             from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
-            TaskProgressRoom.send_status(task_id, "PROCESSING", status_message)
+            TaskProgressRoom.send_status(task_id, TaskStatus.PROCESSING.value, status_message)
         except Exception as e_redis:
             logger.error(f"[Task {task_id}] Redis error (set PROCESSING): {e_redis}", exc_info=True)
 
@@ -90,7 +91,7 @@ def _perform_highlight_processing(
         'error': None, '_task_id_ref': task_id
     }
     output_path = None
-    final_status_for_redis = 'FAILURE'
+    final_status_for_redis = TaskStatus.FAILURE
 
     try:
         # Если нет исходного документа, просто возвращаем информацию о списках
@@ -102,7 +103,7 @@ def _perform_highlight_processing(
             task_result_data['word_stats'] = {}
             task_result_data['phrase_stats'] = {}
             task_result_data['total_matches'] = 0
-            final_status_for_redis = 'SUCCESS'
+            final_status_for_redis = TaskStatus.SUCCESS
             logger.info(f"[Task {task_id}] List processing completed. Lists: {used_predefined_list_names_for_session}")
         else:
             # Обычная обработка с документом
@@ -154,7 +155,7 @@ def _perform_highlight_processing(
             task_result_data.update(analysis_results)
             logger.info(
                 f"[Task {task_id}] Analysis successful. Matches: {task_result_data.get('total_matches', 0)}. File: {result_filename_task or 'N/A'}")
-            final_status_for_redis = 'SUCCESS'
+            final_status_for_redis = TaskStatus.SUCCESS
 
     except Exception as e:
         logger.error(f"[Task {task_id}] Error during background processing: {e}", exc_info=True)
@@ -165,10 +166,10 @@ def _perform_highlight_processing(
 
         if redis_client:
             try:
-                status_message = "Обработка успешно завершена." if final_status_for_redis == 'SUCCESS' else task_result_data.get(
+                status_message = "Обработка успешно завершена." if final_status_for_redis == TaskStatus.SUCCESS else task_result_data.get(
                     'error', 'Неизвестная ошибка')
                 redis_payload = {
-                    "state": final_status_for_redis,
+                    "state": final_status_for_redis.value,
                     "status_message": status_message,
                     "result_data_json": json.dumps(task_result_data)
                 }
@@ -176,7 +177,7 @@ def _perform_highlight_processing(
                 redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
                 
                 from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
-                TaskProgressRoom.send_status(task_id, final_status_for_redis, status_message)
+                TaskProgressRoom.send_status(task_id, final_status_for_redis.value, status_message)
             except Exception as e_redis:
                 logger.error(f"[Task {task_id}] Redis error (final update): {e_redis}", exc_info=True)
 
@@ -191,7 +192,7 @@ def _perform_highlight_processing(
             except Exception as e_del:
                 logger.warning(f"[Task {task_id}] Failed to delete words '{words_path}': {e_del}")
 
-        if final_status_for_redis == 'FAILURE' and output_path and os.path.exists(output_path):
+        if final_status_for_redis == TaskStatus.FAILURE and output_path and os.path.exists(output_path):
             try:
                 os.remove(output_path)
                 task_result_data['result_filename'] = None  # Ensure result_filename is cleared
@@ -274,14 +275,14 @@ def process_async():
         if redis_client:
             try:
                 redis_client.hmset(f"task:{task_id}", {
-                    "state": "PENDING", "status_message": "Задача принята в очередь",
+                    "state": TaskStatus.PENDING.value, "status_message": "Задача принята в очередь",
                     "source_filename": source_filename_original or "Списки для поиска"
                 })
                 redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
                 logger.info(f"[Req {task_id}] Task state PENDING saved to Redis.")
                 
                 from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
-                TaskProgressRoom.send_status(task_id, "PENDING", "Задача принята в очередь")
+                TaskProgressRoom.send_status(task_id, TaskStatus.PENDING.value, "Задача принята в очередь")
             except Exception as e_redis:
                 logger.error(f"[Req {task_id}] Redis error (initial save PENDING): {e_redis}", exc_info=True)
                 # Fail fast if Redis can't save initial state. Cleanup handled by outer except.
@@ -341,7 +342,7 @@ def process_async():
         if redis_client and current_task_id_in_exc != 'N/A_in_exception':
             try:
                 redis_client.hmset(f"task:{current_task_id_in_exc}", {
-                    "state": "FAILURE", "status_message": f'Ошибка при постановке задачи: {str(e)}',
+                    "state": TaskStatus.FAILURE.value, "status_message": f'Ошибка при постановке задачи: {str(e)}',
                     "result_data_json": json.dumps(
                         {'error': f'Ошибка при постановке задачи: {str(e)}', '_task_id_ref': current_task_id_in_exc})
                 })

@@ -3,6 +3,7 @@
 import json
 from flask import current_app, jsonify
 from services.task.result import TaskResult
+from services.task import TaskStatus
 
 from ..routes import (
     highlight_bp,
@@ -31,20 +32,20 @@ def check_task_status(task_id):
 
     if active_future:
         if active_future.running():
-            if task_info_from_redis_initial and task_info_from_redis_initial.get('state') == 'PENDING':
+            if task_info_from_redis_initial and task_info_from_redis_initial.get('state') == TaskStatus.PENDING.value:
                 try:
                     redis_client.hmset(f"task:{task_id}",
-                                       {"state": "PROCESSING", "status_message": "Задача выполняется..."})
+                                       {"state": TaskStatus.PROCESSING.value, "status_message": "Задача выполняется..."})
                     redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
                     
                     from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
-                    TaskProgressRoom.send_status(task_id, "PROCESSING", "Задача выполняется...")
+                    TaskProgressRoom.send_status(task_id, TaskStatus.PROCESSING.value, "Задача выполняется...")
                 except Exception as e_redis_run:
                     logger.error(f"Task {task_id}: Redis error updating to PROCESSING: {e_redis_run}")
             elif not task_info_from_redis_initial:
                 logger.warning(
                     f"Task {task_id} running, but no initial Redis record. Background task should create it.")
-            return jsonify({'state': 'PROCESSING', 'status': 'Задача выполняется...'})
+            return jsonify({'state': TaskStatus.PROCESSING.value, 'status': 'Задача выполняется...'})
 
         elif active_future.done():
             logger.info(f"Task {task_id} future is done. Removing from registry.")
@@ -56,7 +57,7 @@ def check_task_status(task_id):
             if result_data:
                 state_val = task_info_from_redis_initial.get("state") if task_info_from_redis_initial else redis_client.hget(f"task:{task_id}", "state")
                 status_val = task_info_from_redis_initial.get("status_message") if task_info_from_redis_initial else redis_client.hget(f"task:{task_id}", "status_message")
-                state = (state_val.decode() if isinstance(state_val, bytes) else state_val) or "UNKNOWN"
+                state = (state_val.decode() if isinstance(state_val, bytes) else state_val) or TaskStatus.UNKNOWN.value
                 status_msg = (status_val.decode() if isinstance(status_val, bytes) else status_val) or "Статус из Redis"
                 logger.info(f"Task {task_id} result successfully retrieved from Redis. State: {state}")
                 _EXECUTOR_FUTURES_REGISTRY.pop(task_id, None)
@@ -74,7 +75,7 @@ def check_task_status(task_id):
                 logger.info(f"Task {task_id} obtained result directly from future. Error: {is_error}")
                 _EXECUTOR_FUTURES_REGISTRY.pop(task_id, None)
                 return jsonify({
-                    'state': 'FAILURE' if is_error else 'SUCCESS',
+                    'state': TaskStatus.FAILURE.value if is_error else TaskStatus.SUCCESS.value,
                     'status': final_status_msg
                 })
             except Exception as e_future_res_direct:
@@ -85,12 +86,12 @@ def check_task_status(task_id):
                 TaskResult.save(task_id, error_data)
                 _EXECUTOR_FUTURES_REGISTRY.pop(task_id, None)
                 return jsonify({
-                    'state': 'FAILURE',
+                    'state': TaskStatus.FAILURE.value,
                     'status': critical_error_msg
                 })
 
     if task_info_from_redis_initial:
-        state = task_info_from_redis_initial.get("state", "UNKNOWN")
+        state = task_info_from_redis_initial.get("state", TaskStatus.UNKNOWN.value)
         status_msg = task_info_from_redis_initial.get("status_message", "Статус из Redis")
         return jsonify({
             'state': state.decode() if isinstance(state, bytes) else state,
@@ -98,5 +99,5 @@ def check_task_status(task_id):
         })
 
     logger.warning(f"Task {task_id} not found in active futures or Redis (final check).")
-    return jsonify({'state': 'NOT_FOUND', 'status': 'Задача не найдена или информация о ней утеряна.'}), 404
+    return jsonify({'state': TaskStatus.NOT_FOUND.value, 'status': 'Задача не найдена или информация о ней утеряна.'}), 404
 
