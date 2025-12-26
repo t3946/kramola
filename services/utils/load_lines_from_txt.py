@@ -17,3 +17,4 @@ def load_lines_from_txt(filepath: str) -> list[str]:
         return []
     return lines
 
+

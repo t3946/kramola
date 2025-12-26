@@ -160,3 +160,4 @@ class BaseSpeedTest(BaseTest):
             json.dump(test_result['timing_results'], f, ensure_ascii=False, indent=4)
         print(f"Timing results saved to: {timing_json_path}\n", flush=True)
 
+
