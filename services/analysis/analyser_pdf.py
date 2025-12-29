@@ -249,7 +249,7 @@ class AnalyserPdf:
             (pd.to_numeric(ocr_df['conf'], errors='coerce') >= MIN_CONF_FOR_MERGE) &
             (ocr_df['text'].notna()) &
             (ocr_df['text'].astype(str).str.strip() != '')
-        ].copy()
+            ].copy()
 
         if words_df.empty:
             return []
@@ -426,7 +426,8 @@ class AnalyserPdf:
                             for index in original_indices:
                                 try:
                                     row = ocr_data.loc[index]
-                                    left, top, width, height = int(row['left']), int(row['top']), int(row['width']), int(row['height'])
+                                    left, top, width, height = int(row['left']), int(row['top']), int(
+                                        row['width']), int(row['height'])
 
                                     if width <= 0 or height <= 0:
                                         valid_coords_for_word = False
@@ -589,7 +590,8 @@ class AnalyserPdf:
                                 intersection = check_phrase_bbox & existing_hl_rect
                                 intersection_area = intersection.get_area()
 
-                                if phrase_bbox_area > 1e-5 and (intersection_area / phrase_bbox_area > overlap_threshold_area_ratio):
+                                if phrase_bbox_area > 1e-5 and (
+                                        intersection_area / phrase_bbox_area > overlap_threshold_area_ratio):
                                     overlaps_existing_highlight = True
                                     break
                                 elif phrase_bbox_area <= 1e-5 and intersection_area > 1e-5:
@@ -630,10 +632,7 @@ class AnalyserPdf:
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self._search_phrases = []
 
-        try:
-            self.document = fitz.open(self.source_path)
-        except Exception:
-            return None
+        self.document = fitz.open(self.source_path)
 
         all_pages_logical_words = extract_all_logical_words_from_pdf(self.source_path)
 
@@ -704,4 +703,3 @@ class AnalyserPdf:
                 self.document.close()
             except Exception:
                 pass
-
