@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 from typing import Dict
 
 
@@ -20,44 +22,28 @@ class ResultsValidationMixin:
         assert 'total_matches' in results, "Missing total_matches in results"
         assert isinstance(results['total_matches'], int), "total_matches should be int"
 
-    def validate_search_terms_found(
-        self,
-        results: Dict,
-        search_terms: list[str],
-        stats_key: str,
-        entity_name: str
-    ) -> None:
+    def validate_expected_count(self, results: Dict, result_json_path: Path) -> None:
         """
-        Validate that all search terms were found in results.
+        Validate that total_matches matches expected count from result.json.
         
         Args:
             results: Analysis results dictionary
-            search_terms: List of search terms that should be found
-            stats_key: Key in results to check ('word_stats' or 'phrase_stats')
-            entity_name: Name of entity type for error messages ('words' or 'sentences')
+            result_json_path: Path to result.json file with expected count
             
         Raises:
-            AssertionError: If terms not found or no matches
+            AssertionError: If count doesn't match or file doesn't exist
         """
-        stats = results[stats_key]
+        assert result_json_path.exists(), f"Result JSON file not found: {result_json_path}"
 
-        assert results['total_matches'] > 0, (
-            f"No matches found. Expected to find {entity_name} from {search_terms}"
+        with open(result_json_path, 'r', encoding='utf-8') as f:
+            expected_results = json.load(f)
+
+        assert 'total_matches' in expected_results, (
+            f"Missing 'total_matches' in {result_json_path}"
         )
 
-        for search_term in search_terms:
-            search_term_lower = search_term.lower()
-            term_found = False
-
-            for lemma, stats_data in stats.items():
-                if lemma.lower() == search_term_lower:
-                    term_found = True
-                    break
-
-                forms = stats_data.get('forms', {})
-                if any(form.lower() == search_term_lower for form in forms.keys()):
-                    term_found = True
-                    break
-
-            assert term_found, f"{entity_name.capitalize()} '{search_term}' not found in PDF"
-
+        expected_count = expected_results['total_matches']
+        actual_count = results['total_matches']
+        assert actual_count == expected_count, (
+            f"Expected {expected_count} matches, but got {actual_count}"
+        )
