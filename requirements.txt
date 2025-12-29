@@ -19,3 +19,4 @@ selenium
 odfpy
 pytest
 flask-socketio
+docx2pdf
