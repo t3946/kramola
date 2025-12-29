@@ -27,9 +27,7 @@ from services.pymorphy_service import (
     get_highlight_phrase_map,
     reset_caches
 )
-from services.highlight_service import (
-    analyze_and_highlight_pdf
-)
+from services.analysis.analyser_pdf import AnalyserPdf
 
 
 highlight_bp = Blueprint('highlight', __name__, template_folder='templates')
@@ -107,10 +105,6 @@ def _perform_highlight_processing(
             logger.info(f"[Task {task_id}] List processing completed. Lists: {used_predefined_list_names_for_session}")
         else:
             # Обычная обработка с документом
-            prepared_data_unified = prepare_search_terms(all_search_lines_clean)
-            search_data_for_highlight = get_highlight_search_data(prepared_data_unified)
-            phrase_map_for_highlight = get_highlight_phrase_map(prepared_data_unified)
-
             reset_caches()
             result_filename_task = f"highlighted_{task_id}{file_ext}"
             output_path = os.path.join(RESULT_DIR, result_filename_task)
@@ -135,13 +129,17 @@ def _perform_highlight_processing(
                 analysis_results = analyser.analyse_and_highlight(task_id=task_id)
                 analyser.save(output_path)
             else:
-                analysis_results = analyze_and_highlight_pdf(
-                    source_path,
-                    search_data_for_highlight,
-                    phrase_map_for_highlight,
-                    output_path,
-                    use_ocr=perform_ocr
-                )
+                analyse_data = AnalysisData()
+
+                if selected_list_keys:
+                    analyse_data.load_predefined_lists(selected_list_keys)
+
+                analyse_data.read_from_list(all_search_lines_clean)
+
+                analyser = AnalyserPdf(source_path)
+                analyser.set_analyse_data(analyse_data)
+                analysis_results = analyser.analyse_and_highlight(task_id=task_id, use_ocr=perform_ocr)
+                analyser.save(output_path)
 
             if analysis_results is None:
                 task_result_data['error'] = 'Ошибка анализа документа (сервис анализа вернул None).'
