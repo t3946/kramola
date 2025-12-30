@@ -126,8 +126,12 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
     logger.info(f"Начало извлечения лог. слов из PDF (с проверкой коорд. и фильтрацией мусора): {pdf_path}")
 
     try:
+        #[start] Open PDF document
         doc = pymupdf.open(pdf_path)
         logger.debug(f"Открыт PDF, страниц: {len(doc)}")
+        #[end]
+
+        #[start] Collect raw words and blocks from all pages
         all_words_data_raw = []
         all_blocks_data_raw = []
 
@@ -141,13 +145,16 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
 
             for b in blocks_on_page:
                 all_blocks_data_raw.append(list(b) + [page_num])
+        #[end]
 
+        #[start] Process each page: extract logical words from blocks
         for page_num in range(len(doc)):
             logger.debug(f"--- Обработка страницы {page_num + 1} ---")
             logical_words_on_page = []
             current_page_blocks = [b for b in all_blocks_data_raw if b[7] == page_num]
             current_page_words_raw = [w for w in all_words_data_raw if w[8] == page_num]
 
+            #[start] Process each text block on page
             for block_data in current_page_blocks:
                 block_type = block_data[6]
 
@@ -167,6 +174,7 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
                     logger.warning(f"  Ошибка создания Rect для блока {block_no} на стр. {page_num+1}: {e_rect_block}. Пропуск блока.")
                     continue
 
+                #[start] Find words within block boundaries
                 epsilon = 1.0
                 words_in_this_block_raw = [
                     w for w in current_page_words_raw
@@ -175,9 +183,11 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
                 ]
 
                 words_in_this_block_raw.sort(key=lambda w: (w[6], w[7]))
+                #[end]
 
                 logger.debug(f"    Найдено {len(words_in_this_block_raw)} сырых слов в блоке {block_no}.")
 
+                #[start] Extract logical words and filter garbage
                 if words_in_this_block_raw:
                     logical_words_from_block_extraction = extract_logical_words_from_block(words_in_this_block_raw, block_rect_for_logging)
 
@@ -194,9 +204,12 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
                     if filtered_logical_words_for_block:
                         logical_words_on_page.extend(filtered_logical_words_for_block)
                         logger.debug(f"    Добавлено {len(filtered_logical_words_for_block)} (после фильтрации) лог. слов из блока {block_no}.")
+                #[end]
+            #[end]
 
             all_pages_logical_words.append(logical_words_on_page)
             logger.debug(f"--- Страница {page_num + 1}: Собрано {len(logical_words_on_page)} логических слов (после фильтрации) ---")
+        #[end]
 
         logger.info(f"Завершено извлечение логических слов из PDF (с фильтрацией).")
         return all_pages_logical_words
