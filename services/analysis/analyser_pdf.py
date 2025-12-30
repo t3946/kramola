@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Tuple, TYPE_CHECKING
 from collections import defaultdict, Counter
 import re
 
-import fitz
+import pymupdf
 import pandas as pd
 
 if TYPE_CHECKING:
@@ -67,7 +67,7 @@ STOP_WORDS_EN = {
 
 
 class AnalyserPdf:
-    document: fitz.Document
+    document: pymupdf.Document
     source_path: str
     analyse_data: AnalysisData
     word_stats: defaultdict
@@ -138,7 +138,7 @@ class AnalyserPdf:
 
         return False, None, None
 
-    def __get_bounding_rect(self, rects_list_of_tuples: List[Tuple]) -> Optional[fitz.Rect]:
+    def __get_bounding_rect(self, rects_list_of_tuples: List[Tuple]) -> Optional[pymupdf.Rect]:
         if not rects_list_of_tuples:
             return None
 
@@ -162,7 +162,7 @@ class AnalyserPdf:
         if not valid_rect_found:
             return None
 
-        return fitz.Rect(min_x0, min_y0, max_x1, max_y1)
+        return pymupdf.Rect(min_x0, min_y0, max_x1, max_y1)
 
     def __rects_overlap_significantly(
             self,
@@ -374,7 +374,7 @@ class AnalyserPdf:
 
     def __process_page(
             self,
-            page: fitz.Page,
+            page: pymupdf.Page,
             page_num: int,
             logical_words_on_page: List[Dict],
             use_ocr: bool
@@ -433,7 +433,7 @@ class AnalyserPdf:
                                         valid_coords_for_word = False
                                         break
 
-                                    img_rect = fitz.Rect(left, top, left + width, top + height)
+                                    img_rect = pymupdf.Rect(left, top, left + width, top + height)
                                     pdf_rect = img_rect * inverse_ocr_matrix
                                     pdf_rect.normalize()
                                     pdf_rect = pdf_rect & page_rect_fitz
@@ -514,7 +514,7 @@ class AnalyserPdf:
 
                     for rect_tuple in candidate_rects_tuples:
                         try:
-                            rect = fitz.Rect(rect_tuple)
+                            rect = pymupdf.Rect(rect_tuple)
 
                             if rect.is_empty:
                                 continue
@@ -604,7 +604,7 @@ class AnalyserPdf:
 
                             for rect_tuple in phrase_rects_tuples:
                                 try:
-                                    rect = fitz.Rect(rect_tuple)
+                                    rect = pymupdf.Rect(rect_tuple)
 
                                     if rect.is_empty:
                                         continue
@@ -632,7 +632,7 @@ class AnalyserPdf:
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self._search_phrases = []
 
-        self.document = fitz.open(self.source_path)
+        self.document = pymupdf.open(self.source_path)
 
         all_pages_logical_words = extract_all_logical_words_from_pdf(self.source_path)
 

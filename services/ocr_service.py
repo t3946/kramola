@@ -1,6 +1,6 @@
 # --- START OF FILE services/ocr_service.py ---
 
-import fitz # PyMuPDF
+import pymupdf
 import pytesseract
 from PIL import Image
 import io
@@ -161,13 +161,13 @@ def _handle_hyphenation(df: pd.DataFrame) -> pd.DataFrame:
         return df # Возвращаем исходный, если ничего не изменилось
 
 # --- Основная функция OCR (модифицированная) ---
-def ocr_page(page: fitz.Page, languages: str = OCR_LANGUAGES, dpi: int = OCR_DPI):
+def ocr_page(page: pymupdf.Page, languages: str = OCR_LANGUAGES, dpi: int = OCR_DPI):
     """
     Выполняет OCR для одной страницы PDF, применяя предобработку OpenCV
     и обработку переносов строк.
 
     Args:
-        page: Объект страницы fitz.Page.
+        page: Объект страницы pymupdf.Page.
         languages: Строка с языками для Tesseract (например, 'rus+eng').
         dpi: Разрешение для рендеринга страницы в изображение.
 
@@ -175,7 +175,7 @@ def ocr_page(page: fitz.Page, languages: str = OCR_LANGUAGES, dpi: int = OCR_DPI
         pandas.DataFrame: DataFrame с результатами OCR (level, page_num, block_num, ..., text, conf)
                           с предобработкой, обработкой переносов и очисткой, или None в случае ошибки.
                           Колонки приведены к ожидаемым типам.
-        fitz.Matrix: Матрица преобразования, использованная для рендеринга.
+        pymupdf.Matrix: Матрица преобразования, использованная для рендеринга.
         tuple: Размеры изображения (width, height) или None.
     """
     logger_ocr.info(f"Запуск OCR для страницы {page.number + 1} (Языки: {languages}, DPI: {dpi}) с OpenCV и обработкой переносов") # Обновлено сообщение
@@ -188,7 +188,7 @@ def ocr_page(page: fitz.Page, languages: str = OCR_LANGUAGES, dpi: int = OCR_DPI
 
     try:
         # Создаем матрицу масштабирования
-        matrix = fitz.Matrix(dpi / 72.0, dpi / 72.0)
+        matrix = pymupdf.Matrix(dpi / 72.0, dpi / 72.0)
     except Exception as e_matrix:
         logger_ocr.error(f"Ошибка создания матрицы масштабирования: {e_matrix}")
         return None, None, None
@@ -464,7 +464,7 @@ def find_ocr_candidates_for_highlight(ocr_df_with_lemmas, search_lemmas_set, pag
                 # logger_ocr.debug(f"Пропуск OCR '{text}': невалидные размеры ({img_w}x{img_h})")
                 continue
 
-            img_rect = fitz.Rect(img_x, img_y, img_x + img_w, img_y + img_h)
+            img_rect = pymupdf.Rect(img_x, img_y, img_x + img_w, img_y + img_h)
             pdf_rect = img_rect * inverse_matrix
             pdf_rect.normalize()
             if page_rect and not page_rect.is_empty: pdf_rect = pdf_rect & page_rect
@@ -477,7 +477,7 @@ def find_ocr_candidates_for_highlight(ocr_df_with_lemmas, search_lemmas_set, pag
             overlaps = False
             expansion_x = max(1.0, pdf_rect.width * 0.05)
             expansion_y = max(1.0, pdf_rect.height * 0.10)
-            check_rect = fitz.Rect(pdf_rect.x0 - expansion_x, pdf_rect.y0 - expansion_y,
+            check_rect = pymupdf.Rect(pdf_rect.x0 - expansion_x, pdf_rect.y0 - expansion_y,
                                    pdf_rect.x1 + expansion_x, pdf_rect.y1 + expansion_y)
 
             for existing_rect in existing_highlight_rects:

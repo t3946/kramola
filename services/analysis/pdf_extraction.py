@@ -1,6 +1,6 @@
 import re
 import logging
-import fitz
+import pymupdf
 from typing import List, Optional, Dict, Tuple
 
 logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def is_predominantly_non_alphabetic(text_segment: str, min_letter_ratio: float =
     return False
 
 
-def extract_logical_words_from_block(block_words: List, block_rect: fitz.Rect) -> List[Dict[str, any]]:
+def extract_logical_words_from_block(block_words: List, block_rect: pymupdf.Rect) -> List[Dict[str, any]]:
     """
     Склеивает переносы ТОЛЬКО ПО ДЕФИСУ.
     Возвращает 'rects' как список кортежей координат [(x0,y0,x1,y1), ...].
@@ -126,7 +126,7 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
     logger.info(f"Начало извлечения лог. слов из PDF (с проверкой коорд. и фильтрацией мусора): {pdf_path}")
 
     try:
-        doc = fitz.open(pdf_path)
+        doc = pymupdf.open(pdf_path)
         logger.debug(f"Открыт PDF, страниц: {len(doc)}")
         all_words_data_raw = []
         all_blocks_data_raw = []
@@ -161,7 +161,7 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
                     continue
 
                 try:
-                    block_rect_for_logging = fitz.Rect(bx0, by0, bx1, by1)
+                    block_rect_for_logging = pymupdf.Rect(bx0, by0, bx1, by1)
                     logger.debug(f"  Обработка блока {block_no} (Тип {block_type}) с Rect: {block_rect_for_logging}")
                 except Exception as e_rect_block:
                     logger.warning(f"  Ошибка создания Rect для блока {block_no} на стр. {page_num+1}: {e_rect_block}. Пропуск блока.")

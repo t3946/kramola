@@ -16,7 +16,7 @@ from services.words_list import PredefinedListKey
 logger = logging.getLogger(__name__)
 
 try:
-    import fitz  # PyMuPDF
+    import pymupdf
 
     FIT_AVAILABLE = True
 except ImportError:
