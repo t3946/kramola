@@ -1,33 +1,17 @@
 import re
 import logging
-import io
 import pymupdf
-from PIL import Image
 from typing import List, Optional, Dict
-from services.ocr_service import setup_tesseract_path, ocr_single_character
-
-setup_tesseract_path()
+from services.analysis.pdf.pua_map import PuaMap
 
 logger = logging.getLogger(__name__)
 
 
-class PdfExtractor:
+class PDFExtractor:
     """
     Класс для извлечения логических слов из PDF документов.
     """
     HAS_ANY_LETTER_PATTERN = re.compile(r'[a-zA-Zа-яА-ЯёЁ]')
-
-    @staticmethod
-    def _is_pua_char(char: str) -> bool:
-        """
-        Check if character is in Private Use Area (PUA).
-        """
-        if not char:
-            return False
-
-        code = ord(char[0])
-
-        return 0xE000 <= code <= 0xF8FF
 
     @staticmethod
     def _is_predominantly_non_alphabetic(text_segment: str, min_letter_ratio: float = 0.5) -> bool:
@@ -39,7 +23,7 @@ class PdfExtractor:
         if not stripped_text:
             return True
 
-        letters_found = PdfExtractor.HAS_ANY_LETTER_PATTERN.findall(stripped_text)
+        letters_found = PDFExtractor.HAS_ANY_LETTER_PATTERN.findall(stripped_text)
         num_letters = len(letters_found)
         total_len = len(stripped_text)
 
@@ -154,7 +138,7 @@ class PdfExtractor:
             #[start] Collect raw words and blocks from all pages
             all_words_data_raw = []
             all_blocks_data_raw = []
-
+            pua_map = PuaMap()
 
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
@@ -165,36 +149,11 @@ class PdfExtractor:
                         continue
 
                     for line in block['lines']:
-                        line_text = ''
-                        context_chars = []
-
                         for span in line['spans']:
                             font_name = span.get('font', '')
 
                             for char in span['chars']:
-                                char_value = char['c']
-                                
-                                if not self._is_pua_char(char['c']):
-                                    context_chars.append(char['c'])
-
-                                if self._is_pua_char(char['c']):
-                                    bbox = char['bbox']
-                                    
-                                    if len(bbox) == 4:
-                                        x0, y0, x1, y1 = bbox
-                                        char_rect = pymupdf.Rect(x0, y0, x1, y1)
-                                        pix = page.get_pixmap(clip=char_rect, matrix=pymupdf.Matrix(3, 3))
-                                        
-                                        img_bytes = pix.tobytes("png")
-                                        img_pil = Image.open(io.BytesIO(img_bytes))
-                                        
-                                        ocr_char = ocr_single_character(img_pil, languages='rus')
-                                        
-                                        if ocr_char:
-                                            char_value = ocr_char
-                                        else:
-                                            char_value = char['c']
-
+                                pua_map.char_to_str(char, font_name, page)
 
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)

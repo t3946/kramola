@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from services.progress.pdf.combined_progress import CombinedProgress
 
 from services.analysis import AnalysisData
-from services.analysis.pdf_extraction import PdfExtractor
+from services.analysis.pdf_extraction import PDFExtractor
 from services.fulltext_search.fulltext_search import FulltextSearch, Match, SearchStrategy
 from services.fulltext_search.token import Token, TokenType
 from services.fulltext_search.dictionary import TokenDictionary
@@ -332,7 +332,7 @@ class AnalyserPdf:
 
     def __build_global_dictionary(self) -> TokenDictionary:
         """Build dictionary from entire document text."""
-        extractor = PdfExtractor()
+        extractor = PDFExtractor()
         all_pages_logical_words = extractor.extract_all_logical_words_from_pdf(self.source_path)
 
         if all_pages_logical_words is None:
@@ -635,7 +635,7 @@ class AnalyserPdf:
 
         self.document = pymupdf.open(self.source_path)
 
-        extractor = PdfExtractor()
+        extractor = PDFExtractor()
         all_pages_logical_words = extractor.extract_all_logical_words_from_pdf(self.source_path)
 
         if all_pages_logical_words is None:
