@@ -29,19 +29,13 @@ class TextCollector:
             return
 
         current_y = char.bbox[1]
-        Y_TOLERANCE = 5.0
-
-        if not self._is_first_char and self._last_y is not None:
-            y_diff = abs(current_y - self._last_y)
-
-            if y_diff > Y_TOLERANCE:
-                if self._chars and self._chars[-1].char != ' ' and char.char != ' ':
-                    space_char = Char(char=' ', bbox=[])
-                    self._chars.append(space_char)
 
         self._chars.append(char)
         self._last_y = current_y
         self._is_first_char = False
+
+    def get_chars(self) -> List[Char]:
+        return self._chars
 
     def _to_text(self) -> str:
         """

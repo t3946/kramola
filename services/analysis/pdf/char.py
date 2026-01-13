@@ -1,15 +1,12 @@
 import re
 from typing import List
 
-SPACE_NORMALIZE_PATTERN = re.compile(r'[\u00A0\u2000-\u200B\u202F\u205F\u3000\s]')
-
-
 class Char:
     """
     Класс для представления символа из PDF с его координатами.
     """
 
-    def __init__(self, char: str, bbox: List[float]) -> None:
+    def __init__(self, char: str, bbox: List[float] = None) -> None:
         """
         Args:
             char: Расшифрованный символ
@@ -33,7 +30,7 @@ class Char:
         if not char:
             return char
 
-        if SPACE_NORMALIZE_PATTERN.match(char):
+        if char == ' ':
             return ' '
 
         return char

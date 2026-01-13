@@ -85,7 +85,7 @@ class PDFExtractor:
             found_merge = False
 
             if i + 1 < num_words:
-                next_word_info = block_words[i+1]
+                next_word_info = block_words[i + 1]
 
                 try:
                     nx0, ny0, nx1, ny1, next_text_raw, _, _, _, _ = next_word_info
@@ -100,14 +100,16 @@ class PDFExtractor:
                 if next_text and nx0 < nx1 and ny0 < ny1:
                     is_vertically_close = abs(y0 - ny0) < VERTICAL_TOLERANCE
                     is_next_line_below = ny0 > y0 + MIN_LINE_JUMP
-                    is_long_enough = len(cleaned_current_text) >= MIN_WORD_PART_LEN and len(next_text) >= MIN_WORD_PART_LEN
+                    is_long_enough = len(cleaned_current_text) >= MIN_WORD_PART_LEN and len(
+                        next_text) >= MIN_WORD_PART_LEN
                     condition1_hyphen = potential_hyphen_removed and is_next_line_below and is_long_enough
 
                     if not is_vertically_close and condition1_hyphen:
                         next_coords = (nx0, ny0, nx1, ny1)
                         merged_text = cleaned_current_text + next_text
                         logical_words_in_block.append({'text': merged_text, 'rects': [current_coords, next_coords]})
-                        logger.info(f"    Блок {block_rect}: >>> СКЛЕЕНО (Дефис): '{current_text_raw}' + '{next_text_raw}' -> '{merged_text}'")
+                        logger.info(
+                            f"    Блок {block_rect}: >>> СКЛЕЕНО (Дефис): '{current_text_raw}' + '{next_text_raw}' -> '{merged_text}'")
                         i += 2
                         found_merge = True
 
@@ -132,12 +134,12 @@ class PDFExtractor:
         logger.info(f"Начало извлечения лог. слов из PDF (с проверкой коорд. и фильтрацией мусора): {pdf_path}")
 
         try:
-            #[start] Open PDF document
+            # [start] Open PDF document
             doc = pymupdf.open(pdf_path)
             logger.debug(f"Открыт PDF, страниц: {len(doc)}")
-            #[end]
+            # [end]
 
-            #[start] Collect raw words and blocks from all pages
+            # [start] Collect raw words and blocks from all pages
             all_words_data_raw = []
             all_blocks_data_raw = []
             pua_map = PuaMap()
@@ -152,15 +154,36 @@ class PDFExtractor:
                     if 'lines' not in block:
                         continue
 
-                    for line in block['lines']:
+                    for i, line in enumerate(block['lines']):
+                        has_wrap = False
+
+                        # [start] process line text
                         for span in line['spans']:
                             font_name = span.get('font', '')
 
-                            for char in span['chars']:
+                            for j, char in enumerate(span['chars']):
                                 char_str = pua_map.char_to_str(char, font_name, page)
                                 bbox = char.get('bbox', [])
+
+                                # if line ends up with '-' then it word wrap suppose
+                                if char_str == '-' and j == len(span['chars']) - 1:
+                                    has_wrap = True
+                                    continue
+
+                                # add char into collected tex
                                 char_obj = Char(char=char_str, bbox=bbox)
                                 text_collector.add_char(char_obj)
+                        # [end]
+
+                        # [start] add space as lines separator
+                        is_last_line = i == len(block['lines']) - 1
+
+                        if not has_wrap and not is_last_line and text_collector.get_chars():
+                            last_char = text_collector.get_chars()[-1]
+
+                            if last_char.char != ' ':
+                                text_collector.add_char(Char(' '))
+                        # [end]
 
                     block_text = text_collector.normalize()
                     print(block_text)
@@ -175,16 +198,16 @@ class PDFExtractor:
 
                 for b in blocks_on_page:
                     all_blocks_data_raw.append(list(b) + [page_num])
-            #[end]
+            # [end]
 
-            #[start] Process each page: extract logical words from blocks
+            # [start] Process each page: extract logical words from blocks
             for page_num in range(len(doc)):
                 logger.debug(f"--- Обработка страницы {page_num + 1} ---")
                 logical_words_on_page = []
                 current_page_blocks = [b for b in all_blocks_data_raw if b[7] == page_num]
                 current_page_words_raw = [w for w in all_words_data_raw if w[8] == page_num]
 
-                #[start] Process each text block on page
+                # [start] Process each text block on page
                 for block_data in current_page_blocks:
                     block_type = block_data[6]
 
@@ -194,17 +217,20 @@ class PDFExtractor:
                     bx0, by0, bx1, by1, _, block_no, _, _ = block_data
 
                     if bx0 >= bx1 or by0 >= by1:
-                        logger.warning(f"Пропуск блока {block_no} на стр. {page_num+1} из-за невалидных координат: ({bx0},{by0},{bx1},{by1})")
+                        logger.warning(
+                            f"Пропуск блока {block_no} на стр. {page_num + 1} из-за невалидных координат: ({bx0},{by0},{bx1},{by1})")
                         continue
 
                     try:
                         block_rect_for_logging = pymupdf.Rect(bx0, by0, bx1, by1)
-                        logger.debug(f"  Обработка блока {block_no} (Тип {block_type}) с Rect: {block_rect_for_logging}")
+                        logger.debug(
+                            f"  Обработка блока {block_no} (Тип {block_type}) с Rect: {block_rect_for_logging}")
                     except Exception as e_rect_block:
-                        logger.warning(f"  Ошибка создания Rect для блока {block_no} на стр. {page_num+1}: {e_rect_block}. Пропуск блока.")
+                        logger.warning(
+                            f"  Ошибка создания Rect для блока {block_no} на стр. {page_num + 1}: {e_rect_block}. Пропуск блока.")
                         continue
 
-                    #[start] Find words within block boundaries
+                    # [start] Find words within block boundaries
                     epsilon = 1.0
                     words_in_this_block_raw = [
                         w for w in current_page_words_raw
@@ -213,13 +239,14 @@ class PDFExtractor:
                     ]
 
                     words_in_this_block_raw.sort(key=lambda w: (w[6], w[7]))
-                    #[end]
+                    # [end]
 
                     logger.debug(f"    Найдено {len(words_in_this_block_raw)} сырых слов в блоке {block_no}.")
 
-                    #[start] Extract logical words and filter garbage
+                    # [start] Extract logical words and filter garbage
                     if words_in_this_block_raw:
-                        logical_words_from_block_extraction = self._extract_logical_words_from_block(words_in_this_block_raw, block_rect_for_logging)
+                        logical_words_from_block_extraction = self._extract_logical_words_from_block(
+                            words_in_this_block_raw, block_rect_for_logging)
 
                         filtered_logical_words_for_block = []
 
@@ -229,17 +256,20 @@ class PDFExtractor:
                             if not self._is_predominantly_non_alphabetic(text_to_check):
                                 filtered_logical_words_for_block.append(logical_word_dict)
                             else:
-                                logger.debug(f"    Отфильтровано логическое слово из блока {block_no} (стр. {page_num+1}) из-за содержимого: '{text_to_check}'")
+                                logger.debug(
+                                    f"    Отфильтровано логическое слово из блока {block_no} (стр. {page_num + 1}) из-за содержимого: '{text_to_check}'")
 
                         if filtered_logical_words_for_block:
                             logical_words_on_page.extend(filtered_logical_words_for_block)
-                            logger.debug(f"    Добавлено {len(filtered_logical_words_for_block)} (после фильтрации) лог. слов из блока {block_no}.")
-                    #[end]
-                #[end]
+                            logger.debug(
+                                f"    Добавлено {len(filtered_logical_words_for_block)} (после фильтрации) лог. слов из блока {block_no}.")
+                    # [end]
+                # [end]
 
                 all_pages_logical_words.append(logical_words_on_page)
-                logger.debug(f"--- Страница {page_num + 1}: Собрано {len(logical_words_on_page)} логических слов (после фильтрации) ---")
-            #[end]
+                logger.debug(
+                    f"--- Страница {page_num + 1}: Собрано {len(logical_words_on_page)} логических слов (после фильтрации) ---")
+            # [end]
 
             logger.info(f"Завершено извлечение логических слов из PDF (с фильтрацией).")
             return all_pages_logical_words
@@ -255,4 +285,3 @@ class PDFExtractor:
                     logger.debug(f"PDF документ {pdf_path} закрыт.")
                 except Exception as e_close:
                     logger.warning(f"Не удалось корректно закрыть PDF документ {pdf_path}: {e_close}")
-
