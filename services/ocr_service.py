@@ -1,5 +1,6 @@
 # --- START OF FILE services/ocr_service.py ---
 
+import os
 import pymupdf
 import pytesseract
 from PIL import Image
@@ -10,6 +11,9 @@ import time
 import re # Импортирован re для использования регулярных выражений
 import cv2
 import numpy as np
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger_ocr = logging.getLogger(__name__)
 
@@ -20,7 +24,10 @@ PUNCT_STRIP_PATTERN_OCR = re.compile(r"^[^\w]+|[^\w]+$", re.UNICODE)
 
 # --- Конфигурация ---
 # Укажите путь к исполняемому файлу tesseract, если он не в системном PATH
-# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe' # Пример для Windows
+tesseract_path = os.environ.get('TESSERACT_PATH')
+
+if tesseract_path:
+    pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
 # Языки для распознавания (должны быть установлены!)
 OCR_LANGUAGES = 'rus+eng'
