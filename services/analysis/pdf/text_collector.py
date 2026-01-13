@@ -1,5 +1,6 @@
 import logging
 from typing import List
+from services.analysis.pdf.char import Char
 
 logger = logging.getLogger(__name__)
 
@@ -11,14 +12,14 @@ class TextCollector:
     """
 
     def __init__(self) -> None:
-        self._chars: List[str] = []
+        self._chars: List[Char] = []
 
-    def add_char(self, char: str) -> None:
+    def add_char(self, char: Char) -> None:
         """
         Добавляет символ в коллекцию.
 
         Args:
-            char: Символ для добавления
+            char: Объект Char для добавления
         """
         self._chars.append(char)
 
@@ -29,7 +30,7 @@ class TextCollector:
         Returns:
             Склеенный текст из всех символов
         """
-        return ''.join(self._chars)
+        return ''.join(char_obj.char for char_obj in self._chars)
 
     def _solve_wraps(self) -> None:
         """

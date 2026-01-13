@@ -4,6 +4,7 @@ import pymupdf
 from typing import List, Optional, Dict
 from services.analysis.pdf.pua_map import PuaMap
 from services.analysis.pdf.text_collector import TextCollector
+from services.analysis.pdf.char import Char
 
 logger = logging.getLogger(__name__)
 
@@ -156,7 +157,9 @@ class PDFExtractor:
 
                             for char in span['chars']:
                                 char_str = pua_map.char_to_str(char, font_name, page)
-                                text_collector.add_char(char_str)
+                                bbox = char.get('bbox', [])
+                                char_obj = Char(char=char_str, bbox=bbox)
+                                text_collector.add_char(char_obj)
 
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
