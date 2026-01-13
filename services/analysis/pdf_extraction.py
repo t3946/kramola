@@ -3,6 +3,7 @@ import logging
 import pymupdf
 from typing import List, Optional, Dict
 from services.analysis.pdf.pua_map import PuaMap
+from services.analysis.pdf.text_collector import TextCollector
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,7 @@ class PDFExtractor:
             all_words_data_raw = []
             all_blocks_data_raw = []
             pua_map = PuaMap()
+            text_collector = TextCollector()
 
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
@@ -153,7 +155,8 @@ class PDFExtractor:
                             font_name = span.get('font', '')
 
                             for char in span['chars']:
-                                pua_map.char_to_str(char, font_name, page)
+                                char_str = pua_map.char_to_str(char, font_name, page)
+                                text_collector.add_char(char_str)
 
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
