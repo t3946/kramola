@@ -141,13 +141,14 @@ class PDFExtractor:
             all_words_data_raw = []
             all_blocks_data_raw = []
             pua_map = PuaMap()
-            text_collector = TextCollector()
 
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
                 raw_dict = page.get_text("rawdict")
 
                 for block in raw_dict['blocks']:
+                    text_collector = TextCollector()
+
                     if 'lines' not in block:
                         continue
 
@@ -160,6 +161,9 @@ class PDFExtractor:
                                 bbox = char.get('bbox', [])
                                 char_obj = Char(char=char_str, bbox=bbox)
                                 text_collector.add_char(char_obj)
+
+                    block_text = text_collector.normalize()
+                    print(block_text)
 
             for page_num in range(len(doc)):
                 page = doc.load_page(page_num)
