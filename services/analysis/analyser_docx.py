@@ -155,7 +155,7 @@ class AnalyserDocx:
                     stats['count'] += 1
                     stats['forms'][found_text.lower()] += 1
 
-    def __search_all_phrases_optimized(
+    def __search_all_phrases(
             self,
             source_tokens: List[Token],
             search_phrases: List[Phrase]
@@ -209,7 +209,7 @@ class AnalyserDocx:
         source_tokens: List[Token] = FulltextSearch.tokenize_text(text)
         self._tokenize_time_total += time.time() - start_time
 
-        matches: List[Match] = self.__search_all_phrases_optimized(
+        matches: List[Match] = self.__search_all_phrases(
             source_tokens,
             self._search_phrases
         )
