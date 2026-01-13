@@ -1,11 +1,38 @@
 import re
 import logging
+import time
+import os
+import io
 import pymupdf
+import pytesseract
+from PIL import Image
 from typing import List, Optional, Dict, Tuple
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+# Укажите путь к исполняемому файлу tesseract, если он не в системном PATH
+tesseract_path = os.environ.get('TESSERACT_PATH')
+
+if tesseract_path:
+    pytesseract.pytesseract.tesseract_cmd = tesseract_path
+
 HAS_ANY_LETTER_PATTERN = re.compile(r'[a-zA-Zа-яА-ЯёЁ]')
+
+PUA_START = 0xE000
+PUA_END = 0xF8FF
+
+
+def is_pua_char(char: str) -> bool:
+    """Check if character is in Private Use Area."""
+    if not char:
+        return False
+
+    code = ord(char[0])
+
+    return PUA_START <= code <= PUA_END
 
 
 def is_predominantly_non_alphabetic(text_segment: str, min_letter_ratio: float = 0.5) -> bool:
@@ -134,6 +161,54 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
         #[start] Collect raw words and blocks from all pages
         all_words_data_raw = []
         all_blocks_data_raw = []
+
+
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)
+            raw_dict = page.get_text("rawdict")
+
+            for block in raw_dict['blocks']:
+                if 'lines' not in block:
+                    continue
+
+                for line in block['lines']:
+                    line_text = ''
+
+                    for span in line['spans']:
+                        font_name = span.get('font', '')
+
+                        for char in span['chars']:
+                            char_value = char['c']
+
+                            if is_pua_char(char['c']):
+                                bbox = char['bbox']
+                                
+                                if len(bbox) == 4:
+                                    x0, y0, x1, y1 = bbox
+                                    char_rect = pymupdf.Rect(x0, y0, x1, y1)
+                                    pix = page.get_pixmap(clip=char_rect, matrix=pymupdf.Matrix(3, 3))
+                                    
+                                    img_bytes = pix.tobytes("png")
+                                    img_pil = Image.open(io.BytesIO(img_bytes))
+                                    
+                                    try:
+                                        ocr_text = pytesseract.image_to_string(
+                                            img_pil,
+                                            lang='rus+eng',
+                                            config='--psm 10'
+                                        ).strip()
+                                        
+                                        if ocr_text:
+                                            char_value = ocr_text[0]
+                                        else:
+                                            char_value = char['c']
+                                    except pytesseract.TesseractNotFoundError:
+                                        logger.error("Tesseract не найден! Установите Tesseract OCR и добавьте его в PATH, или укажите путь в pytesseract.pytesseract.tesseract_cmd")
+                                        char_value = char['c']
+                                    except Exception as e_ocr:
+                                        logger.warning(f"Ошибка OCR для PUA символа: {e_ocr}")
+                                        char_value = char['c']
+
 
         for page_num in range(len(doc)):
             page = doc.load_page(page_num)
