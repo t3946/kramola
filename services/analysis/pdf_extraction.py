@@ -1,38 +1,26 @@
 import re
 import logging
-import time
-import os
 import io
 import pymupdf
-import pytesseract
 from PIL import Image
-from typing import List, Optional, Dict, Tuple
-from dotenv import load_dotenv
+from typing import List, Optional, Dict
+from services.ocr_service import setup_tesseract_path, ocr_single_character
 
-load_dotenv()
+setup_tesseract_path()
 
 logger = logging.getLogger(__name__)
-
-# Укажите путь к исполняемому файлу tesseract, если он не в системном PATH
-tesseract_path = os.environ.get('TESSERACT_PATH')
-
-if tesseract_path:
-    pytesseract.pytesseract.tesseract_cmd = tesseract_path
-
 HAS_ANY_LETTER_PATTERN = re.compile(r'[a-zA-Zа-яА-ЯёЁ]')
 
-PUA_START = 0xE000
-PUA_END = 0xF8FF
-
-
 def is_pua_char(char: str) -> bool:
-    """Check if character is in Private Use Area."""
+    """
+    Check if character is in Private Use Area (PUA).
+    """
     if not char:
         return False
 
     code = ord(char[0])
 
-    return PUA_START <= code <= PUA_END
+    return 0xE000 <= code <= 0xF8FF
 
 
 def is_predominantly_non_alphabetic(text_segment: str, min_letter_ratio: float = 0.5) -> bool:
@@ -173,12 +161,16 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
 
                 for line in block['lines']:
                     line_text = ''
+                    context_chars = []
 
                     for span in line['spans']:
                         font_name = span.get('font', '')
 
                         for char in span['chars']:
                             char_value = char['c']
+                            
+                            if not is_pua_char(char['c']):
+                                context_chars.append(char['c'])
 
                             if is_pua_char(char['c']):
                                 bbox = char['bbox']
@@ -191,22 +183,11 @@ def extract_all_logical_words_from_pdf(pdf_path: str) -> Optional[List[List[Dict
                                     img_bytes = pix.tobytes("png")
                                     img_pil = Image.open(io.BytesIO(img_bytes))
                                     
-                                    try:
-                                        ocr_text = pytesseract.image_to_string(
-                                            img_pil,
-                                            lang='rus+eng',
-                                            config='--psm 10'
-                                        ).strip()
-                                        
-                                        if ocr_text:
-                                            char_value = ocr_text[0]
-                                        else:
-                                            char_value = char['c']
-                                    except pytesseract.TesseractNotFoundError:
-                                        logger.error("Tesseract не найден! Установите Tesseract OCR и добавьте его в PATH, или укажите путь в pytesseract.pytesseract.tesseract_cmd")
-                                        char_value = char['c']
-                                    except Exception as e_ocr:
-                                        logger.warning(f"Ошибка OCR для PUA символа: {e_ocr}")
+                                    ocr_char = ocr_single_character(img_pil, languages='rus')
+                                    
+                                    if ocr_char:
+                                        char_value = ocr_char
+                                    else:
                                         char_value = char['c']
 
 

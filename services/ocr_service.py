@@ -11,6 +11,7 @@ import time
 import re # Импортирован re для использования регулярных выражений
 import cv2
 import numpy as np
+from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -23,11 +24,14 @@ logger_ocr = logging.getLogger(__name__)
 PUNCT_STRIP_PATTERN_OCR = re.compile(r"^[^\w]+|[^\w]+$", re.UNICODE)
 
 # --- Конфигурация ---
-# Укажите путь к исполняемому файлу tesseract, если он не в системном PATH
-tesseract_path = os.environ.get('TESSERACT_PATH')
+def setup_tesseract_path() -> None:
+    """Устанавливает путь к tesseract из переменной окружения TESSERACT_PATH."""
+    tesseract_path = os.environ.get('TESSERACT_PATH')
+    
+    if tesseract_path:
+        pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
-if tesseract_path:
-    pytesseract.pytesseract.tesseract_cmd = tesseract_path
+setup_tesseract_path()
 
 # Языки для распознавания (должны быть установлены!)
 OCR_LANGUAGES = 'rus+eng'
@@ -37,6 +41,36 @@ OCR_DPI = 300
 MIN_OCR_WORD_CONFIDENCE = 10 # Можно поднять, если много мусора
 # Дефис для поиска переносов
 HYPHEN_CHAR = '-'
+
+
+def ocr_single_character(img_pil: Image.Image, languages: str = OCR_LANGUAGES) -> Optional[str]:
+    """
+    Распознает один символ из изображения с помощью Tesseract OCR.
+    
+    Args:
+        img_pil: PIL Image с символом для распознавания
+        languages: Языки для Tesseract (по умолчанию rus+eng)
+    
+    Returns:
+        Распознанный символ (первый символ результата) или None в случае ошибки
+    """
+    try:
+        ocr_text = pytesseract.image_to_string(
+            img_pil,
+            lang=languages,
+            config='--psm 10'
+        ).strip()
+        
+        if ocr_text:
+            return ocr_text[0]
+        return None
+    except pytesseract.TesseractNotFoundError:
+        logger_ocr.error("Tesseract не найден! Установите Tesseract OCR и добавьте его в PATH, или укажите путь в переменной окружения TESSERACT_PATH")
+        return None
+    except Exception as e_ocr:
+        logger_ocr.warning(f"Ошибка OCR для символа: {e_ocr}")
+        return None
+
 
 # --- Новая функция для обработки переносов ---
 def _handle_hyphenation(df: pd.DataFrame) -> pd.DataFrame:
