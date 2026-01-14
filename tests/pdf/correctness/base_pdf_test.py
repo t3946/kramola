@@ -40,15 +40,15 @@ class BasePdfTest(
 
         analyser, analysis_results = instance.setup_analysis(source_pdf_path, search_terms)
 
-        instance.validate_results_structure(analysis_results)
-        instance.validate_expected_count(analysis_results, result_json_path)
-
         results_subdir = instance._get_results_subdir(test_file_path)
         output_pdf_path, stats_json_path = instance.save_analysis_results(
             analyser,
             analysis_results,
             results_subdir
         )
+
+        instance.validate_results_structure(analysis_results)
+        instance.validate_expected_count(analysis_results, result_json_path)
 
         instance.print_test_results(
             analysis_results,
