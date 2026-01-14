@@ -13,6 +13,7 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analysis import AnalysisData
+from services.analysis.analyser import Analyser
 from services.fulltext_search.fulltext_search import FulltextSearch, Match, SearchStrategy
 from services.fulltext_search.token import Token, TokenType
 from services.fulltext_search.dictionary import TokenDictionary
@@ -22,34 +23,23 @@ from copy import deepcopy
 from services.progress.docx.combined_progress import CombinedProgress, ProgressType
 
 
-class AnalyserDocx:
+class AnalyserDocx(Analyser):
     document: docx.Document
-    analyse_data: AnalysisData
-    word_stats: defaultdict
-    phrase_stats: defaultdict
     _tokenize_time_total: float
-    # Dictionary built from entire document text, used to filter out search phrases list
-    # that cannot match (where at least one word is missing in document)
     _global_document_dictionary: Optional[TokenDictionary]
-    # Pre-filtered phrases list: only phrases where all words exist in document
-    # This avoids checking phrases that cannot match during batch processing
     _search_phrases: List[Phrase]
     _progress: Optional['CombinedProgress']
 
     def __init__(self, document: Union[docx.Document, str]):
+        super().__init__()
         if isinstance(document, str):
             document = docx.Document(document)
 
         self.document = document
-        self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
-        self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self._tokenize_time_total = 0.0
         self._global_document_dictionary = None
         self._search_phrases = []
         self._progress = None
-
-    def set_analyse_data(self, analyse_data: AnalysisData) -> None:
-        self.analyse_data = analyse_data
 
     @staticmethod
     def __clone_run(source_run: CT_R, new_text: str, highlight=False) -> CT_R:
@@ -127,33 +117,6 @@ class AnalyserDocx:
 
         return new_batch
 
-    def __update_match_statistics(self, match: Match, tokens: list) -> None:
-        start_token_idx = match['start_token_idx']
-        end_token_idx = match['end_token_idx']
-
-        lemma_key = match['lemma_key']
-
-        if match['type'] == 'phrase':
-            phrase_key_str = " ".join(lemma_key)
-            stats = self.phrase_stats[phrase_key_str]
-            text_parts = []
-
-            for i in range(start_token_idx, end_token_idx + 1):
-                if i < len(tokens):
-                    text_parts.append(tokens[i].text)
-
-            found_text = "".join(text_parts).strip()
-            stats['count'] += 1
-            stats['forms'][found_text] += 1
-        elif match['type'] == 'word':
-            if lemma_key and len(lemma_key) == 1:
-                word_lemma = lemma_key[0]
-                stats = self.word_stats[word_lemma]
-
-                if start_token_idx < len(tokens):
-                    found_text = tokens[start_token_idx].text
-                    stats['count'] += 1
-                    stats['forms'][found_text.lower()] += 1
 
     def __search_all_phrases(
             self,
@@ -169,34 +132,8 @@ class AnalyserDocx:
             (phrase.phrase, phrase.tokens) for phrase in search_phrases
         ]
         phrase_results = fulltext_search.search_all(search_phrases_for_search, SearchStrategy.FUZZY_WORDS_PUNCT)
-        matches: List[Match] = []
 
-        phrase_dict = {phrase.phrase: phrase for phrase in search_phrases}
-
-        for phrase_text, found_matches in phrase_results:
-            phrase = phrase_dict.get(phrase_text)
-
-            if phrase is None:
-                continue
-
-            search_words = [t for t in phrase.tokens if t.type == TokenType.WORD]
-
-            if len(search_words) == 0:
-                continue
-
-            lemma_key = tuple(token.lemma for token in search_words if token.lemma)
-            match_type = 'word' if len(search_words) == 1 else 'phrase'
-
-            for start_token_idx, end_token_idx in found_matches:
-                matches.append({
-                    'start_token_idx': start_token_idx,
-                    'end_token_idx': end_token_idx,
-                    'lemma_key': lemma_key,
-                    'type': match_type,
-                    'match_type': 'lemma',
-                })
-
-        return matches
+        return self._convert_phrase_results_to_matches(phrase_results, search_phrases)
 
     def __process_batch(self, batch: List[CT_R]) -> None:
         text = ''
@@ -219,7 +156,7 @@ class AnalyserDocx:
             start_token_idx = match['start_token_idx']
             end_token_idx = match['end_token_idx']
 
-            self.__update_match_statistics(match, source_tokens)
+            self._update_match_statistics(match, source_tokens)
 
             for i in range(start_token_idx, end_token_idx + 1):
                 token = source_tokens[i]
@@ -400,24 +337,7 @@ class AnalyserDocx:
             self._progress.flush()
             self._progress.clear()
 
-        # [start] return stats in same format as analyze_and_highlight_pdf
-        final_ws = {
-            l: {
-                'count': d['count'],
-                'forms': dict(d['forms'])
-            } for l, d in self.word_stats.items()
-        }
-        final_ps = {
-            phrase_lemma_str: {
-                'count': d['count'],
-                'forms': dict(d['forms'])
-            } for phrase_lemma_str, d in self.phrase_stats.items()
-        }
-        total_matches = sum(d['count'] for d in self.word_stats.values()) + sum(
-            d['count'] for d in self.phrase_stats.values())
-
-        return {'word_stats': final_ws, 'phrase_stats': final_ps, 'total_matches': total_matches}
-        # [end]
+        return self._get_stats_result()
 
     def save(self, output_path: str) -> None:
         self.document.save(output_path)
