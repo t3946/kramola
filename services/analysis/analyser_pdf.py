@@ -1,24 +1,23 @@
 import os
 import itertools
-from typing import List, Optional, Dict, Tuple, TYPE_CHECKING
-from collections import defaultdict, Counter
 import re
-
 import pymupdf
 import pandas as pd
 
-if TYPE_CHECKING:
-    from services.progress.pdf.combined_progress import CombinedProgress
-
+from typing import List, Optional, Dict, Tuple, TYPE_CHECKING
+from collections import defaultdict, Counter
 from services.analysis import AnalysisData
-from services.analysis.pdf_extraction import PDFExtractor
-from services.fulltext_search.fulltext_search import FulltextSearch, Match, SearchStrategy
 from services.fulltext_search.token import Token, TokenType
 from services.fulltext_search.dictionary import TokenDictionary
 from services.fulltext_search.phrase import Phrase
 from services.pymorphy_service import _get_lemma, _get_stem, CYRILLIC_PATTERN
 from services.ocr_service import ocr_page, OCR_LANGUAGES, OCR_DPI
 from services.utils.timeit import timeit
+from services.analysis.pdf.pua_map import PuaMap
+from services.analysis.pdf.page_analyser import PageAnalyser
+
+# if TYPE_CHECKING:
+#     from services.progress.pdf.combined_progress import CombinedProgress
 
 HIGHLIGHT_COLOR_PDF = (0.0, 1.0, 0.0)
 WORDS_EXTRACT_PATTERN = re.compile(r'[a-zA-Zа-яА-ЯёЁ]+', re.UNICODE)
@@ -30,41 +29,6 @@ HORIZONTAL_INDENT_THRESHOLD = 200
 MIN_CONF_FOR_MERGE = 5
 USE_STEM_FALLBACK = True
 
-STOP_WORDS_RU = {
-    "и", "а", "но", "да", "или", "либо", "то", "не то", "тоже", "также",
-    "зато", "однако", "же", "что", "чтобы", "как", "будто", "словно",
-    "если", "когда", "пока", "едва", "лишь", "потому что", "так как",
-    "ибо", "оттого что", "поскольку", "хотя", "хоть", "несмотря на то что",
-    "пускай", "пусть", "словно", "точно", "чем", "так что", "поэтому", "причем", "притом",
-    "в", "на", "с", "о", "у", "к", "по", "за", "из", "от", "до", "под",
-    "над", "при", "без", "для", "про", "об", "обо", "со", "ко", "из-за",
-    "из-под", "через", "перед", "между", "среди", "возле", "около",
-    "вокруг", "вдоль", "вместо", "внутри", "вне", "кроме", "помимо",
-    "сверх", "сквозь", "согласно", "благодаря", "вопреки", "навстречу",
-    "ввиду", "вследствие", "наподобие", "насчет", "спустя",
-    "не", "бы", "ли", "её",
-    "а", "б", "в", "г", "д", "е", "ё", "ж", "з", "и", "й", "к", "л", "м",
-    "н", "о", "п", "р", "с", "т", "у", "ф", "х", "ц", "ч", "ш", "щ", "ъ",
-    "ы", "ь", "э", "ю", "я"
-}
-
-STOP_WORDS_EN = {
-    "and", "but", "or", "nor", "for", "so", "yet",
-    "after", "although", "as", "because", "before", "if", "once",
-    "since", "than", "that", "though", "till", "unless", "until",
-    "when", "whenever", "where", "whereas", "wherever", "whether", "while",
-    "about", "above", "across", "after", "against", "along", "amid", "among",
-    "around", "at", "atop", "before", "behind", "below", "beneath", "beside",
-    "between", "beyond", "by", "concerning", "despite", "down", "during",
-    "except", "for", "from", "in", "inside", "into", "like", "near", "of",
-    "off", "on", "onto", "out", "outside", "over", "past", "regarding",
-    "since", "through", "throughout", "to", "toward", "under", "underneath",
-    "until", "unto", "up", "upon", "with", "within", "without",
-    "a", "an", "the", "is", "am", "are",
-    "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m",
-    "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"
-}
-
 
 class AnalyserPdf:
     document: pymupdf.Document
@@ -74,7 +38,8 @@ class AnalyserPdf:
     phrase_stats: defaultdict
     _global_document_dictionary: Optional[TokenDictionary]
     _search_phrases: List[Phrase]
-    _progress: Optional['CombinedProgress']
+
+    # _progress: Optional['CombinedProgress']
 
     def __init__(self, source_path: str):
         self.source_path = source_path
@@ -331,23 +296,8 @@ class AnalyserPdf:
         return output_words
 
     def __build_global_dictionary(self) -> TokenDictionary:
-        """Build dictionary from entire document text."""
-        extractor = PDFExtractor()
-        all_pages_logical_words = extractor.extract_all_logical_words_from_pdf(self.source_path)
-
-        if all_pages_logical_words is None:
-            return TokenDictionary([])
-
+        # todo: не нужен
         all_tokens: List[Token] = []
-
-        for page_words in all_pages_logical_words:
-            for word_data in page_words:
-                text = word_data.get('text', '').strip()
-
-                if text:
-                    page_tokens = FulltextSearch.tokenize_text(text)
-                    all_tokens.extend(page_tokens)
-
         dictionary = TokenDictionary(all_tokens)
 
         return dictionary
@@ -631,34 +581,27 @@ class AnalyserPdf:
     def analyse_and_highlight(self, task_id: Optional[str] = None, use_ocr: bool = False) -> dict:
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
-        self._search_phrases = []
-
         self.document = pymupdf.open(self.source_path)
 
-        extractor = PDFExtractor()
-        all_pages_logical_words = extractor.extract_all_logical_words_from_pdf(self.source_path)
+        # [start] Collect pages
+        pua_map = PuaMap()
+        pages = []
 
-        if all_pages_logical_words is None:
-            if self.document:
-                self.document.close()
-            return None
-
-        if len(self.document) != len(all_pages_logical_words):
-            if self.document:
-                self.document.close()
-            return None
-
-        self._global_document_dictionary = self.__build_global_dictionary()
-        phrases_list = list(self.analyse_data.phrases.values())
-        self._search_phrases = self.__filter_phrases_by_dictionary(
-            phrases_list,
-            self._global_document_dictionary
-        )
-
-        for page_num, logical_words_on_page in enumerate(all_pages_logical_words):
+        for page_num in range(len(self.document)):
             page = self.document.load_page(page_num)
-            self.__process_page(page, page_num, logical_words_on_page, use_ocr)
+            page_analyser = PageAnalyser(page=page, pua_map=pua_map)
+            page_analyser.collect()
+            pages.append(page_analyser)
+        # [end]
 
+        # [start] reduce search data
+        whole_document_text = ''
+
+        for page_analyser in pages:
+            whole_document_text += page_analyser.normalize() + ' '
+        # [end] 
+
+        # [start] stats forming
         total_matches_combined = sum(d['count'] for d in self.word_stats.values()) + sum(
             d['count'] for d in self.phrase_stats.values()
         )
@@ -675,6 +618,7 @@ class AnalyserPdf:
                 'forms': dict(d['forms'])
             } for phrase_lemma_str, d in self.phrase_stats.items()
         }
+        # [end]
 
         return {'word_stats': final_ws, 'phrase_stats': final_ps, 'total_matches': total_matches_combined}
 
