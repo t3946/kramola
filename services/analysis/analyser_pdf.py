@@ -579,16 +579,19 @@ class AnalyserPdf:
                                 highlighted_rects_on_page.extend(current_phrase_rects_highlighted)
 
     @timeit
-    def analyse_and_highlight(self, task_id: Optional[str] = None, use_ocr: bool = False) -> dict:
+    def analyse_and_highlight(self, task_id: Optional[str] = None) -> dict:
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.document = pymupdf.open(self.source_path)
+
+        #todo: debug only
+        pages_to_process = 1#len(self.document)
 
         # [start] Collect pages
         pua_map = PuaMap()
         pages = []
 
-        for page_num in range(len(self.document)):
+        for page_num in range(pages_to_process):
             page = self.document.load_page(page_num)
             page_analyser = PageAnalyser(page=page, pua_map=pua_map)
             page_analyser.collect()
@@ -608,7 +611,7 @@ class AnalyserPdf:
             phrases_list,
             self._global_document_dictionary
         )
-        # [end] 
+        # [end]
 
         # [start] stats forming
         total_matches_combined = sum(d['count'] for d in self.word_stats.values()) + sum(
