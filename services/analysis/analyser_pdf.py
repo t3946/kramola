@@ -10,6 +10,7 @@ from services.analysis import AnalysisData
 from services.fulltext_search.token import Token, TokenType
 from services.fulltext_search.dictionary import TokenDictionary
 from services.fulltext_search.phrase import Phrase
+from services.fulltext_search.fulltext_search import FulltextSearch, STOP_WORDS_RU, STOP_WORDS_EN
 from services.pymorphy_service import _get_lemma, _get_stem, CYRILLIC_PATTERN
 from services.ocr_service import ocr_page, OCR_LANGUAGES, OCR_DPI
 from services.utils.timeit import timeit
@@ -295,9 +296,9 @@ class AnalyserPdf:
 
         return output_words
 
-    def __build_global_dictionary(self) -> TokenDictionary:
-        # todo: не нужен
-        all_tokens: List[Token] = []
+    def __build_global_dictionary(self, text: str) -> TokenDictionary:
+        """Build dictionary from entire document text."""
+        all_tokens: List[Token] = FulltextSearch.tokenize_text(text)
         dictionary = TokenDictionary(all_tokens)
 
         return dictionary
@@ -594,11 +595,19 @@ class AnalyserPdf:
             pages.append(page_analyser)
         # [end]
 
-        # [start] reduce search data
+        # [start] build global dictionary and filter search phrases by it
         whole_document_text = ''
 
         for page_analyser in pages:
             whole_document_text += page_analyser.normalize() + ' '
+
+        all_tokens: List[Token] = FulltextSearch.tokenize_text(whole_document_text)
+        self._global_document_dictionary = TokenDictionary(all_tokens)
+        phrases_list = list(self.analyse_data.phrases.values())
+        self._search_phrases = self.__filter_phrases_by_dictionary(
+            phrases_list,
+            self._global_document_dictionary
+        )
         # [end] 
 
         # [start] stats forming
