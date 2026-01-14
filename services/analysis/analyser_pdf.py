@@ -66,7 +66,7 @@ class AnalyserPdf(Analyser):
         whole_document_text = ''
 
         for page_analyser in pages:
-            whole_document_text += page_analyser.normalize() + ' '
+            whole_document_text += page_analyser.to_text() + ' '
 
         all_tokens: List[Token] = FulltextSearch.tokenize_text(whole_document_text)
         phrases_list = list(self.analyse_data.phrases.values())
@@ -80,6 +80,49 @@ class AnalyserPdf(Analyser):
 
         for match in matches:
             self._update_match_statistics(match, all_tokens)
+        # [end]
+
+        # [start] highlight matches
+        # [start] calculate page offsets and lengths in combined text
+        page_offsets: List[int] = [0]
+        page_lengths: List[int] = []
+        current_offset: int = 0
+
+        for page_analyser in pages:
+            page_text = page_analyser.to_text()
+            page_len = len(page_text)
+            page_lengths.append(page_len)
+            current_offset += page_len + 1
+            page_offsets.append(current_offset)
+        # [end]
+
+        # [start] highlight each match
+        for match in matches:
+            start_token_idx: int = match['start_token_idx']
+            end_token_idx: int = match['end_token_idx']
+            start_char_pos: int = all_tokens[start_token_idx].start
+            end_char_pos: int = all_tokens[end_token_idx].end
+
+            # [start] find pages that contain this match
+            for page_idx, page_analyser in enumerate(pages):
+                page_start_offset: int = page_offsets[page_idx]
+                page_text_len: int = page_lengths[page_idx]
+                page_end_offset: int = page_start_offset + page_text_len - 1
+
+                # check if match overlaps with this page
+                match_start_in_page: int = max(start_char_pos, page_start_offset)
+                match_end_in_page: int = min(end_char_pos, page_end_offset)
+
+                if match_start_in_page > match_end_in_page:
+                    continue
+
+                # convert to local page character indices
+                local_start: int = match_start_in_page - page_start_offset
+                local_end: int = match_end_in_page - page_start_offset
+
+                page_analyser.highlight_range(local_start, local_end)
+            # [end]
+        # [end]
         # [end]
 
         return self._get_stats_result()

@@ -1,8 +1,10 @@
 import logging
 from typing import List, Optional, TYPE_CHECKING
 
+import pymupdf
+
 if TYPE_CHECKING:
-    import pymupdf
+    pass
 
 from services.analysis.pdf.char import Char
 from services.analysis.pdf.pua_map import PuaMap
@@ -90,7 +92,7 @@ class PageAnalyser:
                         self.add_char(Char(' '))
                 # [end]
 
-    def _to_text(self) -> str:
+    def to_text(self) -> str:
         """
         Выполняет простую склейку всех символов в готовый текст.
 
@@ -99,19 +101,47 @@ class PageAnalyser:
         """
         return ''.join(char_obj.char for char_obj in self._chars)
 
-    def _solve_wraps(self) -> None:
-        """
-        Фильтр для решения переносов строк.
-        """
-        pass
-
     def normalize(self) -> str:
-        """
-        Запускает приватные методы-фильтры для нормализации текста.
+        return self.to_text()
 
-        Returns:
-            Нормализованный текст
+    def highlight_range(self, start: int, end: int) -> None:
         """
-        self._solve_wraps()
+        Выделяет текст на странице PDF для заданного диапазона символов.
 
-        return self._to_text()
+        Args:
+            start: Начальный индекс символа (включительно)
+            end: Конечный индекс символа (включительно)
+        """
+        if not self._chars:
+            return
+
+        # [start] validate and clamp range
+        start = max(0, start)
+        end = min(len(self._chars) - 1, end)
+
+        if start > end:
+            return
+        # [end]
+
+        # [start] collect valid bboxes from range
+        valid_chars: List[Char] = []
+
+        for i in range(start, end + 1):
+            char = self._chars[i]
+
+            if char.bbox and len(char.bbox) >= 4:
+                valid_chars.append(char)
+        # [end]
+
+        if not valid_chars:
+            return
+
+        # [start] calculate bounding rect
+        x0 = min(char.bbox[0] for char in valid_chars)
+        y0 = min(char.bbox[1] for char in valid_chars)
+        x1 = max(char.bbox[2] for char in valid_chars)
+        y1 = max(char.bbox[3] for char in valid_chars)
+        # [end]
+
+        rect = pymupdf.Rect(x0, y0, x1, y1)
+        self.page.add_highlight_annot(rect)
