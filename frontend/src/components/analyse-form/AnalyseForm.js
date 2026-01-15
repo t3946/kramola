@@ -63,8 +63,9 @@ export default class AnalyseForm extends BaseComponent {
     this.predefinedCheckboxes = this.formEl.querySelectorAll('input[name="predefined_list_keys"]');
     this.inputMethodRadios = this.formEl.querySelectorAll('input[name="input-method"]');
 
-    const clientErrorEl = /** @type {HTMLElement|null} */ (this.formEl.querySelector('#clientErrorMessage'));
-    const serverErrorEl = /** @type {HTMLElement|null} */ (this.formEl.querySelector('#serverErrorMessage'));
+    const doc = this.formEl.ownerDocument;
+    const clientErrorEl = /** @type {HTMLElement|null} */ (doc.getElementById('clientErrorMessage'));
+    const serverErrorEl = /** @type {HTMLElement|null} */ (doc.getElementById('serverErrorMessage'));
     this.errorPresenter = new ErrorPresenter({ clientErrorEl, serverErrorEl });
 
     this.tabs = new InputMethodTabsController({
