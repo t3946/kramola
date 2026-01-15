@@ -11,6 +11,8 @@ from services.analysis.pdf.pua_map import PuaMap
 
 logger = logging.getLogger(__name__)
 
+WRAP_HYPHEN_CHARS: tuple[str, ...] = ('-', '\u00AD')
+
 
 class PageAnalyser:
     """
@@ -27,6 +29,7 @@ class PageAnalyser:
         self.page: 'pymupdf.Page' = page
         self.pua_map: PuaMap = pua_map
         self._chars: List[Char] = []
+        self._wrap_indices: List[int] = []
         self._last_y: Optional[float] = None
         self._is_first_char: bool = True
 
@@ -65,16 +68,23 @@ class PageAnalyser:
                 has_wrap = False
 
                 # [start] process line text
-                for span in line['spans']:
+                for span_idx, span in enumerate(line['spans']):
+                    is_last_span = span_idx == len(line['spans']) - 1
                     font_name = span.get('font', '')
 
                     for j, char in enumerate(span['chars']):
                         char_str = self.pua_map.char_to_str(char, font_name, self.page)
                         bbox = char.get('bbox', [])
 
-                        # if line ends up with '-' then it word wrap suppose
-                        if char_str == '-' and j == len(span['chars']) - 1:
+                        # if line ends with a hyphen then it is a word wrap
+                        is_last_char_in_span = j == len(span['chars']) - 1
+
+                        if char_str in WRAP_HYPHEN_CHARS and is_last_span and is_last_char_in_span:
                             has_wrap = True
+
+                            if self._chars:
+                                self._wrap_indices.append(len(self._chars) - 1)
+
                             continue
 
                         # add char into collected text
@@ -120,6 +130,16 @@ class PageAnalyser:
         end = min(len(self._chars) - 1, end)
 
         if start > end:
+            return
+        # [end]
+
+        # [start] split range by word wraps
+        wrap_index = next((i for i in self._wrap_indices if start <= i < end), None)
+
+        if wrap_index is not None:
+            self.highlight_range(start, wrap_index)
+            self.highlight_range(wrap_index + 1, end)
+
             return
         # [end]
 
