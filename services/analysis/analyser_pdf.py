@@ -1,27 +1,16 @@
 import os
-import itertools
 import re
 import pymupdf
-import pandas as pd
 
-from typing import List, Optional, Dict, Tuple, TYPE_CHECKING
+from typing import List, Optional, Tuple
 from collections import defaultdict, Counter
-from services.analysis import AnalysisData
 from services.analysis.analyser import Analyser
-from services.fulltext_search.token import Token, TokenType
-from services.fulltext_search.dictionary import TokenDictionary
-from services.fulltext_search.phrase import Phrase
-from services.fulltext_search.fulltext_search import FulltextSearch, STOP_WORDS_RU, STOP_WORDS_EN, SearchStrategy, Match
-from services.pymorphy_service import _get_lemma, _get_stem, CYRILLIC_PATTERN
-from services.ocr_service import ocr_page, OCR_LANGUAGES, OCR_DPI
+from services.fulltext_search.token import Token
+from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.utils.timeit import timeit
 from services.analysis.pdf.pua_map import PuaMap
 from services.analysis.pdf.page_analyser import PageAnalyser
 
-# if TYPE_CHECKING:
-#     from services.progress.pdf.combined_progress import CombinedProgress
-
-HIGHLIGHT_COLOR_PDF = (0.0, 1.0, 0.0)
 WORDS_EXTRACT_PATTERN = re.compile(r'[a-zA-Zа-яА-ЯёЁ]+', re.UNICODE)
 PUNCT_STRIP_PATTERN = re.compile(r"^[^\w\s]+|[^\w\s]+$", re.UNICODE)
 MIN_OCR_CONFIDENCE_HIGHLIGHT = 40
@@ -57,7 +46,7 @@ class AnalyserPdf(Analyser):
 
         for page_num in range(pages_to_process):
             page = self.document.load_page(page_num)
-            page_analyser = PageAnalyser(page=page, pua_map=pua_map)
+            page_analyser = PageAnalyser(page=page, pua_map=pua_map, highlight_color=self.get_highlight_color_pdf())
             page_analyser.collect()
             pages.append(page_analyser)
         # [end]
@@ -120,7 +109,7 @@ class AnalyserPdf(Analyser):
                 local_start: int = match_start_in_page - page_start_offset
                 local_end: int = match_end_in_page - page_start_offset
 
-                page_analyser.highlight_range(local_start, local_end)
+                page_analyser.highlight_range(local_start, local_end - 1)
             # [end]
         # [end]
         # [end]

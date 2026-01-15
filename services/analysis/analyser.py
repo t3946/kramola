@@ -12,10 +12,20 @@ class Analyser:
     analyse_data: 'AnalysisData'
     word_stats: defaultdict
     phrase_stats: defaultdict
+    HIGHLIGHT_COLOR: Tuple[float, float, float] = (0.0, 1.0, 0.0)
 
     def __init__(self) -> None:
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
+
+    def get_highlight_color_pdf(self) -> Tuple[float, float, float]:
+        return self.HIGHLIGHT_COLOR
+
+    def get_highlight_color_docx_val(self) -> str:
+        if self.HIGHLIGHT_COLOR == (0.0, 1.0, 0.0):
+            return 'green'
+
+        return 'yellow'
 
     def set_analyse_data(self, analyse_data: 'AnalysisData') -> None:
         self.analyse_data = analyse_data

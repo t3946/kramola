@@ -1,5 +1,5 @@
 import logging
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, Tuple, TYPE_CHECKING
 
 import pymupdf
 
@@ -20,7 +20,7 @@ class PageAnalyser:
     Собирает символы посимвольно и предоставляет методы для нормализации.
     """
 
-    def __init__(self, page: 'pymupdf.Page', pua_map: PuaMap) -> None:
+    def __init__(self, page: 'pymupdf.Page', pua_map: PuaMap, highlight_color: Tuple[float, float, float]) -> None:
         """
         Args:
             page: Страница PDF документа
@@ -28,6 +28,7 @@ class PageAnalyser:
         """
         self.page: 'pymupdf.Page' = page
         self.pua_map: PuaMap = pua_map
+        self.highlight_color: Tuple[float, float, float] = highlight_color
         self._chars: List[Char] = []
         self._wrap_indices: List[int] = []
         self._last_y: Optional[float] = None
@@ -164,4 +165,6 @@ class PageAnalyser:
         # [end]
 
         rect = pymupdf.Rect(x0, y0, x1, y1)
-        self.page.add_highlight_annot(rect)
+        annot: pymupdf.Annot = self.page.add_highlight_annot(rect)
+        annot.set_colors(stroke=self.highlight_color)
+        annot.update()

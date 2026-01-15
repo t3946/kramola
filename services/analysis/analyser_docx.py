@@ -42,7 +42,7 @@ class AnalyserDocx(Analyser):
         self._progress = None
 
     @staticmethod
-    def __clone_run(source_run: CT_R, new_text: str, highlight=False) -> CT_R:
+    def __clone_run(source_run: CT_R, new_text: str, highlight: bool, highlight_val: str) -> CT_R:
         new_run: CT_R = OxmlElement('w:r')
 
         for child in source_run:
@@ -62,13 +62,18 @@ class AnalyserDocx(Analyser):
                 new_run.insert(0, rPr)
 
             highlight = OxmlElement('w:highlight')
-            highlight.set(qn('w:val'), 'green')
+            highlight.set(qn('w:val'), highlight_val)
             rPr.append(highlight)
 
         return new_run
 
     @staticmethod
-    def __isolate_new_run_xml(batch: List[CT_R], phrase_start_index: int, phrase_end_index: int) -> List[CT_R]:
+    def __isolate_new_run_xml(
+            batch: List[CT_R],
+            phrase_start_index: int,
+            phrase_end_index: int,
+            highlight_val: str
+    ) -> List[CT_R]:
         # after Run split operation, batch need to be updated
         new_batch = []
 
@@ -99,8 +104,8 @@ class AnalyserDocx(Analyser):
                 # needs to avoid cases "This is an apple" -> "This is anapple"
                 source_run_text_element.set(qn('xml:space'), 'preserve')
 
-                run_match = AnalyserDocx.__clone_run(run_source, part_match, True)
-                run_after = AnalyserDocx.__clone_run(run_source, part_after_match)
+                run_match = AnalyserDocx.__clone_run(run_source, part_match, True, highlight_val)
+                run_after = AnalyserDocx.__clone_run(run_source, part_after_match, False, highlight_val)
                 source_run_text_element.text = part_before_match
                 run_source.addnext(run_match)
                 run_match.addnext(run_after)
@@ -137,6 +142,7 @@ class AnalyserDocx(Analyser):
 
     def __process_batch(self, batch: List[CT_R]) -> None:
         text = ''
+        highlight_val: str = self.get_highlight_color_docx_val()
 
         # [start] find matches in concatenated batch text
         for run in batch:
@@ -160,7 +166,7 @@ class AnalyserDocx(Analyser):
 
             for i in range(start_token_idx, end_token_idx + 1):
                 token = source_tokens[i]
-                batch = self.__isolate_new_run_xml(batch, token.start, token.end)
+                batch = self.__isolate_new_run_xml(batch, token.start, token.end, highlight_val)
 
     @staticmethod
     def __split_on_batches(element: Union[CT_P, CT_Hyperlink]) -> List[List[CT_R]]:
