@@ -22,7 +22,7 @@ USE_STEM_FALLBACK = True
 
 
 class AnalyserPdf(Analyser):
-    document: pymupdf.Document
+    document: Optional[pymupdf.Document]
     source_path: str
     # _progress: Optional['CombinedProgress']
 
@@ -120,26 +120,5 @@ class AnalyserPdf(Analyser):
         if self.document is None:
             return
 
-        total_highlight_actions = sum(d['count'] for d in self.word_stats.values()) + sum(
-            d['count'] for d in self.phrase_stats.values()
-        )
-
-        if total_highlight_actions > 0:
-            try:
-                self.document.save(output_path, garbage=4, deflate=True, clean=True)
-            except Exception:
-                if self.document:
-                    self.document.close()
-                return
-        else:
-            if os.path.exists(output_path):
-                try:
-                    os.remove(output_path)
-                except Exception:
-                    pass
-
-        if self.document:
-            try:
-                self.document.close()
-            except Exception:
-                pass
+        self.document.save(output_path, garbage=4, deflate=True, clean=True)
+        self.document.close()
