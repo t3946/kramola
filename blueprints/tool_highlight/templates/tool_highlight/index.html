@@ -53,14 +53,14 @@ function loadFileData(filename) {
     {% endif %}
     <div class="error" id="clientErrorMessage" style="display: none; color: red; margin-bottom: 15px; border: 1px solid red; padding: 10px; border-radius: 4px;"></div>
 
-    <form action="{{ url_for('highlight.process_async') }}" method="post" enctype="multipart/form-data" id="uploadForm">
-        <div class="card">
+    <form action="{{ url_for('highlight.process_async') }}" method="post" enctype="multipart/form-data" id="uploadForm" class="js-analyse-form">
+        <div class="card js-input-file" data-input-name="source">
             <h3>1. Исходный документ:</h3>
-            <input type="file" id="source_file" name="source_file" accept=".docx,.pdf,.odt" style="display: none;">
-            <button type="button" class="button" onclick="document.getElementById('source_file').click();">
+            <input type="file" id="source_file" name="source_file" accept=".docx,.pdf,.odt,.txt" style="display: none;">
+            <button type="button" class="button">
                 <i class="fas fa-upload"></i>Выберите файл
             </button>
-            <div class="file-info" id="source_file_info">Файл: docx, pdf, odt | файл не выбран</div>
+            <div class="file-info" id="source_file_info">Файл: docx, pdf, odt, txt | файл не выбран</div>
         </div>
 
         <div class="card">
@@ -73,9 +73,9 @@ function loadFileData(filename) {
                     <label for="text-method">Ввести вручную</label>
                 </div>
             </h3>
-            <div id="file-input">
+            <div id="file-input" class="js-input-file" data-input-name="words">
                 <input type="file" id="words_file" name="words_file" accept=".docx,.xlsx,.txt" style="display: none;">
-                <button type="button" class="button" onclick="document.getElementById('words_file').click();">
+                <button type="button" class="button">
                     <i class="fas fa-upload"></i>Выберите файл
                 </button>
                 <div class="file-info" id="words_file_info">Файл: docx, xlsx, txt | файл не выбран</div>
