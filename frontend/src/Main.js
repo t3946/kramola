@@ -5,3 +5,4 @@ import './MainApp.js';
 import './ErrorPopup.js';
 import './components/ProgressBar.js';
 import './pages/Highlight.js';
+import './pages/HighlightUploadPage.js';

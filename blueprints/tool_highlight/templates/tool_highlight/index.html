@@ -74,11 +74,11 @@ function loadFileData(filename) {
                 </div>
             </h3>
             <div id="file-input">
-                <input type="file" id="words_file" name="words_file" accept=".docx,.xlsx" style="display: none;">
+                <input type="file" id="words_file" name="words_file" accept=".docx,.xlsx,.txt" style="display: none;">
                 <button type="button" class="button" onclick="document.getElementById('words_file').click();">
                     <i class="fas fa-upload"></i>Выберите файл
                 </button>
-                <div class="file-info" id="words_file_info">Файл: docx, txt | файл не выбран</div>
+                <div class="file-info" id="words_file_info">Файл: docx, xlsx, txt | файл не выбран</div>
             </div>
             <div id="text-input" class="hidden">
                 <textarea id="words-textarea" name="words_text" placeholder="Введите слова или фразы, разделяя их запятыми или переносом строки"></textarea>
