@@ -8,6 +8,7 @@ from typing import List, Dict
 from flask import Request
 
 from services.document_service import save_uploaded_file, extract_lines_from_docx, convert_odt_to_docx
+from services.utils.load_lines_from_txt import load_lines_from_txt
 from services.highlight_upload.upload_result import UploadResult
 from services.highlight_upload.upload_error import UploadError
 from services.analysis.analysis_data import AnalysisData
@@ -150,8 +151,17 @@ class HighlightUploadService:
             words_filename_original = words_file_input.filename
             words_filename_lower = words_filename_original.lower()
 
-            if not (words_filename_lower.endswith('.docx') or words_filename_lower.endswith('.xlsx')):
-                raise UploadError('Файл слов должен быть в формате .docx или .xlsx', 400)
+            allowed_extensions: list[str] = [
+                '.docx',
+                '.xlsx',
+                '.txt',
+            ]
+
+            is_allowed = any(words_filename_lower.endswith(ext) for ext in allowed_extensions)
+
+            if not is_allowed:
+                allowed_formats = ', '.join(allowed_extensions)
+                raise UploadError(f'Файл слов должен быть в формате {allowed_formats}.', 400)
 
             if words_filename_lower.endswith('.docx'):
                 words_filename_unique = f"words_{task_id}.docx"
@@ -164,6 +174,14 @@ class HighlightUploadService:
             elif words_filename_lower.endswith('.xlsx'):
                 # words_path is not set for xlsx currently
                 search_lines_from_file = []
+            elif words_filename_lower.endswith('.txt'):
+                words_filename_unique = f"words_{task_id}.txt"
+                words_path = save_uploaded_file(words_file_input, upload_dir, words_filename_unique)
+
+                if not words_path:
+                    raise UploadError('Ошибка сохранения файла слов (.txt).', 500)
+
+                search_lines_from_file = load_lines_from_txt(words_path)
 
         return {
             'path': words_path,
