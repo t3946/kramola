@@ -8,7 +8,7 @@ from services.analysis.analyser import Analyser
 from services.fulltext_search.token import Token
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.utils.timeit import timeit
-from services.analysis.pdf.pua_map import PuaMap
+from services.analysis.pdf.pua_map import PuaMap, logger
 from services.analysis.pdf.page_analyser import PageAnalyser
 
 WORDS_EXTRACT_PATTERN = re.compile(r'[a-zA-Zа-яА-ЯёЁ]+', re.UNICODE)
@@ -33,7 +33,7 @@ class AnalyserPdf(Analyser):
         self._progress = None
 
     @timeit
-    def analyse_and_highlight(self, task_id: Optional[str] = None) -> dict:
+    def analyse_and_highlight(self, task_id: Optional[str] = None, use_ocr: bool = False) -> dict:
         self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.document = pymupdf.open(self.source_path)
@@ -70,6 +70,10 @@ class AnalyserPdf(Analyser):
         for match in matches:
             self._update_match_statistics(match, all_tokens)
         # [end]
+
+        if use_ocr:
+            #todo: ocr not implemented
+            logger.warning(f'ocr not implemented')
 
         # [start] highlight matches
         # [start] calculate page offsets and lengths in combined text
