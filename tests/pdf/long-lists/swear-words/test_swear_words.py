@@ -5,17 +5,18 @@ from services.words_list import PredefinedListKey
 from tests.pdf.base_pdf_long_lists_test import BasePdfLongListsTest
 
 
-class TestFlListLongList(BasePdfLongListsTest):
-    # Используем готовый список физических лиц
+class TestSwearWords(BasePdfLongListsTest):
+    # Используем готовые списки нецензурных слов
     predefined_lists: List[PredefinedListKey] = [
-        PredefinedListKey.FOREIGN_AGENTS_PERSONS
+        PredefinedListKey.PROFANITY,
+        PredefinedListKey.SWEAR_WORDS
     ]
     
     @staticmethod
     def test_find_words_in_pdf() -> None:
-        TestFlListLongList.run_test(Path(__file__))
+        TestSwearWords.run_test(Path(__file__))
 
 
 if __name__ == '__main__':
-    TestFlListLongList.test_find_words_in_pdf()
+    TestSwearWords.test_find_words_in_pdf()
 
