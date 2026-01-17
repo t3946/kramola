@@ -144,7 +144,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             start_token_idx: Starting token index
             
         Returns:
-            (start, end) tuple if match found, None otherwise
+            (start, end) tuple if match found (<start token index>, <end token index>), None otherwise
         """
         source_i = start_token_idx
         search_j = 0
