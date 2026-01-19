@@ -3,7 +3,7 @@
  * Предоставляет простой интерфейс для подключения к комнатам и подписки на события
  */
 
-import { io } from 'socket.io-client';
+import {io} from 'socket.io-client';
 
 class SocketioService {
     constructor() {
@@ -32,22 +32,22 @@ class SocketioService {
         }
 
         this.socket = url ? io(url) : io();
-        
+
         return new Promise((resolve, reject) => {
             const connectHandler = () => {
                 this.connected = true;
                 console.log('Socket.IO connected');
                 resolve();
             };
-            
+
             const errorHandler = (error) => {
                 console.error('Socket.IO connection error:', error);
                 reject(error);
             };
-            
+
             this.socket.once('connect', connectHandler);
             this.socket.once('connect_error', errorHandler);
-            
+
             this.socket.on('disconnect', () => {
                 this.connected = false;
                 console.log('Socket.IO disconnected');
@@ -80,7 +80,7 @@ class SocketioService {
 
         // Сначала подписываемся на события, чтобы не пропустить события от сервера
         const handlers = [];
-        
+
         if (onProgress) {
             const progressHandler = (data) => {
                 console.log('Progress event received:', data);
@@ -91,7 +91,7 @@ class SocketioService {
                 }
             };
             this.socket.on('progress', progressHandler);
-            handlers.push({ event: 'progress', handler: progressHandler });
+            handlers.push({event: 'progress', handler: progressHandler});
         }
 
         if (onJoined) {
@@ -104,7 +104,7 @@ class SocketioService {
                 }
             };
             this.socket.on('joined', joinedHandler);
-            handlers.push({ event: 'joined', handler: joinedHandler });
+            handlers.push({event: 'joined', handler: joinedHandler});
         }
 
         if (onStatus) {
@@ -116,15 +116,15 @@ class SocketioService {
                 }
             };
             this.socket.on('task_status', statusHandler);
-            handlers.push({ event: 'task_status', handler: statusHandler });
+            handlers.push({event: 'task_status', handler: statusHandler});
         }
 
         // Сохраняем информацию о комнате
-        this.rooms.set(taskId, { handlers });
+        this.rooms.set(taskId, {handlers});
 
         // Отправляем запрос на подключение к комнате после подписки на события
         console.log('Joining task progress room:', taskId);
-        this.socket.emit('join_task_progress', { task_id: taskId });
+        this.socket.emit('join_task_progress', {task_id: taskId});
     }
 
     /**
@@ -137,12 +137,12 @@ class SocketioService {
         }
 
         // Отправляем запрос на отключение от комнаты
-        this.socket.emit('leave_task_progress', { task_id: taskId });
+        this.socket.emit('leave_task_progress', {task_id: taskId});
 
         // Отписываемся от событий
         const roomInfo = this.rooms.get(taskId);
         if (roomInfo && roomInfo.handlers) {
-            roomInfo.handlers.forEach(({ event, handler }) => {
+            roomInfo.handlers.forEach(({event, handler}) => {
                 this.socket.off(event, handler);
             });
         }

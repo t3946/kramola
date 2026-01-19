@@ -24,7 +24,7 @@ class SocketIOService {
         }
 
         this.socket = url ? io(url) : io();
-        
+
         this.socket.on('connect', () => {
             this.connected = true;
         });
@@ -50,11 +50,11 @@ class SocketIOService {
         }
 
         // Отправляем запрос на подключение к комнате
-        this.socket.emit('join_task_progress', { task_id: taskId });
+        this.socket.emit('join_task_progress', {task_id: taskId});
 
         // Подписываемся на события
         const handlers = [];
-        
+
         if (onProgress) {
             const progressHandler = (data) => {
                 if (data.task_id === taskId) {
@@ -62,7 +62,7 @@ class SocketIOService {
                 }
             };
             this.socket.on('progress', progressHandler);
-            handlers.push({ event: 'progress', handler: progressHandler });
+            handlers.push({event: 'progress', handler: progressHandler});
         }
 
         if (onJoined) {
@@ -72,11 +72,11 @@ class SocketIOService {
                 }
             };
             this.socket.on('joined', joinedHandler);
-            handlers.push({ event: 'joined', handler: joinedHandler });
+            handlers.push({event: 'joined', handler: joinedHandler});
         }
 
         // Сохраняем информацию о комнате
-        this.rooms.set(taskId, { handlers });
+        this.rooms.set(taskId, {handlers});
     }
 
     /**
@@ -89,12 +89,12 @@ class SocketIOService {
         }
 
         // Отправляем запрос на отключение от комнаты
-        this.socket.emit('leave_task_progress', { task_id: taskId });
+        this.socket.emit('leave_task_progress', {task_id: taskId});
 
         // Отписываемся от событий
         const roomInfo = this.rooms.get(taskId);
         if (roomInfo && roomInfo.handlers) {
-            roomInfo.handlers.forEach(({ event, handler }) => {
+            roomInfo.handlers.forEach(({event, handler}) => {
                 this.socket.off(event, handler);
             });
         }

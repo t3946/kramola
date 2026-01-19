@@ -5,12 +5,12 @@ import BaseComponent from './components/BaseComponent.js';
  * @returns {void}
  */
 function initMainApp() {
-  socketIOService.connect().then(() => undefined, () => undefined);
-  BaseComponent.initComponents();
+    socketIOService.connect().then(() => undefined, () => undefined);
+    BaseComponent.initComponents();
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initMainApp);
+    document.addEventListener('DOMContentLoaded', initMainApp);
 } else {
-  initMainApp();
+    initMainApp();
 }

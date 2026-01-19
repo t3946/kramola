@@ -20,7 +20,7 @@ export class Page {
         if (pathPattern && path.includes(pathPattern)) {
             return true;
         }
-        
+
         // Проверяем наличие специфичных элементов страницы
         if (elementId && elementAttribute && attributePattern) {
             const $element = u(`#${elementId}`);
@@ -31,7 +31,7 @@ export class Page {
                 }
             }
         }
-        
+
         return false;
     }
 }
