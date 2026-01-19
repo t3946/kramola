@@ -54,10 +54,11 @@ class Analyser:
 
     def _convert_phrase_results_to_matches(
             self,
-            phrase_results: List[Tuple[str, List[Tuple[int, int]]]],
+            phrase_results: List[Tuple[str, List[Tuple[int, int, List[Token]]]]],
             phrases_list: List['Phrase']
     ) -> List[Match]:
         matches: List[Match] = []
+        # Create lookup dict for O(1) phrase access by text instead of O(n) list search
         phrase_dict = {phrase.phrase: phrase for phrase in phrases_list}
 
         for phrase_text, found_matches in phrase_results:
@@ -74,13 +75,18 @@ class Analyser:
             lemma_key = tuple(token.lemma for token in search_words if token.lemma)
             match_type = 'word' if len(search_words) == 1 else 'phrase'
 
-            for start_token_idx, end_token_idx in found_matches:
+            for start_token_idx, end_token_idx, matched_tokens in found_matches:
                 matches.append({
                     'start_token_idx': start_token_idx,
                     'end_token_idx': end_token_idx,
                     'lemma_key': lemma_key,
                     'type': match_type,
                     'match_type': 'lemma',
+                    'search': phrase_text,
+                    'found': {
+                        'text': ''.join(token.text for token in matched_tokens if token.text),
+                        'tokens': matched_tokens,
+                    },
                 })
 
         return matches

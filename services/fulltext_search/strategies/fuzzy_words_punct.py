@@ -134,7 +134,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         source_tokens: 'List[Token]',
         search_words: 'List[Token]',
         start_token_idx: int
-    ) -> Optional[Tuple[int, int]]:
+    ) -> Optional[Tuple[int, int, 'List[Token]']]:
         """
         Verify if phrase matches starting from start_token_idx.
         
@@ -144,18 +144,20 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             start_token_idx: Starting token index
             
         Returns:
-            (start, end) tuple if match found (<start token index>, <end token index>), None otherwise
+            (start, end, matched_tokens) tuple if match found, None otherwise
         """
         source_i = start_token_idx
         search_j = 0
         match_start = None
         words_matched = 0
         source_len = len(source_tokens)
+        matched_tokens: 'List[Token]' = []
 
         while source_i < source_len and search_j < len(search_words):
             source_token = source_tokens[source_i]
 
             if source_token.type in (TokenType.PUNCTUATION, TokenType.SPACE):
+                matched_tokens.append(source_token)
                 source_i += 1
                 continue
 
@@ -175,6 +177,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                 if (source_text == search_text or
                     source_lemma == search_lemma or
                     source_stem == search_stem):
+                    matched_tokens.append(source_token)
                     source_i += 1
                     search_j += 1
                     words_matched += 1
@@ -184,7 +187,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                 return None
 
         if words_matched == len(search_words):
-            return (match_start, source_i - 1)
+            return (match_start, source_i - 1, matched_tokens)
         return None
 
     def search_all_phrases(
@@ -192,7 +195,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         source_tokens: 'List[Token]',
         search_phrases: List[Tuple[str, 'List[Token]']],
         dictionary: Optional[TokenDictionary] = None
-    ) -> List[Tuple[str, List[Tuple[int, int]]]]:
+    ) -> List[Tuple[str, List[Tuple[int, int, 'List[Token]']]]]:
         """
         Search all phrases in one pass using dictionary optimization.
         
@@ -202,7 +205,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             dictionary: Optional dictionary for faster lookup
             
         Returns:
-            List of (phrase_text, matches) tuples where matches is list of (start, end) tuples
+            List of (phrase_text, matches) tuples where matches is list of (start, end, tokens) tuples
         """
         if not source_tokens or not search_phrases:
             return []

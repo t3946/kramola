@@ -1,6 +1,6 @@
 import re
 from enum import Enum
-from typing import List, Optional, TypedDict, Tuple, Union
+from typing import List, Optional, TypedDict, Tuple, Union, Dict
 from services.pymorphy_service import CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
 from services.fulltext_search.strategies import (
@@ -51,6 +51,8 @@ class Match(TypedDict):
     end_token_idx: int
     lemma_key: Tuple[str, ...]
     match_type: str
+    search: str
+    found: Dict[str, Union[str, List[Token]]]
 
 
 class SearchStrategy(Enum):
@@ -127,7 +129,7 @@ class FulltextSearch:
         self,
         search_phrases: List[Tuple[str, Union[str, List[Token]]]],
         strategy: Optional[SearchStrategy] = None
-    ) -> List[Tuple[str, List[Tuple[int, int]]]]:
+    ) -> List[Tuple[str, List[Tuple[int, int, List[Token]]]]]:
         """
         Search all phrases in one pass.
         
@@ -136,7 +138,7 @@ class FulltextSearch:
             strategy: Search strategy to use (default: FUZZY_WORDS)
             
         Returns:
-            List of (phrase_text, matches) tuples where matches is list of (start, end) tuples
+            List of (phrase_text, matches) tuples where matches is list of (start, end, tokens) tuples
         """
         strategy_instance = FulltextSearch._get_strategy(strategy)
         
@@ -160,8 +162,12 @@ class FulltextSearch:
         results = []
 
         for phrase_text, text_or_tokens in search_phrases:
-            matches = self.search(text_or_tokens, strategy)
-            results.append((phrase_text, matches))
+            matches_indices = self.search(text_or_tokens, strategy)
+            matches_with_tokens = [
+                (start, end, self.source_tokens[start:end + 1])
+                for start, end in matches_indices
+            ]
+            results.append((phrase_text, matches_with_tokens))
 
         return results
 
