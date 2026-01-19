@@ -19,4 +19,5 @@ selenium
 odfpy
 pytest
 flask-socketio
+eventlet
 docx2pdf

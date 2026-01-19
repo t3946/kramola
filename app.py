@@ -81,8 +81,21 @@ app.config['EXECUTOR_TYPE'] = 'thread'  # или 'process'
 app.config['EXECUTOR_MAX_WORKERS'] = 5  # Количество одновременных фоновых задач
 executor = Executor(app)
 
-# Initialize SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading', logger=True, engineio_logger=True)
+#[start] Initialize SocketIO
+# Автоматически выбираем режим: eventlet для gunicorn (production), threading для flask run (development)
+socketio_async_mode = os.environ.get('SOCKETIO_ASYNC_MODE', None)
+
+if socketio_async_mode is None:
+    # Проверяем, запущено ли через gunicorn (для production)
+    # Gunicorn устанавливает переменную окружения SERVER_SOFTWARE
+    if os.environ.get('SERVER_SOFTWARE', '').startswith('gunicorn'):
+        socketio_async_mode = 'eventlet'
+    else:
+        # Для flask run и socketio.run() используем threading
+        socketio_async_mode = 'threading'
+
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode=socketio_async_mode, logger=True, engineio_logger=True)
+#[end]
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 # Общие директории

@@ -31,11 +31,12 @@ ENV PYTHONUNBUFFERED=1
 CMD [ \
     "gunicorn", \
     "--bind", "0.0.0.0:5000", \
+    "--worker-class", "eventlet", \
     "--workers", "1", \
     "--log-level", "debug", \
     "--access-logfile", "-", \
     "--error-logfile", "-", \
     "--timeout", "1800", \
     "--reload", \
-    "app:app" \
+    "app:socketio" \
 ]
