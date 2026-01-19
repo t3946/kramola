@@ -48,8 +48,6 @@ class BasePdfLongListsTest(
         if search_txt_path.exists():
             instance.validate_test_files(source_pdf_path, search_txt_path)
             search_terms = instance.load_search_terms_from_file(search_txt_path)
-        elif source_docx_path.exists():
-            search_terms = extract_lines_from_docx(str(source_docx_path))
             assert len(search_terms) > 0, f"No search terms found in {source_docx_path}"
 
         # Get predefined lists from class attribute
