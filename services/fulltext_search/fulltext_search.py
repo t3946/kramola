@@ -142,6 +142,9 @@ class FulltextSearch:
         """
         strategy_instance = FulltextSearch._get_strategy(strategy)
         
+        # [start] Optimized path: use dictionary-based search_all_phrases if available
+        # This approach uses TokenDictionary to find candidate positions (O(1) lookup)
+        # instead of scanning entire text for each phrase, significantly faster for multiple phrases
         if hasattr(strategy_instance, 'search_all_phrases'):
             search_phrases_tokens = []
 
@@ -158,7 +161,11 @@ class FulltextSearch:
                 search_phrases_tokens,
                 self.dictionary
             )
+        # [end]
 
+        # [start] Fallback: search each phrase separately with full text scan
+        # This is slower as it calls search() for each phrase, which does full text traversal
+        # Used when strategy doesn't implement optimized search_all_phrases method
         results = []
 
         for phrase_text, text_or_tokens in search_phrases:
@@ -170,6 +177,7 @@ class FulltextSearch:
             results.append((phrase_text, matches_with_tokens))
 
         return results
+        # [end]
 
     @staticmethod
     def tokenize_text(text: str) -> List[Token]:
