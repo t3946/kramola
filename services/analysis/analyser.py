@@ -1,7 +1,7 @@
 from typing import List, Tuple, TYPE_CHECKING
 from collections import defaultdict, Counter
 from services.fulltext_search.token import Token, TokenType
-from services.fulltext_search.fulltext_search import Match
+from services.analysis.analysis_match import AnalysisMatch, AnalysisMatchKind
 from services.fulltext_search.search_match import RegexSearchMatch, TextSearchMatch
 
 if TYPE_CHECKING:
@@ -32,19 +32,22 @@ class Analyser:
     def set_analyse_data(self, analyse_data: 'AnalysisData') -> None:
         self.analyse_data = analyse_data
 
-    def _update_match_statistics(self, match: Match, tokens: List[Token]) -> None:
-        start_token_idx = match['start_token_idx']
-        end_token_idx = match['end_token_idx']
+    def _update_match_statistics(self, match: AnalysisMatch, tokens: List[Token]) -> None:
+        search_match = match['search_match']
+        start_token_idx = search_match.start_token_idx
+        end_token_idx = search_match.end_token_idx
         lemma_key = match['lemma_key']
 
-        if match['type'] == 'phrase':
+        match_kind = match['kind']
+        
+        if match_kind == AnalysisMatchKind.PHRASE:
             phrase_key_str = " ".join(lemma_key)
             stats = self.phrase_stats[phrase_key_str]
             text_parts = [tokens[i].text for i in range(start_token_idx, end_token_idx + 1) if i < len(tokens)]
             found_text = "".join(text_parts).strip()
             stats['count'] += 1
             stats['forms'][found_text] += 1
-        elif match['type'] == 'word':
+        elif match_kind == AnalysisMatchKind.WORD:
             if lemma_key and len(lemma_key) == 1:
                 word_lemma = lemma_key[0]
                 stats = self.word_stats[word_lemma]
@@ -58,8 +61,8 @@ class Analyser:
             self,
             phrase_results: List[Tuple[str, List['SearchMatch']]],
             phrases_list: List['Phrase']
-    ) -> List[Match]:
-        matches: List[Match] = []
+    ) -> List[AnalysisMatch]:
+        matches: List[AnalysisMatch] = []
         # Create lookup dict for O(1) phrase access by text instead of O(n) list search
         phrase_dict = {phrase.phrase: phrase for phrase in phrases_list}
 
@@ -75,29 +78,29 @@ class Analyser:
                 continue
 
             lemma_key = tuple(token.lemma for token in search_words if token.lemma)
-            match_type = 'word' if len(search_words) == 1 else 'phrase'
 
             for search_match in found_matches:
                 # [start] Handle regex and text matches
                 found_text = ''.join(token.text for token in search_match.tokens if token.text)
                 
-                match_data = {
-                    'start_token_idx': search_match.start_token_idx,
-                    'end_token_idx': search_match.end_token_idx,
+                # [start] Determine match kind
+                if isinstance(search_match, RegexSearchMatch):
+                    match_kind = AnalysisMatchKind.REGEX
+                elif len(search_words) == 1:
+                    match_kind = AnalysisMatchKind.WORD
+                else:
+                    match_kind = AnalysisMatchKind.PHRASE
+                # [end]
+                
+                match_data: AnalysisMatch = {
                     'lemma_key': lemma_key,
-                    'type': match_type,
+                    'kind': match_kind,
+                    'search_match': search_match,
                     'found': {
                         'text': found_text,
                         'tokens': search_match.tokens,
                     },
                 }
-
-                if isinstance(search_match, RegexSearchMatch):
-                    match_data['match_type'] = 'regex'
-                    match_data['search'] = search_match.regex_info.pattern_name
-                elif isinstance(search_match, TextSearchMatch):
-                    match_data['match_type'] = 'lemma'
-                    match_data['search'] = phrase_text
 
                 matches.append(match_data)
                 # [end]

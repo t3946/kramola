@@ -14,7 +14,8 @@ from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analysis import AnalysisData
 from services.analysis.analyser import Analyser
-from services.fulltext_search.fulltext_search import FulltextSearch, Match, SearchStrategy
+from services.analysis.analysis_match import AnalysisMatch
+from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.fulltext_search.token import Token, TokenType
 from services.fulltext_search.dictionary import TokenDictionary
 from services.fulltext_search.phrase import Phrase
@@ -127,7 +128,7 @@ class AnalyserDocx(Analyser):
             self,
             source_tokens: List[Token],
             search_phrases: List[Phrase]
-    ) -> List[Match]:
+    ) -> List[AnalysisMatch]:
         """Search all phrases using optimized strategy with dictionary."""
         if not source_tokens or not search_phrases:
             return []
@@ -162,15 +163,16 @@ class AnalyserDocx(Analyser):
         source_tokens: List[Token] = FulltextSearch.tokenize_text(text)
         self._tokenize_time_total += time.time() - start_time
 
-        matches: List[Match] = self.__search_all_phrases(
+        matches: List[AnalysisMatch] = self.__search_all_phrases(
             source_tokens,
             self._search_phrases
         )
         # [end]
 
         for match in matches:
-            start_token_idx = match['start_token_idx']
-            end_token_idx = match['end_token_idx']
+            search_match = match['search_match']
+            start_token_idx = search_match.start_token_idx
+            end_token_idx = search_match.end_token_idx
 
             self._update_match_statistics(match, source_tokens)
 

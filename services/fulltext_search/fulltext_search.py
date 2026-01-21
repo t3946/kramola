@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, TypedDict, Tuple, Union, Dict
+from typing import List, Optional, Tuple, Union, Dict
 from services.pymorphy_service import CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
 from services.utils.regex_pattern import RegexPattern
@@ -46,16 +46,6 @@ STOP_WORDS_EN = {
     "have", "has", "had", "having", "do", "does", "did", "doing",
     "will", "would", "should", "could", "may", "might", "must", "can"
 }
-
-
-class Match(TypedDict):
-    type: str
-    start_token_idx: int
-    end_token_idx: int
-    lemma_key: Tuple[str, ...]
-    match_type: str
-    search: str
-    found: Dict[str, Union[str, List[Token]]]
 
 
 class SearchStrategy(Enum):

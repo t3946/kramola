@@ -101,8 +101,9 @@ class AnalyserPdf(Analyser):
 
         # [start] highlight each match
         for match in matches:
-            start_token_idx: int = match['start_token_idx']
-            end_token_idx: int = match['end_token_idx']
+            search_match = match['search_match']
+            start_token_idx: int = search_match.start_token_idx
+            end_token_idx: int = search_match.end_token_idx
             start_char_pos: int = all_tokens[start_token_idx].start
             end_char_pos: int = all_tokens[end_token_idx].end
 
