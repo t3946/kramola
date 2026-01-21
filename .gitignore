@@ -17,3 +17,7 @@ yarn.lock
 dist/
 .vite/
 static/js/bundle.js
+
+# python
+venv
+.venv
