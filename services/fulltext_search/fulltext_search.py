@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, Union, Dict
 from services.pymorphy_service import CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
 from services.utils.regex_pattern import RegexPattern
-from services.fulltext_search.search_match import SearchMatch, TextSearchMatch, RegexSearchMatch
+from services.fulltext_search.search_match import FTSMatch, FTSTextMatch, FTSRegexMatch
 from services.fulltext_search.strategies import (
     FuzzyWordsStrategy,
     FuzzyWordsPunctStrategy
@@ -123,7 +123,7 @@ class FulltextSearch:
         search_phrases: List[Tuple[str, Union[str, List[Token]]]],
         strategy: Optional[SearchStrategy] = None,
         regex_patterns: Optional[Dict[str, str]] = None
-    ) -> List[Tuple[str, List[SearchMatch]]]:
+    ) -> List[Tuple[str, List[FTSMatch]]]:
         """
         Search all phrases in one pass.
         
@@ -133,7 +133,7 @@ class FulltextSearch:
             regex_patterns: Optional dictionary of {pattern_name: pattern_string} for regex-based search
             
         Returns:
-            List of (phrase_text, matches) tuples where matches is list of SearchMatch objects
+            List of (phrase_text, matches) tuples where matches is list of FTSMatch objects
         """
         strategy_instance = FulltextSearch._get_strategy(strategy)
         
@@ -185,14 +185,14 @@ class FulltextSearch:
 
                 if key in regex_matches_map:
                     regex_info = regex_matches_map[key]
-                    matches.append(RegexSearchMatch(
+                    matches.append(FTSRegexMatch(
                         tokens=self.source_tokens[start:end + 1],
                         start_token_idx=start,
                         end_token_idx=end,
                         regex_info=regex_info
                     ))
                 else:
-                    matches.append(TextSearchMatch(
+                    matches.append(FTSTextMatch(
                         tokens=self.source_tokens[start:end + 1],
                         start_token_idx=start,
                         end_token_idx=end,

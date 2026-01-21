@@ -1,7 +1,7 @@
 from typing import List, Tuple, TYPE_CHECKING, Optional, Dict
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 from services.fulltext_search.dictionary import TokenDictionary
-from services.fulltext_search.search_match import TextSearchMatch, RegexSearchMatch, SearchMatch
+from services.fulltext_search.search_match import FTSTextMatch, FTSRegexMatch, FTSMatch
 from services.utils.regex_pattern import RegexPattern
 
 if TYPE_CHECKING:
@@ -137,7 +137,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         search_words: 'List[Token]',
         start_token_idx: int,
         phrase_text: str
-    ) -> Optional[TextSearchMatch]:
+    ) -> Optional[FTSTextMatch]:
         """
         Verify if phrase matches starting from start_token_idx.
         
@@ -148,7 +148,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             phrase_text: Text of the phrase being searched
             
         Returns:
-            SearchMatch if match found, None otherwise
+            FTSMatch if match found, None otherwise
         """
         source_i = start_token_idx
         search_j = 0
@@ -188,7 +188,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
 
         if words_matched == len(search_words):
             end_token_idx = source_i - 1
-            return TextSearchMatch(
+            return FTSTextMatch(
                 tokens=matched_tokens,
                 start_token_idx=start_token_idx,
                 end_token_idx=end_token_idx,
@@ -202,7 +202,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         search_phrases: List[Tuple[str, 'List[Token]']],
         dictionary: Optional[TokenDictionary] = None,
         regex_patterns: Optional[Dict[str, str]] = None
-    ) -> List[Tuple[str, List[SearchMatch]]]:
+    ) -> List[Tuple[str, List[FTSMatch]]]:
         """
         Search all phrases in one pass using dictionary optimization.
         
@@ -213,7 +213,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             regex_patterns: Optional dictionary of {pattern_name: pattern_string} for regex-based search
             
         Returns:
-            List of (phrase_text, matches) tuples where matches is list of SearchMatch objects
+            List of (phrase_text, matches) tuples where matches is list of FTSMatch objects
         """
         if not source_tokens or not search_phrases:
             return []
@@ -253,8 +253,8 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             for i, match in enumerate(matches):
                 key = (match.start_token_idx, match.end_token_idx)
                 if key in regex_matches_map:
-                    # Replace TextSearchMatch with RegexSearchMatch if regex matched
-                    matches[i] = RegexSearchMatch(
+                    # Replace FTSTextMatch with FTSRegexMatch if regex matched
+                    matches[i] = FTSRegexMatch(
                         tokens=match.tokens,
                         start_token_idx=match.start_token_idx,
                         end_token_idx=match.end_token_idx,

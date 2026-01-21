@@ -2,12 +2,12 @@ from typing import List, Tuple, TYPE_CHECKING
 from collections import defaultdict, Counter
 from services.fulltext_search.token import Token, TokenType
 from services.analysis.analysis_match import AnalysisMatch, AnalysisMatchKind
-from services.fulltext_search.search_match import RegexSearchMatch, TextSearchMatch
+from services.fulltext_search.search_match import FTSRegexMatch, FTSTextMatch
 
 if TYPE_CHECKING:
     from services.analysis.analysis_data import AnalysisData
     from services.fulltext_search.phrase import Phrase
-    from services.fulltext_search.search_match import SearchMatch
+    from services.fulltext_search.search_match import FTSMatch
 
 
 class Analyser:
@@ -59,7 +59,7 @@ class Analyser:
 
     def _convert_phrase_results_to_matches(
             self,
-            phrase_results: List[Tuple[str, List['SearchMatch']]],
+            phrase_results: List[Tuple[str, List['FTSMatch']]],
             phrases_list: List['Phrase']
     ) -> List[AnalysisMatch]:
         matches: List[AnalysisMatch] = []
@@ -84,7 +84,7 @@ class Analyser:
                 found_text = ''.join(token.text for token in search_match.tokens if token.text)
                 
                 # [start] Determine match kind
-                if isinstance(search_match, RegexSearchMatch):
+                if isinstance(search_match, FTSRegexMatch):
                     match_kind = AnalysisMatchKind.REGEX
                 elif len(search_words) == 1:
                     match_kind = AnalysisMatchKind.WORD

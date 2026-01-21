@@ -6,20 +6,20 @@ from services.fulltext_search.token import Token
 
 
 @dataclass
-class SearchMatch(ABC):
-    """Base class for search match results."""
+class FTSMatch(ABC):
+    """Base class for fulltext search match results."""
     tokens: List[Token]
     start_token_idx: int
     end_token_idx: int
 
 
 @dataclass
-class TextSearchMatch(SearchMatch):
-    """Result of a text-based search match."""
+class FTSTextMatch(FTSMatch):
+    """Result of a text-based fulltext search match."""
     search_text: str
 
 
 @dataclass
-class RegexSearchMatch(SearchMatch):
-    """Result of a regex-based search match."""
+class FTSRegexMatch(FTSMatch):
+    """Result of a regex-based fulltext search match."""
     regex_info: RegexPattern
