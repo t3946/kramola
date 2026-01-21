@@ -8,6 +8,7 @@ from services.words_list.list_prohibited_substances import ListProhibitedSubstan
 from services.words_list.list_swear_words import ListSwearWords
 from services.words_list import PredefinedListKey
 from services.utils.regex_pattern import RegexPattern
+from services.patterns.profanity_words import PROFANITY_WORDS_PATTERNS
 
 
 class AnalysisData:
@@ -64,6 +65,9 @@ class AnalysisData:
 
                         if text not in self.phrases:
                             self.phrases[text] = phrase
+
+                if key_enum == PredefinedListKey.PROFANITY:
+                    self.read_regex_patterns(PROFANITY_WORDS_PATTERNS)
 
     def read_from_docx(self, path: str) -> None:
         terms = extract_lines_from_docx(path)
