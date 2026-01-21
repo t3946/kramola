@@ -217,11 +217,6 @@ export default class AnalyseForm extends BaseComponent {
         this.formEl.addEventListener('submit', (event) => {
             event.preventDefault();
             this.errorPresenter?.clearClientError();
-
-            if (!this.validator) {
-                return;
-            }
-
             this.validator.validate();
         });
     }
