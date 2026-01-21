@@ -1,3 +1,4 @@
+from abc import ABC
 from dataclasses import dataclass
 from typing import List
 from services.utils.regex_pattern import RegexPattern
@@ -5,7 +6,7 @@ from services.fulltext_search.token import Token
 
 
 @dataclass
-class SearchMatch:
+class SearchMatch(ABC):
     """Base class for search match results."""
     tokens: List[Token]
     start_token_idx: int

@@ -136,7 +136,17 @@ class AnalyserDocx(Analyser):
         search_phrases_for_search: List[Tuple[str, List[Token]]] = [
             (phrase.phrase, phrase.tokens) for phrase in search_phrases
         ]
-        phrase_results = fulltext_search.search_all(search_phrases_for_search, SearchStrategy.FUZZY_WORDS_PUNCT)
+        regex_patterns_dict = None
+        if self.analyse_data.regex_patterns:
+            regex_patterns_dict = {
+                pattern.pattern_name: pattern.pattern 
+                for pattern in self.analyse_data.regex_patterns
+            }
+        phrase_results = fulltext_search.search_all(
+            search_phrases_for_search, 
+            SearchStrategy.FUZZY_WORDS_PUNCT,
+            regex_patterns=regex_patterns_dict
+        )
 
         return self._convert_phrase_results_to_matches(phrase_results, search_phrases)
 

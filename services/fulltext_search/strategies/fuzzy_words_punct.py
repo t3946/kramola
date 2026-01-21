@@ -1,7 +1,8 @@
 from typing import List, Tuple, TYPE_CHECKING, Optional, Dict
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 from services.fulltext_search.dictionary import TokenDictionary
-from services.fulltext_search.search_match import TextSearchMatch, SearchMatch
+from services.fulltext_search.search_match import TextSearchMatch, RegexSearchMatch, SearchMatch
+from services.utils.regex_pattern import RegexPattern
 
 if TYPE_CHECKING:
     from services.fulltext_search.token import Token, TokenType
@@ -199,7 +200,8 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         self,
         source_tokens: 'List[Token]',
         search_phrases: List[Tuple[str, 'List[Token]']],
-        dictionary: Optional[TokenDictionary] = None
+        dictionary: Optional[TokenDictionary] = None,
+        regex_patterns: Optional[Dict[str, str]] = None
     ) -> List[Tuple[str, List[SearchMatch]]]:
         """
         Search all phrases in one pass using dictionary optimization.
@@ -208,6 +210,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             source_tokens: Source tokens
             search_phrases: List of (phrase_text, tokens) tuples
             dictionary: Optional dictionary for faster lookup
+            regex_patterns: Optional dictionary of {pattern_name: pattern_string} for regex-based search
             
         Returns:
             List of (phrase_text, matches) tuples where matches is list of SearchMatch objects
@@ -217,6 +220,15 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
 
         if dictionary is None:
             dictionary = TokenDictionary(source_tokens)
+
+        # [start] Get regex matches if patterns provided
+        regex_matches_map: Dict[Tuple[int, int], RegexPattern] = {}
+        if regex_patterns:
+            regex_matches = self.search_regex_matches(source_tokens, regex_patterns=regex_patterns)
+            for regex_match in regex_matches:
+                key = (regex_match.start_token_idx, regex_match.end_token_idx)
+                regex_matches_map[key] = regex_match.pattern
+        # [end]
 
         results = []
 
@@ -236,6 +248,19 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
 
                 if match_result:
                     matches.append(match_result)
+
+            # [start] Check if any matches overlap with regex matches
+            for i, match in enumerate(matches):
+                key = (match.start_token_idx, match.end_token_idx)
+                if key in regex_matches_map:
+                    # Replace TextSearchMatch with RegexSearchMatch if regex matched
+                    matches[i] = RegexSearchMatch(
+                        tokens=match.tokens,
+                        start_token_idx=match.start_token_idx,
+                        end_token_idx=match.end_token_idx,
+                        regex_info=regex_matches_map[key]
+                    )
+            # [end]
 
             results.append((phrase_text, matches))
 

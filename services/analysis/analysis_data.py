@@ -7,13 +7,16 @@ from services.words_list.list_profanity import ListProfanity
 from services.words_list.list_prohibited_substances import ListProhibitedSubstances
 from services.words_list.list_swear_words import ListSwearWords
 from services.words_list import PredefinedListKey
+from services.utils.regex_pattern import RegexPattern
 
 
 class AnalysisData:
     phrases: Dict[str, Phrase]
+    regex_patterns: List[RegexPattern]
 
     def __init__(self, terms: Optional[List[str]] = None) -> None:
         self.phrases = {}
+        self.regex_patterns = []
 
         if terms is not None:
             self.read_from_list(terms)
@@ -25,6 +28,17 @@ class AnalysisData:
 
                 if text not in self.phrases:
                     self.phrases[text] = Phrase(text)
+
+    def read_regex_patterns(self, patterns: Dict[str, str]) -> None:
+        """Load regex patterns for search.
+        
+        Args:
+            patterns: Dictionary mapping pattern_name to pattern_string
+        """
+        for pattern_name, pattern_str in patterns.items():
+            if pattern_name and pattern_str and pattern_str.strip():
+                regex_pattern = RegexPattern(pattern_name=pattern_name, pattern=pattern_str.strip())
+                self.regex_patterns.append(regex_pattern)
 
     def load_predefined_lists(self, list_keys: List[str]) -> None:
         """Load ready-made Phrase objects from Redis lists by their keys."""

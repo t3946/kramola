@@ -131,7 +131,8 @@ class FulltextSearch:
     def search_all(
         self,
         search_phrases: List[Tuple[str, Union[str, List[Token]]]],
-        strategy: Optional[SearchStrategy] = None
+        strategy: Optional[SearchStrategy] = None,
+        regex_patterns: Optional[Dict[str, str]] = None
     ) -> List[Tuple[str, List[SearchMatch]]]:
         """
         Search all phrases in one pass.
@@ -139,6 +140,7 @@ class FulltextSearch:
         Args:
             search_phrases: List of (phrase_text, text_or_tokens) tuples
             strategy: Search strategy to use (default: FUZZY_WORDS)
+            regex_patterns: Optional dictionary of {pattern_name: pattern_string} for regex-based search
             
         Returns:
             List of (phrase_text, matches) tuples where matches is list of SearchMatch objects
@@ -162,7 +164,8 @@ class FulltextSearch:
             return strategy_instance.search_all_phrases(
                 self.source_tokens,
                 search_phrases_tokens,
-                self.dictionary
+                self.dictionary,
+                regex_patterns=regex_patterns
             )
         # [end]
 
@@ -173,8 +176,11 @@ class FulltextSearch:
 
         # Get regex matches if strategy supports them
         regex_matches_map: Dict[Tuple[int, int], RegexPattern] = {}
-        if hasattr(strategy_instance, 'search_regex_matches'):
-            regex_matches = strategy_instance.search_regex_matches(self.source_tokens)
+        if hasattr(strategy_instance, 'search_regex_matches') and regex_patterns:
+            regex_matches = strategy_instance.search_regex_matches(
+                self.source_tokens,
+                regex_patterns=regex_patterns
+            )
 
             for regex_match in regex_matches:
                 key = (regex_match.start_token_idx, regex_match.end_token_idx)

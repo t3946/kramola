@@ -63,7 +63,17 @@ class AnalyserPdf(Analyser):
             (phrase.phrase, phrase.tokens) for phrase in phrases_list
         ]
         fulltext_search = FulltextSearch(all_tokens)
-        phrase_results = fulltext_search.search_all(search_phrases_for_search, SearchStrategy.FUZZY_WORDS_PUNCT)
+        regex_patterns_dict = None
+        if self.analyse_data.regex_patterns:
+            regex_patterns_dict = {
+                pattern.pattern_name: pattern.pattern 
+                for pattern in self.analyse_data.regex_patterns
+            }
+        phrase_results = fulltext_search.search_all(
+            search_phrases_for_search, 
+            SearchStrategy.FUZZY_WORDS_PUNCT,
+            regex_patterns=regex_patterns_dict
+        )
         
         matches = self._convert_phrase_results_to_matches(phrase_results, phrases_list)
 

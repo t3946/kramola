@@ -2,6 +2,7 @@ from typing import List, Tuple, TYPE_CHECKING
 from collections import defaultdict, Counter
 from services.fulltext_search.token import Token, TokenType
 from services.fulltext_search.fulltext_search import Match
+from services.fulltext_search.search_match import RegexSearchMatch, TextSearchMatch
 
 if TYPE_CHECKING:
     from services.analysis.analysis_data import AnalysisData
@@ -77,18 +78,29 @@ class Analyser:
             match_type = 'word' if len(search_words) == 1 else 'phrase'
 
             for search_match in found_matches:
-                matches.append({
+                # [start] Handle regex and text matches
+                found_text = ''.join(token.text for token in search_match.tokens if token.text)
+                
+                match_data = {
                     'start_token_idx': search_match.start_token_idx,
                     'end_token_idx': search_match.end_token_idx,
                     'lemma_key': lemma_key,
                     'type': match_type,
-                    'match_type': 'lemma',
-                    'search': phrase_text,
                     'found': {
-                        'text': ''.join(token.text for token in search_match.tokens if token.text),
+                        'text': found_text,
                         'tokens': search_match.tokens,
                     },
-                })
+                }
+
+                if isinstance(search_match, RegexSearchMatch):
+                    match_data['match_type'] = 'regex'
+                    match_data['search'] = search_match.regex_info.pattern_name
+                elif isinstance(search_match, TextSearchMatch):
+                    match_data['match_type'] = 'lemma'
+                    match_data['search'] = phrase_text
+
+                matches.append(match_data)
+                # [end]
 
         return matches
 
