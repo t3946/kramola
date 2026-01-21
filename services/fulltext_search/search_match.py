@@ -8,9 +8,9 @@ from services.fulltext_search.token import Token
 @dataclass
 class FTSMatch(ABC):
     """Base class for fulltext search match results."""
-    tokens: List[Token]
-    start_token_idx: int
-    end_token_idx: int
+    tokens: List[Token]  # found tokens sequence
+    start_token_idx: int  # found tokens sequence start
+    end_token_idx: int  # found tokens sequence end
 
 
 @dataclass

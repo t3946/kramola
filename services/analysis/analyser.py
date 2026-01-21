@@ -39,7 +39,7 @@ class Analyser:
         lemma_key = match['lemma_key']
 
         match_kind = match['kind']
-        
+
         if match_kind == AnalysisMatchKind.PHRASE:
             phrase_key_str = " ".join(lemma_key)
             stats = self.phrase_stats[phrase_key_str]
@@ -69,29 +69,34 @@ class Analyser:
         for phrase_text, found_matches in phrase_results:
             phrase = phrase_dict.get(phrase_text)
 
-            if phrase is None:
-                continue
+            # [start] get lemma key
+            lemma_key = None
 
-            search_words = [t for t in phrase.tokens if t.type == TokenType.WORD]
+            # todo: lemma key is obsolete
+            if phrase:
+                search_words: List[Token] = [t for t in phrase.tokens if t.type == TokenType.WORD]
 
-            if len(search_words) == 0:
-                continue
+                if len(search_words) == 0:
+                    continue
 
-            lemma_key = tuple(token.lemma for token in search_words if token.lemma)
+                lemma_key = tuple(token.lemma for token in search_words if token.lemma)
+            # [end]
 
+            # Handle regex and text matches
             for search_match in found_matches:
-                # [start] Handle regex and text matches
                 found_text = ''.join(token.text for token in search_match.tokens if token.text)
-                
+
                 # [start] Determine match kind
                 if isinstance(search_match, FTSRegexMatch):
                     match_kind = AnalysisMatchKind.REGEX
-                elif len(search_words) == 1:
-                    match_kind = AnalysisMatchKind.WORD
-                else:
-                    match_kind = AnalysisMatchKind.PHRASE
+
+                if isinstance(search_match, FTSTextMatch):
+                    if len(search_match.tokens) == 1:
+                        match_kind = AnalysisMatchKind.WORD
+                    else:
+                        match_kind = AnalysisMatchKind.PHRASE
                 # [end]
-                
+
                 match_data: AnalysisMatch = {
                     'lemma_key': lemma_key,
                     'kind': match_kind,
@@ -103,7 +108,6 @@ class Analyser:
                 }
 
                 matches.append(match_data)
-                # [end]
 
         return matches
 
@@ -126,4 +130,3 @@ class Analyser:
         }
 
         return {'word_stats': final_ws, 'phrase_stats': final_ps, 'total_matches': total_matches}
-

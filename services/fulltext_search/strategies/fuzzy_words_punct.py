@@ -215,53 +215,54 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         Returns:
             List of (phrase_text, matches) tuples where matches is list of FTSMatch objects
         """
-        if not source_tokens or not search_phrases:
+        if not source_tokens or not (search_phrases or regex_patterns):
             return []
 
         if dictionary is None:
             dictionary = TokenDictionary(source_tokens)
 
-        # [start] Get regex matches if patterns provided
-        regex_matches_map: Dict[Tuple[int, int], RegexPattern] = {}
+        result_matches: List[Tuple[str, List[FTSMatch]]] = []
+
+        # [start] search regex matches if patterns provided
+        regex_matches_map: Dict[Tuple[int, int], FTSRegexMatch] = {}
+
         if regex_patterns:
-            regex_matches = self.search_regex_matches(source_tokens, regex_patterns=regex_patterns)
+            regex_matches: List[FTSRegexMatch] = self.search_regex_matches(source_tokens, regex_patterns=regex_patterns)
+
             for regex_match in regex_matches:
                 key = (regex_match.start_token_idx, regex_match.end_token_idx)
-                regex_matches_map[key] = regex_match.pattern
+                regex_matches_map[key] = regex_match
         # [end]
 
-        results = []
+        # [start] search text matches
+        text_matches_map: Dict[Tuple[int, int], FTSTextMatch] = {}
 
         for phrase_text, search_tokens in search_phrases:
             search_words = [t for t in search_tokens if t.type == TokenType.WORD]
 
             if len(search_words) == 0:
-                results.append((phrase_text, []))
+                result_matches.append((phrase_text, []))
                 continue
 
             first_word = search_words[0]
             candidate_starts = dictionary.find_candidate_positions(first_word)
-            matches = []
+            matches: List[FTSTextMatch] = []
 
             for start_idx in candidate_starts:
-                match_result = self._verify_phrase_match(source_tokens, search_words, start_idx, phrase_text)
+                text_match = self._verify_phrase_match(source_tokens, search_words, start_idx, phrase_text)
 
-                if match_result:
-                    matches.append(match_result)
+                if text_match:
+                    matches.append(text_match)
 
-            # [start] Check if any matches overlap with regex matches
-            for i, match in enumerate(matches):
-                key = (match.start_token_idx, match.end_token_idx)
-                if key in regex_matches_map:
-                    # Replace FTSTextMatch with FTSRegexMatch if regex matched
-                    matches[i] = FTSRegexMatch(
-                        tokens=match.tokens,
-                        start_token_idx=match.start_token_idx,
-                        end_token_idx=match.end_token_idx,
-                        regex_info=regex_matches_map[key]
-                    )
-            # [end]
+            result_matches.append((phrase_text, matches))
 
-            results.append((phrase_text, matches))
+        # [start] merge text and regex matches
+        for start, end in regex_matches_map.keys():
+            text_match: FTSTextMatch = text_matches_map.get((start, end))
+            regex_match: FTSRegexMatch = regex_matches_map.get((start, end))
 
-        return results
+            if text_match is None:
+                result_matches.append(('regex ' + regex_match.regex_info.pattern_name, [regex_match]))
+        # [end]
+
+        return result_matches

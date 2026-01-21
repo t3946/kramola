@@ -1,8 +1,8 @@
 import re
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import List, Tuple, TYPE_CHECKING, Optional, Dict
 from services.utils.regex_pattern import RegexPattern
+from services.fulltext_search.search_match import FTSRegexMatch
 
 if TYPE_CHECKING:
     from services.fulltext_search.token import Token
@@ -11,23 +11,15 @@ else:
     from services.fulltext_search.token import Token
 
 
-@dataclass
-class RegexMatch:
-    """Information about a regex pattern match."""
-    start_token_idx: int
-    end_token_idx: int
-    pattern: RegexPattern
-    matched_text: str
-
-
 class BaseSearchStrategy(ABC):
     """Base class for search strategies."""
 
     def search_regex_matches(
         self,
         source_tokens: 'List[Token]',
-        regex_patterns: Optional[Dict[str, str]] = None
-    ) -> List[RegexMatch]:
+        regex_patterns: Optional[Dict[str, str]] = None,
+        greedy: bool = False,
+    ) -> List[FTSRegexMatch]:
         """
         Search regex pattern matches in concatenated text.
         
@@ -42,9 +34,9 @@ class BaseSearchStrategy(ABC):
             regex_patterns: Optional dictionary of {pattern_name: pattern_string} for regex-based search
             
         Returns:
-            List of RegexMatch objects with token indices and pattern info
+            List of FTSRegexMatch objects with token indices and pattern info
         """
-        if not source_tokens or not regex_patterns:
+        if not source_tokens or not (regex_patterns or regex_patterns):
             return []
 
         # Build concatenated text and token position mapping
@@ -57,29 +49,29 @@ class BaseSearchStrategy(ABC):
             end_pos = len(concatenated_text)
             token_positions.append((start_pos, end_pos))
 
-        concatenated_text_lower = concatenated_text.lower()
-        matches: List[RegexMatch] = []
+        concatenated_text_lower: str = concatenated_text.lower()
+        matches: List[FTSRegexMatch] = []
 
         # Search all patterns in concatenated text
         for pattern_name, pattern_str in regex_patterns.items():
+            #todo: это уже делалось в analysis_data
             regex_pattern = RegexPattern(pattern_name=pattern_name, pattern=pattern_str)
             compiled_pattern = regex_pattern.compiled
 
             for match in compiled_pattern.finditer(concatenated_text_lower):
                 match_start = match.start()
                 match_end = match.end()
-                matched_text = match.group(0)
 
                 # Find tokens that cover this match
                 start_token_idx = self._find_token_by_position(token_positions, match_start)
                 end_token_idx = self._find_token_by_position(token_positions, match_end - 1)
 
                 if start_token_idx is not None and end_token_idx is not None:
-                    matches.append(RegexMatch(
+                    matches.append(FTSRegexMatch(
+                        tokens=source_tokens[start_token_idx:end_token_idx + 1],
                         start_token_idx=start_token_idx,
                         end_token_idx=end_token_idx,
-                        pattern=regex_pattern,
-                        matched_text=matched_text
+                        regex_info=regex_pattern
                     ))
 
         return matches

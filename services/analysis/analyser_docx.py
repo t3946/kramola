@@ -123,7 +123,6 @@ class AnalyserDocx(Analyser):
 
         return new_batch
 
-
     def __search_all_phrases(
             self,
             source_tokens: List[Token],
@@ -138,13 +137,15 @@ class AnalyserDocx(Analyser):
             (phrase.phrase, phrase.tokens) for phrase in search_phrases
         ]
         regex_patterns_dict = None
+
         if self.analyse_data.regex_patterns:
             regex_patterns_dict = {
-                pattern.pattern_name: pattern.pattern 
+                pattern.pattern_name: pattern.pattern
                 for pattern in self.analyse_data.regex_patterns
             }
+
         phrase_results = fulltext_search.search_all(
-            search_phrases_for_search, 
+            search_phrases_for_search,
             SearchStrategy.FUZZY_WORDS_PUNCT,
             regex_patterns=regex_patterns_dict
         )
@@ -221,18 +222,18 @@ class AnalyserDocx(Analyser):
         """Build dictionary from entire document text."""
         if self._progress:
             self._progress.setValue(0, ProgressType.PREPARATION)
-        
+
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables
 
         # [start] count total paragraphs for progress
         total_paragraphs = len(paragraphs)
-        
+
         for table in tables:
             for row in table.rows:
                 for cell in row.cells:
                     total_paragraphs += len(cell.paragraphs)
-        
+
         if self._progress:
             self._progress.setMax(total_paragraphs, ProgressType.PREPARATION)
         # [end]
@@ -243,7 +244,7 @@ class AnalyserDocx(Analyser):
         for paragraph in paragraphs:
             paragraph_tokens = FulltextSearch.tokenize_text(paragraph.text)
             all_tokens.extend(paragraph_tokens)
-            
+
             if self._progress:
                 self._progress.add(1, ProgressType.PREPARATION)
 
@@ -253,7 +254,7 @@ class AnalyserDocx(Analyser):
                     for paragraph in cell.paragraphs:
                         paragraph_tokens = FulltextSearch.tokenize_text(paragraph.text)
                         all_tokens.extend(paragraph_tokens)
-                        
+
                         if self._progress:
                             self._progress.add(1, ProgressType.PREPARATION)
         # [end]

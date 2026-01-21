@@ -174,7 +174,7 @@ class FulltextSearch:
 
             for regex_match in regex_matches:
                 key = (regex_match.start_token_idx, regex_match.end_token_idx)
-                regex_matches_map[key] = regex_match.pattern
+                regex_matches_map[key] = regex_match.regex_info
 
         for phrase_text, text_or_tokens in search_phrases:
             matches_indices = self.search(text_or_tokens, strategy)
