@@ -1,4 +1,4 @@
-from typing import List, Tuple, TYPE_CHECKING, Optional
+from typing import List, Tuple, TYPE_CHECKING, Optional, Dict
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 
 if TYPE_CHECKING:
@@ -14,6 +14,7 @@ class FuzzyWordsStrategy(BaseSearchStrategy):
     
     Words can match by lemma/stem, but token types and order must be exact.
     """
+
     @staticmethod
     def _compare_token_sequences(
         source_tokens: 'List[Token]',

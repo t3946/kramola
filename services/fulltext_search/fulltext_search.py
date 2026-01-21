@@ -1,8 +1,11 @@
 import re
+from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, TypedDict, Tuple, Union, Dict
 from services.pymorphy_service import CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
+from services.utils.regex_pattern import RegexPattern
+from services.fulltext_search.search_match import SearchMatch
 from services.fulltext_search.strategies import (
     FuzzyWordsStrategy,
     FuzzyWordsPunctStrategy
@@ -129,7 +132,7 @@ class FulltextSearch:
         self,
         search_phrases: List[Tuple[str, Union[str, List[Token]]]],
         strategy: Optional[SearchStrategy] = None
-    ) -> List[Tuple[str, List[Tuple[int, int, List[Token]]]]]:
+    ) -> List[Tuple[str, List[SearchMatch]]]:
         """
         Search all phrases in one pass.
         
@@ -138,7 +141,7 @@ class FulltextSearch:
             strategy: Search strategy to use (default: FUZZY_WORDS)
             
         Returns:
-            List of (phrase_text, matches) tuples where matches is list of (start, end, tokens) tuples
+            List of (phrase_text, matches) tuples where matches is list of SearchMatch objects
         """
         strategy_instance = FulltextSearch._get_strategy(strategy)
         
@@ -168,13 +171,37 @@ class FulltextSearch:
         # Used when strategy doesn't implement optimized search_all_phrases method
         results = []
 
+        # Get regex matches if strategy supports them
+        regex_matches_map: Dict[Tuple[int, int], RegexPattern] = {}
+        if hasattr(strategy_instance, 'search_regex_matches'):
+            regex_matches = strategy_instance.search_regex_matches(self.source_tokens)
+
+            for regex_match in regex_matches:
+                key = (regex_match.start_token_idx, regex_match.end_token_idx)
+                regex_matches_map[key] = regex_match.pattern
+
         for phrase_text, text_or_tokens in search_phrases:
             matches_indices = self.search(text_or_tokens, strategy)
-            matches_with_tokens = [
-                (start, end, self.source_tokens[start:end + 1])
-                for start, end in matches_indices
-            ]
-            results.append((phrase_text, matches_with_tokens))
+            matches = []
+
+            for start, end in matches_indices:
+                key = (start, end)
+
+                if key in regex_matches_map:
+                    regex_info = regex_matches_map[key]
+                    matches.append(SearchMatch(
+                        tokens=self.source_tokens[start:end + 1],
+                        search_text=None,
+                        regex_info=regex_info
+                    ))
+                else:
+                    matches.append(SearchMatch(
+                        tokens=self.source_tokens[start:end + 1],
+                        search_text=phrase_text,
+                        regex_info=None
+                    ))
+
+            results.append((phrase_text, matches))
 
         return results
         # [end]
