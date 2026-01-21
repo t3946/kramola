@@ -1,7 +1,7 @@
 from typing import List, Tuple, TYPE_CHECKING, Optional, Dict
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 from services.fulltext_search.dictionary import TokenDictionary
-from services.fulltext_search.search_match import SearchMatch
+from services.fulltext_search.search_match import TextSearchMatch, SearchMatch
 
 if TYPE_CHECKING:
     from services.fulltext_search.token import Token, TokenType
@@ -136,7 +136,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         search_words: 'List[Token]',
         start_token_idx: int,
         phrase_text: str
-    ) -> Optional[SearchMatch]:
+    ) -> Optional[TextSearchMatch]:
         """
         Verify if phrase matches starting from start_token_idx.
         
@@ -151,7 +151,6 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         """
         source_i = start_token_idx
         search_j = 0
-        match_start = None
         words_matched = 0
         source_len = len(source_tokens)
         matched_tokens: 'List[Token]' = []
@@ -165,9 +164,6 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                 continue
 
             search_token = search_words[search_j]
-
-            if match_start is None:
-                match_start = source_i
 
             if source_token.type == TokenType.WORD:
                 source_text = source_token.text
@@ -190,10 +186,12 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                 return None
 
         if words_matched == len(search_words):
-            return SearchMatch(
+            end_token_idx = source_i - 1
+            return TextSearchMatch(
                 tokens=matched_tokens,
-                search_text=phrase_text,
-                regex_info=None
+                start_token_idx=start_token_idx,
+                end_token_idx=end_token_idx,
+                search_text=phrase_text
             )
         return None
 

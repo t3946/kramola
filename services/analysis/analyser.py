@@ -6,6 +6,7 @@ from services.fulltext_search.fulltext_search import Match
 if TYPE_CHECKING:
     from services.analysis.analysis_data import AnalysisData
     from services.fulltext_search.phrase import Phrase
+    from services.fulltext_search.search_match import SearchMatch
 
 
 class Analyser:
@@ -54,7 +55,7 @@ class Analyser:
 
     def _convert_phrase_results_to_matches(
             self,
-            phrase_results: List[Tuple[str, List[Tuple[int, int, List[Token]]]]],
+            phrase_results: List[Tuple[str, List['SearchMatch']]],
             phrases_list: List['Phrase']
     ) -> List[Match]:
         matches: List[Match] = []
@@ -75,17 +76,17 @@ class Analyser:
             lemma_key = tuple(token.lemma for token in search_words if token.lemma)
             match_type = 'word' if len(search_words) == 1 else 'phrase'
 
-            for start_token_idx, end_token_idx, matched_tokens in found_matches:
+            for search_match in found_matches:
                 matches.append({
-                    'start_token_idx': start_token_idx,
-                    'end_token_idx': end_token_idx,
+                    'start_token_idx': search_match.start_token_idx,
+                    'end_token_idx': search_match.end_token_idx,
                     'lemma_key': lemma_key,
                     'type': match_type,
                     'match_type': 'lemma',
                     'search': phrase_text,
                     'found': {
-                        'text': ''.join(token.text for token in matched_tokens if token.text),
-                        'tokens': matched_tokens,
+                        'text': ''.join(token.text for token in search_match.tokens if token.text),
+                        'tokens': search_match.tokens,
                     },
                 })
 

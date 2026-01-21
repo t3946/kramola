@@ -1,17 +1,24 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 from services.utils.regex_pattern import RegexPattern
 from services.fulltext_search.token import Token
 
 
 @dataclass
 class SearchMatch:
-    """Result of a search match with information about how it was found."""
+    """Base class for search match results."""
     tokens: List[Token]
-    search_text: Optional[str] = None
-    regex_info: Optional[RegexPattern] = None
+    start_token_idx: int
+    end_token_idx: int
 
-    def __post_init__(self):
-        """Validate that either search_text or regex_info is provided."""
-        if self.search_text is None and self.regex_info is None:
-            raise ValueError("Either search_text or regex_info must be provided")
+
+@dataclass
+class TextSearchMatch(SearchMatch):
+    """Result of a text-based search match."""
+    search_text: str
+
+
+@dataclass
+class RegexSearchMatch(SearchMatch):
+    """Result of a regex-based search match."""
+    regex_info: RegexPattern

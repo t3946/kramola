@@ -5,7 +5,7 @@ from typing import List, Optional, TypedDict, Tuple, Union, Dict
 from services.pymorphy_service import CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
 from services.utils.regex_pattern import RegexPattern
-from services.fulltext_search.search_match import SearchMatch
+from services.fulltext_search.search_match import SearchMatch, TextSearchMatch, RegexSearchMatch
 from services.fulltext_search.strategies import (
     FuzzyWordsStrategy,
     FuzzyWordsPunctStrategy
@@ -189,16 +189,18 @@ class FulltextSearch:
 
                 if key in regex_matches_map:
                     regex_info = regex_matches_map[key]
-                    matches.append(SearchMatch(
+                    matches.append(RegexSearchMatch(
                         tokens=self.source_tokens[start:end + 1],
-                        search_text=None,
+                        start_token_idx=start,
+                        end_token_idx=end,
                         regex_info=regex_info
                     ))
                 else:
-                    matches.append(SearchMatch(
+                    matches.append(TextSearchMatch(
                         tokens=self.source_tokens[start:end + 1],
-                        search_text=phrase_text,
-                        regex_info=None
+                        start_token_idx=start,
+                        end_token_idx=end,
+                        search_text=phrase_text
                     ))
 
             results.append((phrase_text, matches))
