@@ -74,8 +74,13 @@ class AnalyserPdf(Analyser):
             SearchStrategy.FUZZY_WORDS_PUNCT,
             regex_patterns=regex_patterns_dict
         )
+
+        #todo: dev only simplify
+        fts_matches = []
+        for _, fts_match in phrase_results:
+            fts_matches.extend(fts_match)
         
-        matches = self._convert_phrase_results_to_matches(phrase_results, phrases_list)
+        matches = self._convert_fts_matches(fts_matches)
 
         for match in matches:
             self._update_match_statistics(match, all_tokens)
@@ -101,7 +106,7 @@ class AnalyserPdf(Analyser):
 
         # [start] highlight each match
         for match in matches:
-            search_match = match['search_match']
+            search_match = match.search_match
             start_token_idx: int = search_match.start_token_idx
             end_token_idx: int = search_match.end_token_idx
             start_char_pos: int = all_tokens[start_token_idx].start

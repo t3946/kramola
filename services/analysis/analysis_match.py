@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum
 from typing import TypedDict, Tuple, Dict, Union, List, Optional
 from services.fulltext_search.token import Token
@@ -10,11 +11,9 @@ class AnalysisMatchKind(Enum):
     PHRASE = "phrase"
     REGEX = "regex"
 
-
-class AnalysisMatch(TypedDict):
+@dataclass
+class AnalysisMatch:
     """Match result enriched with analysis metadata."""
     kind: AnalysisMatchKind
-    #todo: lemma_key obsolete
-    lemma_key: Optional[Tuple[str, ...]]
     search_match: Union[FTSTextMatch, FTSRegexMatch]
     found: Dict[str, Union[str, List[Token]]]

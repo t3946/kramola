@@ -150,7 +150,12 @@ class AnalyserDocx(Analyser):
             regex_patterns=regex_patterns_dict
         )
 
-        return self._convert_phrase_results_to_matches(phrase_results, search_phrases)
+        #todo: dev only simplify
+        fts_matches = []
+        for _, fts_match in phrase_results:
+            fts_matches.append(fts_match)
+
+        return self._convert_fts_matches(fts_matches)
 
     def __process_batch(self, batch: List[CT_R]) -> None:
         text = ''

@@ -1,4 +1,4 @@
-from typing import List, Tuple, TYPE_CHECKING
+from typing import List, Tuple, TYPE_CHECKING, Union
 from collections import defaultdict, Counter
 from services.fulltext_search.token import Token, TokenType
 from services.analysis.analysis_match import AnalysisMatch, AnalysisMatchKind
@@ -33,21 +33,20 @@ class Analyser:
         self.analyse_data = analyse_data
 
     def _update_match_statistics(self, match: AnalysisMatch, tokens: List[Token]) -> None:
-        search_match = match['search_match']
+        search_match = match.search_match
         start_token_idx = search_match.start_token_idx
         end_token_idx = search_match.end_token_idx
-        lemma_key = match['lemma_key']
+        # todo: замена lemma_key на search_text
+        lemma_key = match.search_match.search_text
 
-        match_kind = match['kind']
-
-        if match_kind == AnalysisMatchKind.PHRASE:
+        if match.kind == AnalysisMatchKind.PHRASE:
             phrase_key_str = " ".join(lemma_key)
             stats = self.phrase_stats[phrase_key_str]
             text_parts = [tokens[i].text for i in range(start_token_idx, end_token_idx + 1) if i < len(tokens)]
             found_text = "".join(text_parts).strip()
             stats['count'] += 1
             stats['forms'][found_text] += 1
-        elif match_kind == AnalysisMatchKind.WORD:
+        elif match.kind == AnalysisMatchKind.WORD:
             if lemma_key and len(lemma_key) == 1:
                 word_lemma = lemma_key[0]
                 stats = self.word_stats[word_lemma]
@@ -57,59 +56,54 @@ class Analyser:
                     stats['count'] += 1
                     stats['forms'][found_text.lower()] += 1
 
-    def _convert_phrase_results_to_matches(
-            self,
-            phrase_results: List[Tuple[str, List['FTSMatch']]],
-            phrases_list: List['Phrase']
+    @staticmethod
+    def _convert_fts_matches(
+            fts_matches: List[Union[FTSTextMatch, FTSRegexMatch]],
     ) -> List[AnalysisMatch]:
-        matches: List[AnalysisMatch] = []
+        """
+        Convert FTSMatch results to AnalysisMatch results.
+        """
+        analyser_matches: List[AnalysisMatch] = []
+
         # Create lookup dict for O(1) phrase access by text instead of O(n) list search
-        phrase_dict = {phrase.phrase: phrase for phrase in phrases_list}
+        for fts_match in fts_matches:
+            found_text = ''.join(token.text for token in fts_match.tokens if token.text)
 
-        for phrase_text, found_matches in phrase_results:
-            phrase = phrase_dict.get(phrase_text)
+            # [start] Determine match kind
+            match_kind = AnalysisMatchKind.WORD
 
-            # [start] get lemma key
-            lemma_key = None
+            if isinstance(fts_match, FTSRegexMatch):
+                match_kind = AnalysisMatchKind.REGEX
 
-            # todo: lemma key is obsolete
-            if phrase:
-                search_words: List[Token] = [t for t in phrase.tokens if t.type == TokenType.WORD]
-
-                if len(search_words) == 0:
-                    continue
-
-                lemma_key = tuple(token.lemma for token in search_words if token.lemma)
+            if isinstance(fts_match, FTSTextMatch):
+                if len(fts_match.tokens) > 1:
+                    match_kind = AnalysisMatchKind.PHRASE
             # [end]
 
-            # Handle regex and text matches
-            for search_match in found_matches:
-                found_text = ''.join(token.text for token in search_match.tokens if token.text)
+            # [start] filter matches unique by found tokens
+            is_unique = True
 
-                # [start] Determine match kind
-                if isinstance(search_match, FTSRegexMatch):
-                    match_kind = AnalysisMatchKind.REGEX
+            for match in analyser_matches:
+                fts_m1 = match.search_match
+                fts_m2 = fts_match
 
-                if isinstance(search_match, FTSTextMatch):
-                    if len(search_match.tokens) == 1:
-                        match_kind = AnalysisMatchKind.WORD
-                    else:
-                        match_kind = AnalysisMatchKind.PHRASE
-                # [end]
+                # compare found tokens
+                if fts_m1.start_token_idx == fts_m2.start_token_idx and fts_m1.end_token_idx == fts_m2.end_token_idx:
+                    is_unique = False
+            # [end]
 
-                match_data: AnalysisMatch = {
-                    'lemma_key': lemma_key,
-                    'kind': match_kind,
-                    'search_match': search_match,
-                    'found': {
+            if is_unique:
+                # cast fts match to analysis match
+                analyser_matches.append(AnalysisMatch(
+                    kind=match_kind,
+                    search_match=fts_match,
+                    found={
                         'text': found_text,
-                        'tokens': search_match.tokens,
-                    },
-                }
+                        'tokens': fts_match.tokens,
+                    }
+                ))
 
-                matches.append(match_data)
-
-        return matches
+        return analyser_matches
 
     def _get_stats_result(self) -> dict:
         total_matches = sum(d['count'] for d in self.word_stats.values()) + sum(
