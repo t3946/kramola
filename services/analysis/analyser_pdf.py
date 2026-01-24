@@ -5,6 +5,7 @@ import pymupdf
 from typing import List, Optional, Tuple
 from collections import defaultdict, Counter
 from services.analysis.analyser import Analyser
+from services.analysis.stats import StatsPDF
 from services.fulltext_search.token import Token
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.utils.timeit import timeit
@@ -86,6 +87,7 @@ class AnalyserPdf(Analyser):
 
         matches = self._convert_fts_matches(fts_matches)
 
+        self.stats = StatsPDF(matches)
         for match in matches:
             self._update_match_statistics(match)
         # [end]

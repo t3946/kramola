@@ -1,5 +1,7 @@
 from typing import List, Tuple, TYPE_CHECKING, Union
 from collections import defaultdict, Counter
+
+from services.analysis.stats import StatsPDF
 from services.fulltext_search.token import Token, TokenType
 from services.analysis.analysis_match import AnalysisMatch, AnalysisMatchKind
 from services.fulltext_search.search_match import FTSRegexMatch, FTSTextMatch
@@ -14,6 +16,7 @@ class Analyser:
     analyse_data: 'AnalysisData'
     word_stats: defaultdict
     phrase_stats: defaultdict
+    stats: StatsPDF
     HIGHLIGHT_COLOR: Tuple[float, float, float] = (0.0, 1.0, 0.0)
 
     def __init__(self) -> None:
@@ -33,7 +36,11 @@ class Analyser:
         self.analyse_data = analyse_data
 
     def _update_match_statistics(self, match: AnalysisMatch) -> None:
-        search_text = match.search_match.search_text
+        if isinstance(match.search_match, FTSTextMatch):
+            search_text = match.search_match.search_text
+        else:
+            search_text = 'regex pattern'
+
         found_text = match.found['text'].lower()
 
         if match.kind == AnalysisMatchKind.PHRASE:
@@ -45,6 +52,11 @@ class Analyser:
             stats = self.word_stats[search_text]
             stats['count'] += 1
             stats['forms'][found_text] += 1
+
+        # if match.kind == AnalysisMatchKind.REGEX:
+            # self.word_stats <- нету для этих
+            # stats['count'] += 1
+            # stats['forms'][found_text] += 1
 
     @staticmethod
     def _convert_fts_matches(
