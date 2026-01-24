@@ -32,29 +32,19 @@ class Analyser:
     def set_analyse_data(self, analyse_data: 'AnalysisData') -> None:
         self.analyse_data = analyse_data
 
-    def _update_match_statistics(self, match: AnalysisMatch, tokens: List[Token]) -> None:
-        search_match = match.search_match
-        start_token_idx = search_match.start_token_idx
-        end_token_idx = search_match.end_token_idx
-        # todo: замена lemma_key на search_text
-        lemma_key = match.search_match.search_text
+    def _update_match_statistics(self, match: AnalysisMatch) -> None:
+        search_text = match.search_match.search_text
+        found_text = match.found['text'].lower()
 
         if match.kind == AnalysisMatchKind.PHRASE:
-            phrase_key_str = " ".join(lemma_key)
-            stats = self.phrase_stats[phrase_key_str]
-            text_parts = [tokens[i].text for i in range(start_token_idx, end_token_idx + 1) if i < len(tokens)]
-            found_text = "".join(text_parts).strip()
+            stats = self.phrase_stats[search_text]
             stats['count'] += 1
             stats['forms'][found_text] += 1
-        elif match.kind == AnalysisMatchKind.WORD:
-            if lemma_key and len(lemma_key) == 1:
-                word_lemma = lemma_key[0]
-                stats = self.word_stats[word_lemma]
 
-                if start_token_idx < len(tokens):
-                    found_text = tokens[start_token_idx].text
-                    stats['count'] += 1
-                    stats['forms'][found_text.lower()] += 1
+        if match.kind == AnalysisMatchKind.WORD:
+            stats = self.word_stats[search_text]
+            stats['count'] += 1
+            stats['forms'][found_text] += 1
 
     @staticmethod
     def _convert_fts_matches(

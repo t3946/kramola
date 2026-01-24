@@ -180,7 +180,7 @@ class AnalyserDocx(Analyser):
             start_token_idx = search_match.start_token_idx
             end_token_idx = search_match.end_token_idx
 
-            self._update_match_statistics(match, source_tokens)
+            self._update_match_statistics(match)
 
             for i in range(start_token_idx, end_token_idx + 1):
                 token = source_tokens[i]
