@@ -1,5 +1,5 @@
 from typing import List
-from abc import ABC
+from abc import ABC, abstractmethod
 from services.analysis.analysis_match import AnalysisMatch, AnalysisMatchKind
 from services.analysis.stats.stat_item import StatItem
 
@@ -11,4 +11,8 @@ class Stats(ABC):
         self.matches = matches
 
     def get(self, match_type: AnalysisMatchKind) -> List[StatItem]:
+        pass
+
+    @abstractmethod
+    def add(self, match: AnalysisMatch) -> None:
         pass

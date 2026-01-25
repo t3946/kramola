@@ -1,4 +1,5 @@
 from typing import List, Dict
+from dataclasses import asdict
 from services.analysis.analysis_match import AnalysisMatch
 from services.analysis.stats.base import Stats
 from services.analysis.stats.pdf.stat_form import StatForm
@@ -50,3 +51,14 @@ class StatsPDF(Stats):
         # [end]
 
         stat_item.total += 1
+
+    def asdict(self) -> List[dict]:
+        stats_list = []
+
+        for search_item, stat_item in self.stats.items():
+            stat_dict = asdict(stat_item)
+            stat_dict['search'] = asdict(search_item)
+            stat_dict['search']['kind'] = search_item.kind.value
+            stats_list.append(stat_dict)
+
+        return stats_list
