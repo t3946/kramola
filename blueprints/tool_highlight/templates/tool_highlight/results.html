@@ -34,25 +34,26 @@
     <!-- Блок статистики слов -->
     <div class="card">
         <h3>Найденные слова и их вхождения:</h3>
+
         <div class="stats-table">
-            {% if word_stats_sorted %}
+            {% if word_stats %}
                 <table class="word-stats">
                     <thead>
                         <tr>
-                            <th>Лемма</th>
+                            <th>Строка</th>
                             <th>Количество</th>
                             <th>Найденные формы (кол-во)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for lemma, data in word_stats_sorted %}
-                            <tr data-lemma="{{ lemma }}">
-                                <td>{{ lemma }}</td>
-                                <td>{{ data.count }}</td>
+                        {% for stat_item in word_stats %}
+                            <tr>
+                                <td>{{ stat_item.search.text }}</td>
+                                <td>{{ stat_item.total }}</td>
                                 <td>
-                                    {% for form, count in data.forms.items() | sort %}
-                                        <span class="word-form" data-lemma="{{ lemma }}" data-original="{{ form }}">
-                                            {{ form }} ({{ count }})
+                                    {% for form_item in stat_item.forms.values() %}
+                                        <span class="word-form">
+                                            {{ form_item['form'] }} ({{ form_item['count'] }}) (стр. {{ form_item['pages'] | join(', ') }})
                                         </span>
                                         {% if not loop.last %}, {% endif %}
                                     {% endfor %}
@@ -71,31 +72,27 @@
     <div class="card">
         <h3>Найденные фразы и их вхождения:</h3>
         <div class="stats-table">
-            {% if phrase_stats_sorted %}
+            {% if phrase_stats %}
                 <table class="word-stats">
                     <thead>
                         <tr>
-                            <th>Фраза (по леммам)</th>
+                            <th>Строка</th>
                             <th>Количество</th>
-                            <th>Найденные варианты (кол-во)</th>
+                            <th>Найденные формы (кол-во)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for phrase_lemma_str, data in phrase_stats_sorted %}
-                            <tr data-phrase="{{ phrase_lemma_str }}">
-                                <td>{{ phrase_lemma_str }}</td>
-                                <td>{{ data.count }}</td>
+                        {% for stat_item in phrase_stats %}
+                            <tr>
+                                <td>{{ stat_item.search.text }}</td>
+                                <td>{{ stat_item.total }}</td>
                                 <td>
-                                    {% if data.forms %}
-                                        {% for form, count in data.forms.items() | sort %}
-                                            <span class="phrase-form" data-phrase-lemma="{{ phrase_lemma_str }}" data-original="{{ form }}">
-                                                "{{ form }}" ({{ count }})
-                                            </span>
-                                            {% if not loop.last %}; {% endif %}
-                                        {% endfor %}
-                                    {% else %}
-                                        -
-                                    {% endif %}
+                                    {% for form_item in stat_item.forms.values() %}
+                                        <span class="phrase-form">
+                                            {{ form_item['form'] }} ({{ form_item['count'] }}) (стр. {{ form_item['pages'] | join(', ') }})
+                                        </span>
+                                        {% if not loop.last %}, {% endif %}
+                                    {% endfor %}
                                 </td>
                             </tr>
                         {% endfor %}
@@ -103,6 +100,42 @@
                 </table>
             {% else %}
                 <p class="note">Фразы из списка не найдены в документе.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Блок статистики паттернов -->
+    <div class="card">
+        <h3>Найденные паттерны и их вхождения:</h3>
+        <div class="stats-table">
+            {% if pattern_stats %}
+                <table class="word-stats">
+                    <thead>
+                        <tr>
+                            <th>Строка</th>
+                            <th>Количество</th>
+                            <th>Найденные формы (кол-во)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat_item in pattern_stats %}
+                            <tr>
+                                <td>{{ stat_item.search.text }}</td>
+                                <td>{{ stat_item.total }}</td>
+                                <td>
+                                    {% for form_item in stat_item.forms.values() %}
+                                        <span class="pattern-form">
+                                            {{ form_item['form'] }} ({{ form_item['count'] }}) (стр. {{ form_item['pages'] | join(', ') }})
+                                        </span>
+                                        {% if not loop.last %}, {% endif %}
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p class="note">Паттерны из списка не найдены в документе.</p>
             {% endif %}
         </div>
     </div>

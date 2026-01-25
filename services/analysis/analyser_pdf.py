@@ -88,8 +88,8 @@ class AnalyserPdf(Analyser):
         matches = self._convert_fts_matches(fts_matches)
 
         self.stats = StatsPDF(matches)
-        for match in matches:
-            self._update_match_statistics(match)
+        # for match in matches:
+            # self._update_match_statistics(match)
         # [end]
 
         if use_ocr:

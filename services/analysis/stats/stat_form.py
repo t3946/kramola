@@ -1,9 +1,9 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import List
 
 
 @dataclass
 class StatForm:
     count: int
     form: str
-    page: Optional[int] = None  # only for PDF
+    pages: List[int]

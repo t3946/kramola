@@ -2,14 +2,11 @@
 
 import os
 import time
-import traceback
 import uuid
 import json  # Для сериализации/десериализации данных в Redis
-from collections import Counter
 from typing import List
 
-from services.analysis import AnalysisData, AnalyserDocx
-from services.words_list import PredefinedListKey
+from services.analysis import AnalysisData, AnalyserDocx, AnalysisMatchKind
 from services.task import TaskStatus
 
 
@@ -23,8 +20,6 @@ from services.highlight_upload import (
 )
 from services.pymorphy_service import (
     prepare_search_terms,
-    get_highlight_search_data,
-    get_highlight_phrase_map,
     reset_caches
 )
 from services.analysis.analyser_pdf import AnalyserPdf
@@ -74,7 +69,7 @@ def _perform_highlight_processing(
                 "state": TaskStatus.PROCESSING.value, "status_message": status_message
             })
             redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
-            
+
             from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
             TaskProgressRoom.send_status(task_id, TaskStatus.PROCESSING.value, status_message)
         except Exception as e_redis:
@@ -100,6 +95,7 @@ def _perform_highlight_processing(
             # Возвращаем пустую статистику, так как документ не обрабатывался
             task_result_data['word_stats'] = {}
             task_result_data['phrase_stats'] = {}
+            task_result_data['stats'] = {}
             task_result_data['total_matches'] = 0
             final_status_for_redis = TaskStatus.COMPLETED
             logger.info(f"[Task {task_id}] List processing completed. Lists: {used_predefined_list_names_for_session}")
@@ -116,11 +112,11 @@ def _perform_highlight_processing(
             if is_docx_source:
                 # prepare words for search
                 analyse_data = AnalysisData()
-                
+
                 # Load ready-made Phrase objects from words_list
                 if selected_list_keys:
                     analyse_data.load_predefined_lists(selected_list_keys)
-                
+
                 analyse_data.read_from_list(all_search_lines_clean)
 
                 # search words in document
@@ -140,6 +136,11 @@ def _perform_highlight_processing(
                 analyser.set_analyse_data(analyse_data)
                 analysis_results = analyser.analyse_and_highlight(task_id=task_id, use_ocr=perform_ocr)
                 analyser.save(output_path)
+
+                # [start] serialize stats
+                if hasattr(analyser, 'stats') and analyser.stats:
+                    analysis_results['stats'] = analyser.stats.asdict()
+                # [end]
 
             if analysis_results is None:
                 task_result_data['error'] = 'Ошибка анализа документа (сервис анализа вернул None).'
@@ -173,7 +174,7 @@ def _perform_highlight_processing(
                 }
                 redis_client.hmset(f"task:{task_id}", redis_payload)
                 redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
-                
+
                 from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
                 TaskProgressRoom.send_status(task_id, final_status_for_redis.value, status_message)
             except Exception as e_redis:
@@ -245,7 +246,7 @@ def process_async():
                 predefined_lists_dir=PREDEFINED_LISTS_DIR,
                 predefined_lists=PREDEFINED_LISTS
             )
-            
+
             source_path = upload_result['source_path']
             source_filename_original = upload_result['source_filename_original']
             words_path = upload_result['words_path']
@@ -255,7 +256,7 @@ def process_async():
             file_ext = upload_result['file_ext']
             used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
             selected_list_keys = upload_result.get('selected_list_keys', [])
-            
+
             # Если нет исходного документа, но есть списки, устанавливаем значения по умолчанию
             if not source_path and used_predefined_list_names_for_session:
                 is_docx_source = None
@@ -278,7 +279,7 @@ def process_async():
                 })
                 redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
                 logger.info(f"[Req {task_id}] Task state PENDING saved to Redis.")
-                
+
                 from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
                 TaskProgressRoom.send_status(task_id, TaskStatus.PENDING.value, "Задача принята в очередь")
             except Exception as e_redis:
@@ -369,14 +370,14 @@ def process_async():
 def results():
     logger = current_app.logger
     task_id = request.args.get('task_id')
-    
+
     if not task_id:
         logger.warning("Access to /results without task_id parameter. Redirecting to index.")
         return redirect(url_for('highlight.index'))
-    
+
     from services.task.result import TaskResult
     last_result_data = TaskResult.load(task_id)
-    
+
     if not last_result_data:
         logger.warning(f"Access to /results with task_id {task_id} but no result data found. Redirecting to index.")
         return redirect(url_for('highlight.index'))
@@ -426,26 +427,37 @@ def results():
         logger.info(
             f"Displaying results for task {task_id_for_template} with no downloadable file (total_matches: {last_result_data.get('total_matches', 0)}).")
 
-    # --- НОВЫЙ БЛОК: ИЗВЛЕЧЕНИЕ И СОРТИРОВКА СТАТИСТИКИ ---
-    word_stats = last_result_data.get('word_stats', {})
-    phrase_stats = last_result_data.get('phrase_stats', {})
-
-    # Сортируем статистику для отображения в шаблоне
-    # .items() возвращает пары (ключ, значение), sorted() сортирует по ключу (лемме/фразе)
-    word_stats_sorted = sorted(word_stats.items()) if word_stats else []
-    phrase_stats_sorted = sorted(phrase_stats.items()) if phrase_stats else []
-    # ----------------------------------------------------
-
     # Передаем отсортированные списки и флаг отсутствия файла в шаблон
     # Исключаем ключи, которые передаются явно, чтобы избежать дублирования
-    excluded_keys = {'task_id', 'word_stats_sorted', 'phrase_stats_sorted', 'result_file_missing', '_task_id_ref', 'word_stats', 'phrase_stats'}
+    excluded_keys = {'task_id', 'word_stats_sorted', 'phrase_stats_sorted', 'result_file_missing', '_task_id_ref', 'word_stats', 'phrase_stats', 'stats'}
     template_data = {k: v for k, v in last_result_data.items() if k not in excluded_keys}
+
+
+    #[start] count stat
+    stats = last_result_data.get('stats', {})
+    word_stats = []
+    phrase_stats = []
+    pattern_stats = []
+
+    for stat_item in stats:
+        kind_value = stat_item['search']['kind']
+        
+        if kind_value == AnalysisMatchKind.WORD.value:
+            word_stats.append(stat_item)
+        elif kind_value == AnalysisMatchKind.PHRASE.value:
+            phrase_stats.append(stat_item)
+        elif kind_value == AnalysisMatchKind.REGEX.value:
+            pattern_stats.append(stat_item)
+    #[end]
+
     return render_template(
         'tool_highlight/results.html',
         task_id=task_id_for_template,
-        word_stats_sorted=word_stats_sorted,  # <--- Передаем отсортированный список
-        phrase_stats_sorted=phrase_stats_sorted,  # <--- Передаем отсортированный список
-        result_file_missing=result_file_missing,  # <--- Передаем флаг
+        word_stats=word_stats,
+        phrase_stats=phrase_stats,
+        pattern_stats=pattern_stats,
+        result_file_missing=result_file_missing,
+        stats=stats,
         **template_data  # Передаем остальные данные (filename, time, etc.)
     )
 

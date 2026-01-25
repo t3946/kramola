@@ -5,8 +5,9 @@ from services.analysis.stats.stat_item import StatItem
 
 
 class StatsDocx(Stats):
-    stats: List[StatItem]
-
     def __init__(self, matches: List[AnalysisMatch]) -> None:
         super().__init__(matches)
         self.stats: List[StatItem] = []
+
+        for match in matches:
+            self.add(match)
