@@ -17,7 +17,7 @@ class BaseSearchStrategy(ABC):
     def search_regex_matches(
         self,
         source_tokens: 'List[Token]',
-        regex_patterns: Optional[Dict[str, str]] = None,
+        regex_patterns: Optional[Dict[str, RegexPattern]] = None,
         greedy: bool = False,
     ) -> List[FTSRegexMatch]:
         """
@@ -31,12 +31,12 @@ class BaseSearchStrategy(ABC):
         
         Args:
             source_tokens: Tokens from source text
-            regex_patterns: Optional dictionary of {pattern_name: pattern_string} for regex-based search
+            regex_patterns: Optional dictionary of {pattern_name: RegexPattern} for regex-based search
             
         Returns:
             List of FTSRegexMatch objects with token indices and pattern info
         """
-        if not source_tokens or not (regex_patterns or regex_patterns):
+        if not source_tokens or not regex_patterns:
             return []
 
         # Build concatenated text and token position mapping
@@ -53,9 +53,7 @@ class BaseSearchStrategy(ABC):
         matches: List[FTSRegexMatch] = []
 
         # Search all patterns in concatenated text
-        for pattern_name, pattern_str in regex_patterns.items():
-            #todo: это уже делалось в analysis_data
-            regex_pattern = RegexPattern(pattern_name=pattern_name, pattern=pattern_str)
+        for pattern_name, regex_pattern in regex_patterns.items():
             compiled_pattern = regex_pattern.compiled
 
             for match in compiled_pattern.finditer(concatenated_text_lower):

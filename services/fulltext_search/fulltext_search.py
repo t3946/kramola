@@ -122,7 +122,7 @@ class FulltextSearch:
         self,
         search_phrases: List[Tuple[str, Union[str, List[Token]]]],
         strategy: Optional[SearchStrategy] = None,
-        regex_patterns: Optional[Dict[str, str]] = None
+        regex_patterns: Optional[Dict[str, RegexPattern]] = None
     ) -> List[Tuple[str, List[FTSMatch]]]:
         """
         Search all phrases in one pass.
@@ -130,7 +130,7 @@ class FulltextSearch:
         Args:
             search_phrases: List of (phrase_text, text_or_tokens) tuples
             strategy: Search strategy to use (default: FUZZY_WORDS)
-            regex_patterns: Optional dictionary of {pattern_name: pattern_string} for regex-based search
+            regex_patterns: Optional dictionary of {pattern_name: RegexPattern} for regex-based search
             
         Returns:
             List of (phrase_text, matches) tuples where matches is list of FTSMatch objects

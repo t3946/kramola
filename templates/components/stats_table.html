@@ -1,15 +1,3 @@
-{#
-Шаблон компонента StatsTable для отображения статистики (слов, фраз, паттернов)
-
-Использование:
-{% set stats_title = 'Найденные слова и их вхождения:' %}
-{% set stats_data = word_stats %}
-{% set stats_form_class = 'word-form' %}
-{% set stats_empty_message = 'Одиночные слова из списка не найдены в документе.' %}
-{% include 'components/stats_table.html' with context %}
-#}
-
-{# Параметры по умолчанию #}
 {% set stats_title = stats_title | default('Статистика') %}
 {% set stats_data = stats_data | default([]) %}
 {% set stats_form_class = stats_form_class | default('form') %}
@@ -30,15 +18,15 @@
                 <tbody>
                     {% for stat_item in stats_data %}
                         <tr>
-                            <td>{{ stat_item.search.text }}</td>
-                            <td>{{ stat_item.total }}</td>
+                            <td>{{ stat_item['search']['text'] }}</td>
+                            <td>{{ stat_item['total'] }}</td>
                             <td>
-                                {% for form_item in stat_item.forms.values() %}
+                                {% for form_key, form_item in stat_item['forms'].items() %}
                                     <span class="{{ stats_form_class }}">
                                         {{ form_item['form'] }} ({{ form_item['count'] }})
 
-                                        {% if form_item.pages %}
-                                            (стр. {{ form_item.pages | join(', ') }})
+                                        {% if form_item['pages'] %}
+                                            (стр. {{ form_item['pages'] | join(', ') }})
                                         {% endif %}
                                     </span>
                                     {% if not loop.last %}, {% endif %}

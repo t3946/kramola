@@ -201,7 +201,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         source_tokens: 'List[Token]',
         search_phrases: List[Tuple[str, 'List[Token]']],
         dictionary: Optional[TokenDictionary] = None,
-        regex_patterns: Optional[Dict[str, str]] = None
+        regex_patterns: Optional[Dict[str, RegexPattern]] = None
     ) -> List[Tuple[str, List[FTSMatch]]]:
         """
         Search all phrases in one pass using dictionary optimization.
@@ -210,7 +210,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             source_tokens: Source tokens
             search_phrases: List of (phrase_text, tokens) tuples
             dictionary: Optional dictionary for faster lookup
-            regex_patterns: Optional dictionary of {pattern_name: pattern_string} for regex-based search
+            regex_patterns: Optional dictionary of {pattern_name: RegexPattern} for regex-based search
             
         Returns:
             List of (phrase_text, matches) tuples where matches is list of FTSMatch objects

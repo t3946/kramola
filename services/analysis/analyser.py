@@ -1,27 +1,20 @@
 from typing import List, Tuple, TYPE_CHECKING, Union
-from collections import defaultdict, Counter
 
-from services.analysis.stats import StatsPDF
-from services.fulltext_search.token import Token, TokenType
+from services.analysis.stats import Stats
 from services.analysis.analysis_match import AnalysisMatch, AnalysisMatchKind
 from services.fulltext_search.search_match import FTSRegexMatch, FTSTextMatch
 
 if TYPE_CHECKING:
     from services.analysis.analysis_data import AnalysisData
-    from services.fulltext_search.phrase import Phrase
-    from services.fulltext_search.search_match import FTSMatch
 
 
 class Analyser:
     analyse_data: 'AnalysisData'
-    word_stats: defaultdict
-    phrase_stats: defaultdict
-    stats: StatsPDF
+    stats: Stats
     HIGHLIGHT_COLOR: Tuple[float, float, float] = (0.0, 1.0, 0.0)
 
     def __init__(self) -> None:
-        self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
-        self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
+        self.stats = None
 
     def get_highlight_color_pdf(self) -> Tuple[float, float, float]:
         return self.HIGHLIGHT_COLOR
@@ -34,29 +27,6 @@ class Analyser:
 
     def set_analyse_data(self, analyse_data: 'AnalysisData') -> None:
         self.analyse_data = analyse_data
-
-    def _update_match_statistics(self, match: AnalysisMatch) -> None:
-        if isinstance(match.search_match, FTSTextMatch):
-            search_text = match.search_match.search_text
-        else:
-            search_text = 'regex pattern'
-
-        found_text = match.found['text'].lower()
-
-        if match.kind == AnalysisMatchKind.PHRASE:
-            stats = self.phrase_stats[search_text]
-            stats['count'] += 1
-            stats['forms'][found_text] += 1
-
-        if match.kind == AnalysisMatchKind.WORD:
-            stats = self.word_stats[search_text]
-            stats['count'] += 1
-            stats['forms'][found_text] += 1
-
-        # if match.kind == AnalysisMatchKind.REGEX:
-            # self.word_stats <- нету для этих
-            # stats['count'] += 1
-            # stats['forms'][found_text] += 1
 
     @staticmethod
     def _convert_fts_matches(
@@ -108,21 +78,7 @@ class Analyser:
         return analyser_matches
 
     def _get_stats_result(self) -> dict:
-        total_matches = sum(d['count'] for d in self.word_stats.values()) + sum(
-            d['count'] for d in self.phrase_stats.values()
-        )
+        stats_list = self.stats.asdict() if self.stats else []
+        total_matches = sum(item['total'] for item in stats_list)
 
-        final_ws = {
-            l: {
-                'count': d['count'],
-                'forms': dict(d['forms'])
-            } for l, d in self.word_stats.items()
-        }
-        final_ps = {
-            phrase_lemma_str: {
-                'count': d['count'],
-                'forms': dict(d['forms'])
-            } for phrase_lemma_str, d in self.phrase_stats.items()
-        }
-
-        return {'word_stats': final_ws, 'phrase_stats': final_ps, 'total_matches': total_matches}
+        return {'stats': stats_list, 'total_matches': total_matches}

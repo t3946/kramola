@@ -75,9 +75,9 @@ class TestSpeedFlList(BaseSpeedTest):
 
         # [start] Basic validation (no expected results check)
         assert analysis_results is not None, "Analysis returned None"
-        assert 'word_stats' in analysis_results, "Missing word_stats in results"
-        assert 'phrase_stats' in analysis_results, "Missing phrase_stats in results"
+        assert 'stats' in analysis_results, "Missing stats in results"
         assert 'total_matches' in analysis_results, "Missing total_matches in results"
+        assert isinstance(analysis_results['stats'], list), "stats should be list"
         assert isinstance(analysis_results['total_matches'], int), "total_matches should be int"
         # [end]
 

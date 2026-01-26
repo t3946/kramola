@@ -1,7 +1,8 @@
 import docx
 import time
 from typing import List, Union, Optional, Tuple, Dict, TYPE_CHECKING
-from collections import defaultdict, Counter
+
+from services.analysis.stats import StatsDocx
 
 if TYPE_CHECKING:
     from services.progress.docx.combined_progress import CombinedProgress
@@ -41,6 +42,7 @@ class AnalyserDocx(Analyser):
         self._global_document_dictionary = None
         self._search_phrases = []
         self._progress = None
+        self.stats = StatsDocx([])
 
     @staticmethod
     def __clone_run(source_run: CT_R, new_text: str, highlight: bool, highlight_val: str) -> CT_R:
@@ -140,7 +142,7 @@ class AnalyserDocx(Analyser):
 
         if self.analyse_data.regex_patterns:
             regex_patterns_dict = {
-                pattern.pattern_name: pattern.pattern
+                pattern.pattern_name: pattern
                 for pattern in self.analyse_data.regex_patterns
             }
 
@@ -150,12 +152,16 @@ class AnalyserDocx(Analyser):
             regex_patterns=regex_patterns_dict
         )
 
-        #todo: dev only simplify
+        # [start] todo: dev only simplify
         fts_matches = []
-        for _, fts_match in phrase_results:
-            fts_matches.append(fts_match)
 
-        return self._convert_fts_matches(fts_matches)
+        for _, fts_match in phrase_results:
+            fts_matches.extend(fts_match)
+        # [end]
+
+        matches = self._convert_fts_matches(fts_matches)
+
+        return matches
 
     def __process_batch(self, batch: List[CT_R]) -> None:
         text = ''
@@ -176,11 +182,10 @@ class AnalyserDocx(Analyser):
         # [end]
 
         for match in matches:
-            search_match = match['search_match']
+            self.stats.add(match)
+            search_match = match.search_match
             start_token_idx = search_match.start_token_idx
             end_token_idx = search_match.end_token_idx
-
-            self._update_match_statistics(match)
 
             for i in range(start_token_idx, end_token_idx + 1):
                 token = source_tokens[i]
@@ -300,11 +305,8 @@ class AnalyserDocx(Analyser):
 
     @timeit
     def analyse_and_highlight(self, task_id: Optional[str] = None) -> dict:
-        # [start] reset stats
-        self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
-        self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
+        self.stats = StatsDocx([])
         self._search_phrases = []
-        # [end]
 
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables

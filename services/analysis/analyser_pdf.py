@@ -1,9 +1,7 @@
-import os
 import re
 import pymupdf
 
 from typing import List, Optional, Tuple
-from collections import defaultdict, Counter
 from services.analysis.analyser import Analyser
 from services.analysis.stats import StatsPDF
 from services.fulltext_search.token import Token
@@ -35,8 +33,6 @@ class AnalyserPdf(Analyser):
 
     @timeit
     def analyse_and_highlight(self, task_id: Optional[str] = None, use_ocr: bool = False) -> dict:
-        self.word_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
-        self.phrase_stats = defaultdict(lambda: {'count': 0, 'forms': Counter()})
         self.document = pymupdf.open(self.source_path)
 
         pages_to_process = len(self.document)
@@ -68,7 +64,7 @@ class AnalyserPdf(Analyser):
 
         if self.analyse_data.regex_patterns:
             regex_patterns_dict = {
-                pattern.pattern_name: pattern.pattern 
+                pattern.pattern_name: pattern
                 for pattern in self.analyse_data.regex_patterns
             }
 
@@ -88,8 +84,6 @@ class AnalyserPdf(Analyser):
         matches = self._convert_fts_matches(fts_matches)
 
         self.stats = StatsPDF(matches)
-        # for match in matches:
-            # self._update_match_statistics(match)
         # [end]
 
         if use_ocr:

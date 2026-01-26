@@ -23,8 +23,7 @@ class TestOutputMixin:
         """
         print(f"Test passed: Found {results['total_matches']} matches")
         print(f"  Search terms: {search_terms}")
-        print(f"  Word stats keys (lemmas): {list(results['word_stats'].keys())}")
-        print(f"  Phrase stats keys (lemmas): {list(results['phrase_stats'].keys())}")
+        print(f"  Stats items count: {len(results['stats'])}")
         print(f"  Output PDF: {output_pdf_path}")
         print(f"  Stats JSON: {stats_json_path}")
 

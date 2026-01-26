@@ -6,7 +6,3 @@ from services.analysis.stats.base import Stats
 class StatsPDF(Stats):
     def __init__(self, matches: List[AnalysisMatch]) -> None:
         super().__init__(matches)
-        self.stats = {}
-
-        for match in matches:
-            self.add(match)

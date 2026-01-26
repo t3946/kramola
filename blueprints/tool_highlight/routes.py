@@ -79,7 +79,7 @@ def _perform_highlight_processing(
     task_result_data = {
         'source_filename': source_filename_original,
         'words_filename': words_filename_original,
-        'result_filename': None, 'word_stats': {}, 'phrase_stats': {}, 'total_matches': 0,
+        'result_filename': None, 'stats': [], 'total_matches': 0,
         'processing_time': 0, 'used_predefined_lists': used_predefined_list_names_for_session,
         'error': None, '_task_id_ref': task_id
     }
@@ -93,9 +93,7 @@ def _perform_highlight_processing(
             # Подготавливаем данные для статистики списков (без обработки документа)
             prepared_data_unified = prepare_search_terms(all_search_lines_clean)
             # Возвращаем пустую статистику, так как документ не обрабатывался
-            task_result_data['word_stats'] = {}
-            task_result_data['phrase_stats'] = {}
-            task_result_data['stats'] = {}
+            task_result_data['stats'] = []
             task_result_data['total_matches'] = 0
             final_status_for_redis = TaskStatus.COMPLETED
             logger.info(f"[Task {task_id}] List processing completed. Lists: {used_predefined_list_names_for_session}")
@@ -136,11 +134,6 @@ def _perform_highlight_processing(
                 analyser.set_analyse_data(analyse_data)
                 analysis_results = analyser.analyse_and_highlight(task_id=task_id, use_ocr=perform_ocr)
                 analyser.save(output_path)
-
-                # [start] serialize stats
-                if hasattr(analyser, 'stats') and analyser.stats:
-                    analysis_results['stats'] = analyser.stats.asdict()
-                # [end]
 
             if analysis_results is None:
                 task_result_data['error'] = 'Ошибка анализа документа (сервис анализа вернул None).'
@@ -396,8 +389,10 @@ def results():
             'tool_highlight/results.html',
             error=last_result_data.get('error'),
             task_id=task_id_for_template,
-            word_stats_sorted=[],  # Передаем пустые списки при ошибке
-            phrase_stats_sorted=[],
+            word_stats=[],  # Передаем пустые списки при ошибке
+            phrase_stats=[],
+            pattern_stats=[],
+            stats=[],
             result_file_missing=False,  # Файла точно нет, если ошибка
             **template_data
         )
@@ -434,20 +429,26 @@ def results():
 
 
     #[start] count stat
-    stats = last_result_data.get('stats', {})
+    stats = last_result_data.get('stats', [])
     word_stats = []
     phrase_stats = []
     pattern_stats = []
 
-    for stat_item in stats:
-        kind_value = stat_item['search']['kind']
+    if isinstance(stats, list):
+        logger.info(f"[Results {task_id_for_template}] Processing {len(stats)} stat items")
+        for stat_item in stats:
+            kind_value = stat_item.get('search', {}).get('kind')
+            
+            if kind_value == AnalysisMatchKind.WORD.value:
+                word_stats.append(stat_item)
+            elif kind_value == AnalysisMatchKind.PHRASE.value:
+                phrase_stats.append(stat_item)
+            elif kind_value == AnalysisMatchKind.REGEX.value:
+                pattern_stats.append(stat_item)
         
-        if kind_value == AnalysisMatchKind.WORD.value:
-            word_stats.append(stat_item)
-        elif kind_value == AnalysisMatchKind.PHRASE.value:
-            phrase_stats.append(stat_item)
-        elif kind_value == AnalysisMatchKind.REGEX.value:
-            pattern_stats.append(stat_item)
+        logger.info(f"[Results {task_id_for_template}] Separated stats: words={len(word_stats)}, phrases={len(phrase_stats)}, patterns={len(pattern_stats)}")
+    else:
+        logger.warning(f"[Results {task_id_for_template}] Stats is not a list, got {type(stats)}: {stats}")
     #[end]
 
     return render_template(

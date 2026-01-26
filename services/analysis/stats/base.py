@@ -12,12 +12,12 @@ class Stats(ABC):
 
     def __init__(self, matches: List[AnalysisMatch]) -> None:
         self.matches = matches
+        self.stats = {}
+
+        for match in matches:
+            self.add(match)
 
     def get(self, match_type: AnalysisMatchKind) -> List[StatItem]:
-        pass
-
-    @abstractmethod
-    def add(self, match: AnalysisMatch) -> None:
         pass
 
     def asdict(self) -> List[dict]:
