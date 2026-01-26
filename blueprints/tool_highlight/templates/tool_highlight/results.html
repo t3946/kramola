@@ -32,113 +32,25 @@
     </div>
 
     <!-- Блок статистики слов -->
-    <div class="card">
-        <h3>Найденные слова и их вхождения:</h3>
-
-        <div class="stats-table">
-            {% if word_stats %}
-                <table class="word-stats">
-                    <thead>
-                        <tr>
-                            <th>Строка</th>
-                            <th>Количество</th>
-                            <th>Найденные формы (кол-во)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for stat_item in word_stats %}
-                            <tr>
-                                <td>{{ stat_item.search.text }}</td>
-                                <td>{{ stat_item.total }}</td>
-                                <td>
-                                    {% for form_item in stat_item.forms.values() %}
-                                        <span class="word-form">
-                                            {{ form_item['form'] }} ({{ form_item['count'] }}) (стр. {{ form_item['pages'] | join(', ') }})
-                                        </span>
-                                        {% if not loop.last %}, {% endif %}
-                                    {% endfor %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="note">Одиночные слова из списка не найдены в документе.</p>
-            {% endif %}
-        </div>
-    </div>
+    {% set stats_title = 'Найденные слова и их вхождения:' %}
+    {% set stats_data = word_stats %}
+    {% set stats_form_class = 'word-form' %}
+    {% set stats_empty_message = 'Одиночные слова из списка не найдены в документе.' %}
+    {% include 'components/stats_table.html' with context %}
 
     <!-- Блок статистики фраз -->
-    <div class="card">
-        <h3>Найденные фразы и их вхождения:</h3>
-        <div class="stats-table">
-            {% if phrase_stats %}
-                <table class="word-stats">
-                    <thead>
-                        <tr>
-                            <th>Строка</th>
-                            <th>Количество</th>
-                            <th>Найденные формы (кол-во)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for stat_item in phrase_stats %}
-                            <tr>
-                                <td>{{ stat_item.search.text }}</td>
-                                <td>{{ stat_item.total }}</td>
-                                <td>
-                                    {% for form_item in stat_item.forms.values() %}
-                                        <span class="phrase-form">
-                                            {{ form_item['form'] }} ({{ form_item['count'] }}) (стр. {{ form_item['pages'] | join(', ') }})
-                                        </span>
-                                        {% if not loop.last %}, {% endif %}
-                                    {% endfor %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="note">Фразы из списка не найдены в документе.</p>
-            {% endif %}
-        </div>
-    </div>
+    {% set stats_title = 'Найденные фразы и их вхождения:' %}
+    {% set stats_data = phrase_stats %}
+    {% set stats_form_class = 'phrase-form' %}
+    {% set stats_empty_message = 'Фразы из списка не найдены в документе.' %}
+    {% include 'components/stats_table.html' with context %}
 
     <!-- Блок статистики паттернов -->
-    <div class="card">
-        <h3>Найденные паттерны и их вхождения:</h3>
-        <div class="stats-table">
-            {% if pattern_stats %}
-                <table class="word-stats">
-                    <thead>
-                        <tr>
-                            <th>Строка</th>
-                            <th>Количество</th>
-                            <th>Найденные формы (кол-во)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for stat_item in pattern_stats %}
-                            <tr>
-                                <td>{{ stat_item.search.text }}</td>
-                                <td>{{ stat_item.total }}</td>
-                                <td>
-                                    {% for form_item in stat_item.forms.values() %}
-                                        <span class="pattern-form">
-                                            {{ form_item['form'] }} ({{ form_item['count'] }}) (стр. {{ form_item['pages'] | join(', ') }})
-                                        </span>
-                                        {% if not loop.last %}, {% endif %}
-                                    {% endfor %}
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="note">Паттерны из списка не найдены в документе.</p>
-            {% endif %}
-        </div>
-    </div>
+    {% set stats_title = 'Найденные паттерны и их вхождения:' %}
+    {% set stats_data = pattern_stats %}
+    {% set stats_form_class = 'pattern-form' %}
+    {% set stats_empty_message = 'Паттерны из списка не найдены в документе.' %}
+    {% include 'components/stats_table.html' with context %}
 
     <!-- Блок использованных списков -->
     {% if used_predefined_lists %}
