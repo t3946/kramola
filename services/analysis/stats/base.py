@@ -61,7 +61,10 @@ class Stats(ABC):
             stat_item.forms[form_text] = form
 
         form.count += 1
-        form.pages.append(1)
+
+        if match.page is not None:
+            form.pages.append(match.page)
+
         form.pages = list(set(form.pages))
         # [end]
 

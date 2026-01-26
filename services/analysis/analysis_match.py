@@ -17,3 +17,4 @@ class AnalysisMatch:
     kind: AnalysisMatchKind
     search_match: Union[FTSTextMatch, FTSRegexMatch]
     found: Dict[str, Union[str, List[Token]]]
+    page: Optional[int] = None

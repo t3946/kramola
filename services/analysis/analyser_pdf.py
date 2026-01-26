@@ -54,6 +54,19 @@ class AnalyserPdf(Analyser):
         for page_analyser in pages:
             whole_document_text += page_analyser.to_text() + ' '
 
+        # [start] calculate page offsets and lengths in combined text
+        page_offsets: List[int] = [0]
+        page_lengths: List[int] = []
+        current_offset: int = 0
+
+        for page_analyser in pages:
+            page_text = page_analyser.to_text()
+            page_len = len(page_text)
+            page_lengths.append(page_len)
+            current_offset += page_len + 1
+            page_offsets.append(current_offset)
+        # [end]
+
         all_tokens: List[Token] = FulltextSearch.tokenize_text(whole_document_text)
         phrases_list = list(self.analyse_data.phrases.values())
         search_phrases_for_search: List[Tuple[str, List[Token]]] = [
@@ -83,6 +96,23 @@ class AnalyserPdf(Analyser):
 
         matches = self._convert_fts_matches(fts_matches)
 
+        # [start] determine page number for each match
+        for match in matches:
+            search_match = match.search_match
+            start_token_idx: int = search_match.start_token_idx
+            start_char_pos: int = all_tokens[start_token_idx].start
+
+            # find page that contains the start of this match
+            for page_idx in range(len(pages)):
+                page_start_offset: int = page_offsets[page_idx]
+                page_text_len: int = page_lengths[page_idx]
+                page_end_offset: int = page_start_offset + page_text_len - 1
+
+                if page_start_offset <= start_char_pos <= page_end_offset:
+                    match.page = page_idx + 1
+                    break
+        # [end]
+
         self.stats = StatsPDF(matches)
         # [end]
 
@@ -91,19 +121,6 @@ class AnalyserPdf(Analyser):
             logger.warning(f'ocr not implemented')
 
         # [start] highlight matches
-        # [start] calculate page offsets and lengths in combined text
-        page_offsets: List[int] = [0]
-        page_lengths: List[int] = []
-        current_offset: int = 0
-
-        for page_analyser in pages:
-            page_text = page_analyser.to_text()
-            page_len = len(page_text)
-            page_lengths.append(page_len)
-            current_offset += page_len + 1
-            page_offsets.append(current_offset)
-        # [end]
-
         # [start] highlight each match
         for match in matches:
             search_match = match.search_match
