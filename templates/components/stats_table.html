@@ -2,6 +2,7 @@
 {% set stats_data = stats_data | default([]) %}
 {% set stats_form_class = stats_form_class | default('form') %}
 {% set stats_empty_message = stats_empty_message | default('Данные не найдены.') %}
+{% set stats_first_column_title = stats_first_column_title | default('Строка') %}
 
 <div class="card">
     <h3>{{ stats_title }}</h3>
@@ -14,7 +15,7 @@
             <table class="word-stats">
                 <thead>
                     <tr>
-                        <th>Строка</th>
+                        <th>{{ stats_first_column_title }}</th>
                         <th>Количество ({{ ns.total_sum }})</th>
                         <th>Найденные формы (кол-во)</th>
                     </tr>

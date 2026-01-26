@@ -46,10 +46,11 @@
     {% include 'components/stats_table.html' with context %}
 
     <!-- Блок статистики паттернов -->
-    {% set stats_title = 'Найденные паттерны и их вхождения:' %}
+    {% set stats_title = 'Найденные шаблоны и их вхождения:' %}
     {% set stats_data = pattern_stats %}
     {% set stats_form_class = 'pattern-form' %}
     {% set stats_empty_message = 'Паттерны из списка не найдены в документе.' %}
+    {% set stats_first_column_title = 'Шаблон' %}
     {% include 'components/stats_table.html' with context %}
 
     <!-- Блок использованных списков -->

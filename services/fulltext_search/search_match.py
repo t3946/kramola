@@ -32,4 +32,4 @@ class FTSRegexMatch(FTSMatch):
     regex_info: RegexPattern
 
     def get_search_str(self) -> str:
-        return 'Pattern: ' + self.regex_info.pattern_name
+        return '"' + self.regex_info.pattern_name + '"'
