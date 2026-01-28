@@ -21,3 +21,5 @@ pytest
 flask-socketio
 eventlet
 docx2pdf
+Flask-Admin>=2.0.0
+Flask-Login>=0.6.0

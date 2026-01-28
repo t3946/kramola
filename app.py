@@ -5,9 +5,12 @@ import logging
 from concurrent_log_handler import ConcurrentRotatingFileHandler  # <-- Используем этот хендлер
 from flask import Flask, redirect, url_for
 from flask_executor import Executor
+from flask_login import LoginManager
 from flask_socketio import SocketIO
 import redis
 from dotenv import load_dotenv
+from admin.admin import init_admin
+from admin.auth import admin_auth_bp, load_user
 
 from blueprints.foreign_agents.routes import foreign_agents_bp
 from blueprints.tool_highlight.routes import highlight_bp
@@ -76,6 +79,12 @@ app.logger.name = 'Flask_App'  # Присваиваем имя логгеру Fl
 
 app.secret_key = os.environ.get('FLASK_SECRET_KEY',
                                 b'\xa2\\"Rr\x91\xc5>e\xbc\xc5\x86\xb2O\x15\x04Yao\x81\xe9\x90\xac\xec')
+
+login_manager = LoginManager(app)
+login_manager.login_view = "admin_auth.login"
+login_manager.user_loader(load_user)
+
+app.register_blueprint(admin_auth_bp)
 
 app.config['EXECUTOR_TYPE'] = 'thread'  # или 'process'
 app.config['EXECUTOR_MAX_WORKERS'] = 5  # Количество одновременных фоновых задач
@@ -156,6 +165,7 @@ for dir_path in dirs_to_create:
 app.logger.info(
     f"Base directories configured: UPLOAD={app.config['UPLOAD_DIR']}, RESULT={app.config['RESULT_DIR']}, LISTS={app.config['PREDEFINED_LISTS_DIR']}")
 
+init_admin(app)
 
 # --- Загрузка анализаторов при старте ---
 def initialize_analyzers():
