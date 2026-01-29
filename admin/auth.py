@@ -1,6 +1,5 @@
-import os
 from flask import Blueprint, current_app, redirect, request, url_for
-from flask_login import UserMixin, login_user, logout_user
+from flask_login import login_user, logout_user
 
 admin_auth_bp = Blueprint("admin_auth", __name__, url_prefix="/admin")
 
@@ -23,42 +22,34 @@ def admin_auth_context() -> dict:
     }
 
 
-class AdminUser(UserMixin):
-    def __init__(self, id: int, username: str) -> None:
-        self.id = id
-        self.username = username
+def load_user(user_id: str):
+    from models import User
 
-    def get_id(self) -> str:
-        return str(self.id)
-
-
-def load_user(user_id: str) -> AdminUser | None:
-    if user_id != "1":
+    if not user_id or not user_id.isdigit():
         return None
-    username: str = os.environ.get("ADMIN_USERNAME", "admin")
-    return AdminUser(1, username)
+    return User.query.get(int(user_id))
 
 
 @admin_auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     from flask import render_template
+    from models import User
 
     if request.method == "GET":
         return render_template("admin/login.html", next=request.args.get("next"))
 
     username: str = (request.form.get("username") or "").strip()
     password: str = request.form.get("password") or ""
-    expected_username: str = os.environ.get("ADMIN_USERNAME", "admin")
-    expected_password: str = os.environ.get("ADMIN_PASSWORD", "admin")
 
-    if username != expected_username or password != expected_password:
+    user = User.query.filter_by(username=username).first()
+    if user is None or not user.check_password(password) or not user.is_active:
         return render_template(
             "admin/login.html",
             next=request.form.get("next"),
             error="Invalid username or password",
         )
 
-    login_user(AdminUser(1, username))
+    login_user(user)
     next_url: str | None = request.form.get("next") or request.args.get("next")
     if next_url:
         return redirect(next_url)

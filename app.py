@@ -1,28 +1,31 @@
-import os
-import sys
-import time
-import logging
-from concurrent_log_handler import ConcurrentRotatingFileHandler  # <-- Используем этот хендлер
+# from libraries
+from concurrent_log_handler import ConcurrentRotatingFileHandler
+from dotenv import load_dotenv
 from flask import Flask, redirect, url_for
 from flask_executor import Executor
 from flask_login import LoginManager
 from flask_socketio import SocketIO
+import logging
+import os
 import redis
-from dotenv import load_dotenv
+import sys
+import time
+
+# from project
 from admin.admin import init_admin
 from admin.auth import admin_auth_bp, load_user
-
+from app.core import init_mysql
 from blueprints.foreign_agents.routes import foreign_agents_bp
-from blueprints.tool_highlight.routes import highlight_bp
 from blueprints.tool_footnotes.routes import footnotes_bp
+from blueprints.tool_highlight.routes import highlight_bp
+from blueprints.tool_highlight.socketio.socketio_handlers import register_socketio_handlers
+from commands.commands import register_commands
+from extensions import db
+from services.pymorphy_service import load_pymorphy, load_nltk_lemmatizer
+from services.redis.connection import get_redis_connection, get_redis_host
 from services.words_list import PredefinedListKey
 
 load_dotenv()
-
-from services.pymorphy_service import (
-    load_pymorphy,
-    load_nltk_lemmatizer,
-)
 
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(funcName)s - %(message)s')
 # Устанавливаем DEBUG уровень, как было в исходном запросе
@@ -62,7 +65,6 @@ root_logger.addHandler(file_handler)  # Добавляем файловый хе
 root_logger.addHandler(stream_handler)  # Добавляем консольный хендлер
 
 # Конфигурация Redis (можно вынести в app.config)
-from services.redis.connection import get_redis_connection, get_redis_host
 REDIS_HOST = get_redis_host()
 REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 REDIS_DB = int(os.environ.get('REDIS_DB_TASKS', 0))  # Отдельная БД для задач
@@ -75,10 +77,11 @@ logging.getLogger("PIL").setLevel(logging.INFO)  # Pillow может быть ш
 logging.getLogger("concurrent_log_handler").setLevel(logging.WARNING)  # Логи самого хендлера
 
 app = Flask(__name__)
-app.logger.name = 'Flask_App'  # Присваиваем имя логгеру Flask после создания app
+app.logger.name = "Flask_App"
 
-app.secret_key = os.environ.get('FLASK_SECRET_KEY',
-                                b'\xa2\\"Rr\x91\xc5>e\xbc\xc5\x86\xb2O\x15\x04Yao\x81\xe9\x90\xac\xec')
+app.secret_key = os.environ.get("FLASK_SECRET_KEY")
+
+init_mysql(app)
 
 login_manager = LoginManager(app)
 login_manager.login_view = "admin_auth.login"
@@ -165,7 +168,7 @@ for dir_path in dirs_to_create:
 app.logger.info(
     f"Base directories configured: UPLOAD={app.config['UPLOAD_DIR']}, RESULT={app.config['RESULT_DIR']}, LISTS={app.config['PREDEFINED_LISTS_DIR']}")
 
-init_admin(app)
+init_admin(app, db)
 
 # --- Загрузка анализаторов при старте ---
 def initialize_analyzers():
@@ -219,8 +222,10 @@ app.register_blueprint(footnotes_bp, url_prefix='/footnotes')
 app.register_blueprint(foreign_agents_bp, url_prefix='/foreign-agents')
 
 # Register Socket.IO handlers
-from blueprints.tool_highlight.socketio.socketio_handlers import register_socketio_handlers
 register_socketio_handlers(socketio)
+
+
+register_commands(app)
 
 # --- Маршрут по умолчанию ---
 @app.route('/')

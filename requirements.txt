@@ -21,5 +21,9 @@ pytest
 flask-socketio
 eventlet
 docx2pdf
-Flask-Admin>=2.0.0
+Flask-SQLAlchemy>=3.1.0
+Flask-Migrate>=4.0.0
+PyMySQL>=1.1.0
+cryptography>=41.0.0
+Flask-Admin[sqlalchemy]>=2.0.0
 Flask-Login>=0.6.0

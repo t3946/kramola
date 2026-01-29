@@ -1,0 +1,9 @@
+"""Register Flask CLI commands."""
+
+from flask import Flask
+
+from commands.create_admin import create_admin_cmd
+
+
+def register_commands(app: Flask) -> None:
+    app.cli.add_command(create_admin_cmd)
