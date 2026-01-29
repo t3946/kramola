@@ -30,7 +30,7 @@ def create_admin_cmd(
 
     user = User(username=username, email=email)
     user.set_password(password)
-    user.roles.append(role)
+    user.role = role
     db.session.add(user)
     db.session.commit()
     click.echo("Admin user created.")

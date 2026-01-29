@@ -10,8 +10,8 @@ from extensions import db
 
 
 def init_mysql(app: Flask) -> None:
-    mysql_user = os.environ.get("MYSQL_USER", "kramola")
-    mysql_password = quote_plus(os.environ.get("MYSQL_PASSWORD", ""))
+    mysql_user = os.environ.get("MYSQL_USER")
+    mysql_password = quote_plus(os.environ.get("MYSQL_PASSWORD"))
     mysql_host = os.environ.get("MYSQL_HOST", "127.0.0.1")
     mysql_port = os.environ.get("MYSQL_PORT", "3306")
     mysql_database = os.environ.get("MYSQL_DATABASE", "kramola")

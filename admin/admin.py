@@ -28,9 +28,9 @@ class UserView(SecureModelView):
     column_exclude_list = ["password_hash"]
     form_excluded_columns = ["password_hash"]
     form_extra_fields = {"password": PasswordField("Password (required on create, leave blank on edit)")}
-    column_list = ["id", "username", "email", "is_active", "created_at", "roles"]
+    column_list = ["id", "username", "email", "is_active", "created_at", "role"]
     column_searchable_list = ["username", "email"]
-    form_columns = ["username", "email", "is_active", "roles"]
+    form_columns = ["username", "email", "is_active", "role"]
 
     def on_model_change(self, form, model, is_created: bool) -> None:
         if is_created and (not getattr(form, "password", None) or not form.password.data):
