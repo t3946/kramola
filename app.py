@@ -14,7 +14,7 @@ import time
 # from project
 from admin.admin import init_admin
 from admin.auth import admin_auth_bp, load_user
-from app.core import init_mysql
+from application.core import init_mysql
 from blueprints.foreign_agents.routes import foreign_agents_bp
 from blueprints.tool_footnotes.routes import footnotes_bp
 from blueprints.tool_highlight.routes import highlight_bp
