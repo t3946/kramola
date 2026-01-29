@@ -46,7 +46,7 @@ def login():
         return render_template(
             "admin/login.html",
             next=request.form.get("next"),
-            error="Invalid username or password",
+            error="Неверное имя пользователя или пароль",
         )
 
     login_user(user)

@@ -54,4 +54,5 @@ def init_admin(app: Flask, db) -> Admin:
     )
     admin.add_view(UserView(User, db.session, category="Users", name="Users"))
     admin.add_view(RoleView(Role, db.session, category="Users", name="Roles"))
+
     return admin
