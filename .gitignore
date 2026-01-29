@@ -21,3 +21,5 @@ static/js/bundle.js
 # python
 venv
 .venv
+
+static/css/admin.css

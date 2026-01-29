@@ -1,22 +1,29 @@
 {% extends 'admin/master.html' %}
+{% from 'admin/components/page_title.html' import page_title %}
 
 {% block body %}
-<div class="container-fluid">
-  <h1>Вход в панель Администратора</h1>
-  <form method="post" action="{{ url_for('admin_auth.login') }}">
+<div class="container-fluid flex flex-col items-center pt-[100px]">
+  {{ page_title('Вход в панель Администратора', centered=true) }}
+  <form method="post" action="{{ url_for('admin_auth.login') }}" class="w-full max-w-xs">
     <input type="hidden" name="next" value="{{ next or '' }}">
-    <div class="mb-3">
-      <label for="username" class="form-label">Имя пользователя</label>
-      <input type="text" class="form-control" id="username" name="username" required autofocus>
+    <div class="relative mb-3">
+      <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+        <i class="fa fa-user" aria-hidden="true"></i>
+      </div>
+      <input type="text" id="username" name="username" placeholder="Логин" required autofocus class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
     </div>
-    <div class="mb-3">
-      <label for="password" class="form-label">Пароль</label>
-      <input type="password" class="form-control" id="password" name="password" required>
+    <div class="relative mb-3">
+      <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+        <i class="fa fa-lock" aria-hidden="true"></i>
+      </div>
+      <input type="password" id="password" name="password" placeholder="Пароль" required class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
     </div>
     {% if error %}
-    <div class="alert alert-danger" role="alert">{{ error }}</div>
+    <div class="alert alert-danger mb-3" role="alert"><i class="fa fa-exclamation-circle"></i> {{ error }}</div>
     {% endif %}
-    <button type="submit" class="btn btn-primary">Войти</button>
+    <div class="flex justify-center">
+      <button type="submit" class="btn btn-primary">Войти</button>
+    </div>
   </form>
 </div>
 {% endblock %}

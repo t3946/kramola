@@ -1,0 +1,14 @@
+{
+  "name": "kramola-admin-ui",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npx tailwindcss -i ./src/input.css -o ../static/css/admin.css --minify",
+    "watch": "npx tailwindcss -i ./src/input.css -o ../static/css/admin.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.0",
+    "postcss": "^8.4.0"
+  }
+}
