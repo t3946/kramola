@@ -42,7 +42,7 @@ class AnalysisData:
                 self.regex_patterns.append(regex_pattern)
 
     def load_predefined_lists(self, list_keys: List[str]) -> None:
-        """Load ready-made Phrase objects from Redis lists by their keys."""
+        """Load ready-made Phrase objects from predefined lists (MySQL) by their keys."""
         list_mapping = {
             PredefinedListKey.FOREIGN_AGENTS_PERSONS: ListPersons,
             PredefinedListKey.FOREIGN_AGENTS_COMPANIES: ListCompanies,

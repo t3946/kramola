@@ -1,8 +1,12 @@
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import check_password_hash, generate_password_hash
-
 from extensions import db
+
+from models.phrase_list.list_log import ListLog
+from models.phrase_list.list_phrase import ListPhrase
+from models.phrase_list.list_record import ListRecord
+from models.phrase_list.phrase_record import PhraseRecord
 
 
 class Role(db.Model):

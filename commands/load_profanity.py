@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Loads profanity list from file to Redis.
+Loads profanity list from file to MySQL.
 """
 
 import sys
@@ -72,12 +72,12 @@ def main():
             logger.warning("No words loaded from file after filtering")
             return 1
 
-        # Save to Redis
-        logger.info("Saving to Redis...")
+        # Save to MySQL
+        logger.info("Saving to MySQL...")
         lp = ListProfanity()
         lp.clear()
         lp.save(words_list, logging=True)
-        logger.info(f"Saved {len(words_list)} words to Redis")
+        logger.info(f"Saved {len(words_list)} words to MySQL")
 
         logger.info("=" * 60)
         logger.info("Loading completed successfully")
@@ -93,6 +93,9 @@ def main():
 
 
 if __name__ == '__main__':
-    exit_code = main()
+    from app import app
+
+    with app.app_context():
+        exit_code = main()
     sys.exit(exit_code)
 

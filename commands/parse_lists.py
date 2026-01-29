@@ -77,5 +77,8 @@ def main():
 
 
 if __name__ == '__main__':
-    exit_code = main()
+    from app import app
+
+    with app.app_context():
+        exit_code = main()
     sys.exit(exit_code)
