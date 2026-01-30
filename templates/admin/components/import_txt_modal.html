@@ -8,8 +8,17 @@
           <i class="fa fa-times" aria-hidden="true"></i>
         </button>
       </div>
-      <form action="{{ import_url }}" method="post" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4" required>
+      <form action="{{ import_url }}" method="post" enctype="multipart/form-data" id="import-form">
+        <div class="flex gap-2 mb-3">
+          <button type="button" class="import-tab btn btn-sm btn-outline-primary active" data-tab="file">Файл</button>
+          <button type="button" class="import-tab btn btn-sm btn-outline-dark" data-tab="text">Текст</button>
+        </div>
+        <div id="import-file-block" class="import-block">
+          <input type="file" name="file" accept=".txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4">
+        </div>
+        <div id="import-text-block" class="import-block hidden">
+          <textarea name="phrases_text" rows="8" placeholder="Одна фраза на строку" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 mb-4"></textarea>
+        </div>
         <div class="flex justify-end gap-2">
           <button type="button" class="btn btn-secondary" data-modal-close="import-modal">Отмена</button>
           <button type="submit" class="btn btn-primary"><i class="fa fa-upload"></i> Отправить</button>
@@ -18,3 +27,23 @@
     </div>
   </div>
 </div>
+<script>
+(function () {
+  var form = document.getElementById("import-form");
+  if (!form) return;
+  var fileBlock = document.getElementById("import-file-block");
+  var textBlock = document.getElementById("import-text-block");
+  var fileInput = form.querySelector('input[name="file"]');
+  var textarea = form.querySelector('textarea[name="phrases_text"]');
+  form.querySelectorAll(".import-tab").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var tab = btn.getAttribute("data-tab");
+      form.querySelectorAll(".import-tab").forEach(function (b) { b.classList.remove("active", "btn-outline-primary"); b.classList.add("btn-outline-dark"); });
+      btn.classList.add("active", "btn-outline-primary"); btn.classList.remove("btn-outline-dark");
+      if (tab === "file") { fileBlock.classList.remove("hidden"); textBlock.classList.add("hidden"); fileInput.removeAttribute("disabled"); textarea.setAttribute("disabled", "disabled"); }
+      else { fileBlock.classList.add("hidden"); textBlock.classList.remove("hidden"); fileInput.setAttribute("disabled", "disabled"); textarea.removeAttribute("disabled"); }
+    });
+  });
+  textarea.setAttribute("disabled", "disabled");
+})();
+</script>

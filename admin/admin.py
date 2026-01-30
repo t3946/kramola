@@ -10,10 +10,13 @@ from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
 
 from admin.words_list_controller import (
+    _lines_from_text,
     export_phrases_to_text,
     get_phrases_sorted,
     import_phrases_from_file,
+    import_phrases_from_lines,
     minusate_phrases_from_file,
+    minusate_phrases_from_lines,
     remove_phrase_from_list,
     search_phrases,
     update_phrase_in_list,
@@ -64,12 +67,18 @@ class WordsListView(BaseView):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
         if not list_record:
             return redirect(url_for(".index"))
-        file = request.files.get("file")
-        if not file or file.filename == "":
-            return redirect(url_for(".index"))
-        if not file.filename.lower().endswith(".txt"):
-            return redirect(url_for(".index"))
-        added = import_phrases_from_file(list_record, file)
+        phrases_text = request.form.get("phrases_text", "").strip()
+        if phrases_text:
+            lines = _lines_from_text(phrases_text)
+            added = import_phrases_from_lines(list_record, lines)
+        else:
+            file = request.files.get("file")
+            if not file or file.filename == "":
+                flash("Укажите файл или введите текст.")
+                return redirect(url_for(".index"))
+            if not file.filename.lower().endswith(".txt"):
+                return redirect(url_for(".index"))
+            added = import_phrases_from_file(list_record, file)
         flash(f"Импорт: добавлено фраз в список: {added}.")
         return redirect(url_for(".index"))
 
@@ -80,12 +89,18 @@ class WordsListView(BaseView):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
         if not list_record:
             return redirect(url_for(".index"))
-        file = request.files.get("file")
-        if not file or file.filename == "":
-            return redirect(url_for(".index"))
-        if not file.filename.lower().endswith(".txt"):
-            return redirect(url_for(".index"))
-        removed = minusate_phrases_from_file(list_record, file)
+        phrases_text = request.form.get("phrases_text", "").strip()
+        if phrases_text:
+            lines = _lines_from_text(phrases_text)
+            removed = minusate_phrases_from_lines(list_record, lines)
+        else:
+            file = request.files.get("file")
+            if not file or file.filename == "":
+                flash("Укажите файл или введите текст.")
+                return redirect(url_for(".index"))
+            if not file.filename.lower().endswith(".txt"):
+                return redirect(url_for(".index"))
+            removed = minusate_phrases_from_file(list_record, file)
         flash(f"Минусация: удалено фраз из списка: {removed}.")
         return redirect(url_for(".index"))
 

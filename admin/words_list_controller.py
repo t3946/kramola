@@ -35,8 +35,11 @@ def _lines_from_uploaded_file(file) -> list[str]:
     return [line.strip() for line in content.splitlines() if line.strip()]
 
 
-def import_phrases_from_file(list_record: ListRecord, file) -> int:
-    lines: list[str] = _lines_from_uploaded_file(file)
+def _lines_from_text(text: str) -> list[str]:
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def import_phrases_from_lines(list_record: ListRecord, lines: list[str]) -> int:
     added = 0
     for phrase_text in lines:
         phrase_record = PhraseRecord.query.filter_by(phrase=phrase_text).first()
@@ -55,8 +58,11 @@ def import_phrases_from_file(list_record: ListRecord, file) -> int:
     return added
 
 
-def minusate_phrases_from_file(list_record: ListRecord, file) -> int:
-    lines: list[str] = _lines_from_uploaded_file(file)
+def import_phrases_from_file(list_record: ListRecord, file) -> int:
+    return import_phrases_from_lines(list_record, _lines_from_uploaded_file(file))
+
+
+def minusate_phrases_from_lines(list_record: ListRecord, lines: list[str]) -> int:
     removed = 0
     for phrase_text in lines:
         phrase_record = PhraseRecord.query.filter_by(phrase=phrase_text).first()
@@ -71,6 +77,10 @@ def minusate_phrases_from_file(list_record: ListRecord, file) -> int:
             removed += 1
     db.session.commit()
     return removed
+
+
+def minusate_phrases_from_file(list_record: ListRecord, file) -> int:
+    return minusate_phrases_from_lines(list_record, _lines_from_uploaded_file(file))
 
 
 def update_phrase_in_list(list_record: ListRecord, phrase_id: int, new_text: str) -> str | None:
