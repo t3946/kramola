@@ -15,6 +15,19 @@ def get_phrases_sorted(list_record: ListRecord | None) -> list[PhraseRecord]:
     )
 
 
+def search_phrases(list_record: ListRecord | None, query: str) -> list[PhraseRecord]:
+    if not list_record:
+        return []
+    terms = [t.strip() for t in query.split() if t.strip()]
+    q = (
+        PhraseRecord.query.join(ListPhrase)
+        .filter(ListPhrase.list_id == list_record.id)
+    )
+    for term in terms:
+        q = q.filter(PhraseRecord.phrase.like(f"%{term}%"))
+    return q.order_by(PhraseRecord.phrase.asc()).all()
+
+
 def _lines_from_uploaded_file(file) -> list[str]:
     content = file.read()
     if isinstance(content, bytes):

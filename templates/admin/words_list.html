@@ -3,7 +3,7 @@
 
 {% block body %}
 <div class="container-fluid">
-  {{ page_title(list_title ~ ' (' ~ words_with_actions|length ~ ')') }}
+  <h1 class="page-title text-black text-3xl font-semibold mb-3">{{ list_title }} (<span id="words-count">{{ words_with_actions|length }}</span>)</h1>
 
   <div class="my-3 d-flex gap-2">
     {% if import_url %}
@@ -32,7 +32,7 @@
     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
       <i class="fa fa-search" aria-hidden="true"></i>
     </div>
-    <input type="text" id="word-search" name="q" placeholder="Введите слово для поиска" class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10  pr-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+    <input type="text" id="word-search" name="q" placeholder="Введите слово для поиска" class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10  pr-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"{% if search_url %} data-search-url="{{ search_url }}"{% endif %}>
   </div>
 
   <div class="table-responsive">
@@ -44,7 +44,7 @@
           <th scope="col" class="text-end" style="width: 8rem;">Действия</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="words-tbody">
         {% for word, edit_url, delete_url in words_with_actions %}
         <tr>
           <td>{{ word.phrase }}</td>
@@ -71,6 +71,7 @@
 .words-list-table th { font-weight: 600; white-space: nowrap; }
 .words-list-table .btn { margin-left: 0.2rem; padding: 0.15rem 0.35rem; font-size: 0.75rem; }
 .words-list-table .btn:first-child { margin-left: 0; }
+.search-highlight { background-color: #93c5fd; }
 </style>
 
 <script>
@@ -87,28 +88,84 @@
       if (id) document.getElementById(id).classList.add("hidden");
     });
   });
-  document.querySelectorAll("button[data-edit-url]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var form = document.getElementById("edit-phrase-form");
-      var input = document.getElementById("edit-phrase-input");
-      if (form && input) {
-        form.action = btn.getAttribute("data-edit-url");
-        input.value = btn.getAttribute("data-phrase") || "";
-        document.getElementById("edit-phrase-modal").classList.remove("hidden");
+  var wordsTbody = document.getElementById("words-tbody");
+  if (wordsTbody) {
+    wordsTbody.addEventListener("click", function (e) {
+      var editBtn = e.target.closest("button[data-edit-url]");
+      if (editBtn) {
+        var form = document.getElementById("edit-phrase-form");
+        var input = document.getElementById("edit-phrase-input");
+        if (form && input) {
+          form.action = editBtn.getAttribute("data-edit-url");
+          input.value = editBtn.getAttribute("data-phrase") || "";
+          document.getElementById("edit-phrase-modal").classList.remove("hidden");
+        }
+        return;
+      }
+      var delBtn = e.target.closest("button[data-delete-url]");
+      if (delBtn) {
+        var form = document.getElementById("delete-phrase-form");
+        var message = document.getElementById("delete-phrase-message");
+        if (form && message) {
+          form.action = delBtn.getAttribute("data-delete-url");
+          message.textContent = "Удалить фразу «" + (delBtn.getAttribute("data-phrase") || "") + "» из списка?";
+          document.getElementById("delete-phrase-modal").classList.remove("hidden");
+        }
       }
     });
-  });
-  document.querySelectorAll("button[data-delete-url]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var form = document.getElementById("delete-phrase-form");
-      var message = document.getElementById("delete-phrase-message");
-      if (form && message) {
-        form.action = btn.getAttribute("data-delete-url");
-        message.textContent = "Удалить фразу «" + (btn.getAttribute("data-phrase") || "") + "» из списка?";
-        document.getElementById("delete-phrase-modal").classList.remove("hidden");
-      }
+  }
+
+  var searchInput = document.getElementById("word-search");
+  var searchUrl = searchInput && searchInput.getAttribute("data-search-url");
+  if (searchUrl) {
+    var tbody = document.getElementById("words-tbody");
+    var countEl = document.getElementById("words-count");
+    var debounceTimer = null;
+    var debounceMs = 300;
+
+    function escapeHtml(s) {
+      var div = document.createElement("div");
+      div.textContent = s;
+      return div.innerHTML;
+    }
+    function escapeRe(s) {
+      return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+    function highlightPhrase(phrase, terms) {
+      var s = escapeHtml(phrase);
+      terms.forEach(function (term) {
+        if (!term) return;
+        var re = new RegExp(escapeRe(term), "gi");
+        s = s.replace(re, "<span class=\"search-highlight\">$&</span>");
+      });
+      return s;
+    }
+    function renderRow(word) {
+      var phraseHtml = highlightPhrase(word.phrase, window._lastSearchTerms || []);
+      var phraseEsc = escapeHtml(word.phrase);
+      return "<tr><td>" + phraseHtml + "</td><td>" + escapeHtml(word.created_at) + "</td><td class=\"text-end\">" +
+        "<button type=\"button\" class=\"btn btn-sm btn-outline-primary\" title=\"Изменить\" data-edit-url=\"" + escapeHtml(word.edit_url) + "\" data-phrase=\"" + phraseEsc + "\"><i class=\"fa fa-pencil\"></i></button> " +
+        "<button type=\"button\" class=\"btn btn-sm btn-outline-danger\" title=\"Удалить\" data-delete-url=\"" + escapeHtml(word.delete_url) + "\" data-phrase=\"" + phraseEsc + "\"><i class=\"fa fa-trash\"></i></button>" +
+        "</td></tr>";
+    }
+    function runSearch() {
+      var q = searchInput.value.trim();
+      var url = searchUrl + (q ? "?q=" + encodeURIComponent(q) : "");
+      fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+        window._lastSearchTerms = data.search_terms || [];
+        if (data.words.length === 0) {
+          tbody.innerHTML = "<tr><td colspan=\"3\" class=\"text-muted text-center py-4\">Список пуст</td></tr>";
+        } else {
+          tbody.innerHTML = data.words.map(renderRow).join("");
+        }
+        if (countEl) countEl.textContent = data.words.length;
+      });
+    }
+    searchInput.addEventListener("input", function () {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(runSearch, debounceMs);
     });
-  });
+  }
 })();
 </script>
 {% endblock %}

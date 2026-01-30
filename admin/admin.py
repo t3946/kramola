@@ -1,4 +1,4 @@
-from flask import Flask, flash, redirect, request, Response, url_for
+from flask import Flask, flash, jsonify, redirect, request, Response, url_for
 from flask_admin import Admin, AdminIndexView, BaseView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.theme import Bootstrap4Theme
@@ -15,6 +15,7 @@ from admin.words_list_controller import (
     import_phrases_from_file,
     minusate_phrases_from_file,
     remove_phrase_from_list,
+    search_phrases,
     update_phrase_in_list,
 )
 
@@ -46,6 +47,7 @@ class WordsListView(BaseView):
             (w, url_for(f"{endpoint}.edit_phrase", phrase_id=w.id), url_for(f"{endpoint}.delete_phrase", phrase_id=w.id))
             for w in words
         ]
+        search_url = url_for(f"{endpoint}.search_phrases_route") if list_record else None
         return self.render(
             "admin/words_list.html",
             list_title=list_title,
@@ -54,6 +56,7 @@ class WordsListView(BaseView):
             import_url=import_url,
             export_url=export_url,
             minusate_url=minusate_url,
+            search_url=search_url,
         )
 
     @expose("/import", methods=["POST"])
@@ -113,6 +116,29 @@ class WordsListView(BaseView):
         else:
             flash("Фраза не найдена в списке.")
         return redirect(url_for(".index"))
+
+    @expose("/search")
+    def search_phrases_route(self):
+        list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
+        if not list_record:
+            return jsonify(words=[], search_terms=[])
+        query = request.args.get("q", "").strip()
+        words_list = search_phrases(list_record, query)
+        endpoint = self.endpoint
+        created_at_str = lambda w: str(w.created_at) if w.created_at else ""
+        payload = {
+            "words": [
+                {
+                    "phrase": w.phrase,
+                    "created_at": created_at_str(w),
+                    "edit_url": url_for(f"{endpoint}.edit_phrase", phrase_id=w.id),
+                    "delete_url": url_for(f"{endpoint}.delete_phrase", phrase_id=w.id),
+                }
+                for w in words_list
+            ],
+            "search_terms": [t.strip() for t in query.split() if t.strip()],
+        }
+        return jsonify(payload)
 
     @expose("/export")
     def export_phrases(self) -> Response:
