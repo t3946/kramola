@@ -6,6 +6,7 @@ from services.words_list.list_companies import ListCompanies
 from services.words_list.list_profanity import ListProfanity
 from services.words_list.list_prohibited_substances import ListProhibitedSubstances
 from services.words_list.list_swear_words import ListSwearWords
+from services.words_list.list_extremists_terrorists import ListExtremistsTerrorists
 from services.words_list import PredefinedListKey
 from services.utils.regex_pattern import RegexPattern
 from services.patterns.profanity_words import PROFANITY_WORDS_PATTERNS
@@ -48,7 +49,8 @@ class AnalysisData:
             PredefinedListKey.FOREIGN_AGENTS_COMPANIES: ListCompanies,
             PredefinedListKey.PROFANITY: ListProfanity,
             PredefinedListKey.PROHIBITED_SUBSTANCES: ListProhibitedSubstances,
-            PredefinedListKey.SWEAR_WORDS: ListSwearWords
+            PredefinedListKey.SWEAR_WORDS: ListSwearWords,
+            PredefinedListKey.EXTREMISTS_TERRORISTS: ListExtremistsTerrorists
         }
 
         for key in list_keys:

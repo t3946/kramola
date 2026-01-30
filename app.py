@@ -144,8 +144,8 @@ app.config['PREDEFINED_LISTS'] = {
     PredefinedListKey.PROHIBITED_SUBSTANCES.value: "Запрещенные вещества",
     PredefinedListKey.SWEAR_WORDS.value: "Ругательства",
     PredefinedListKey.FOREIGN_AGENTS_PERSONS.value: "Инагенты (ФИО)",
-    PredefinedListKey.FOREIGN_AGENTS_COMPANIES.value: "Инагенты (Организации)"
-
+    PredefinedListKey.FOREIGN_AGENTS_COMPANIES.value: "Инагенты (Организации)",
+    PredefinedListKey.EXTREMISTS_TERRORISTS.value: "Экстремисты и террористы"
 }
 
 # --- Создание директорий при старте ---

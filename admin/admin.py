@@ -124,4 +124,14 @@ def init_admin(app: Flask, db) -> Admin:
             category="Готовые списки",
         )
     )
+    admin.add_view(
+        WordsListView(
+            "extremists-terrorists",
+            "Экстремисты и террористы",
+            name="Экстремисты и террористы",
+            url="words-list/extremists-terrorists",
+            endpoint="words_list_et",
+            category="Готовые списки",
+        )
+    )
     return admin

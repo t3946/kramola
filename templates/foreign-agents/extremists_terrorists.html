@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+
+{% block title %}Экстремисты и террористы{% endblock %}
+{% block page_title %}Экстремисты и террористы{% endblock %}
+
+{% block head_extra %}
+{% include 'foreign-agents/_spoiler_styles.html' %}
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="spoiler-header collapsed">
+        <span class="spoiler-arrow">▼</span>
+        Список ({{ words|length }})
+    </h2>
+    <ul class="spoiler-content scrollable-list">
+        {% for word in words %}
+            <li>{{ word }}</li>
+        {% endfor %}
+    </ul>
+</div>
+
+{% endblock %}

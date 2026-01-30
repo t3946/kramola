@@ -5,6 +5,7 @@ from services.words_list.list_persons import ListPersons
 from services.words_list.list_profanity import ListProfanity
 from services.words_list.list_prohibited_substances import ListProhibitedSubstances
 from services.words_list.list_swear_words import ListSwearWords
+from services.words_list.list_extremists_terrorists import ListExtremistsTerrorists
 
 foreign_agents_bp = Blueprint('foreign_agents', __name__, template_folder='../../templates')
 
@@ -53,3 +54,12 @@ def swear_words():
     words = [phrase.phrase for phrase in phrases]
 
     return render_template('foreign-agents/swear_words.html', words=words)
+
+
+@foreign_agents_bp.route('/extremists-terrorists')
+def extremists_terrorists():
+    let = ListExtremistsTerrorists()
+    phrases = let.load()
+    words = [phrase.phrase for phrase in phrases]
+
+    return render_template('foreign-agents/extremists_terrorists.html', words=words)

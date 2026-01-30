@@ -16,6 +16,7 @@ class PredefinedListKey(str, Enum):
     PROFANITY = "profanity"
     PROHIBITED_SUBSTANCES = "prohibited_substances"
     SWEAR_WORDS = "swear_words"
+    EXTREMISTS_TERRORISTS = "extremists_terrorists"
 
 
 class WordsList:
