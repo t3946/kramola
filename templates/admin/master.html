@@ -14,10 +14,9 @@
     <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle" href="#" id="navbar-ready-lists" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Готовые списки</a>
         <div class="dropdown-menu" aria-labelledby="navbar-ready-lists">
-            <a class="dropdown-item" href="{{ url_for('words_list_profanity.index') }}">Матные слова</a>
-            <a class="dropdown-item" href="{{ url_for('words_list_prohibited_substances.index') }}">Запрещенные вещества</a>
-            <a class="dropdown-item" href="{{ url_for('words_list_swear_words.index') }}">Ругательства</a>
-            <a class="dropdown-item" href="{{ url_for('words_list_et.index') }}">Экстремисты и террористы</a>
+            {% for item in admin_words_lists() %}
+            <a class="dropdown-item" href="{{ url_for(item.endpoint + '.index') }}">{{ item.title }}</a>
+            {% endfor %}
         </div>
     </li>
 </ul>

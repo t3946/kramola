@@ -23,6 +23,7 @@ from blueprints.tool_highlight.routes import highlight_bp
 from blueprints.tool_highlight.socketio.socketio_handlers import register_socketio_handlers
 from commands.commands import register_commands
 from extensions import db
+from models.phrase_list.list_record import ListRecord
 from services.pymorphy_service import load_pymorphy, load_nltk_lemmatizer
 from services.redis.connection import get_redis_connection, get_redis_host
 from services.words_list import PredefinedListKey
@@ -171,6 +172,17 @@ app.logger.info(
     f"Base directories configured: UPLOAD={app.config['UPLOAD_DIR']}, RESULT={app.config['RESULT_DIR']}, LISTS={app.config['PREDEFINED_LISTS_DIR']}")
 
 init_admin(app, db)
+
+
+@app.context_processor
+def inject_admin_words_lists():
+    def _items():
+        records = ListRecord.query.order_by(ListRecord.id).all()
+        return [
+            {"endpoint": f"words_list_{r.slug.replace('-', '_')}", "title": r.title or r.slug}
+            for r in records
+        ]
+    return {"admin_words_lists": _items}
 
 # --- Загрузка анализаторов при старте ---
 def initialize_analyzers():

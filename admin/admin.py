@@ -1,6 +1,3 @@
-from types import SimpleNamespace
-from datetime import datetime, timedelta
-
 from flask import Flask, redirect, request, url_for
 from flask_admin import Admin, AdminIndexView, BaseView, expose
 from flask_admin.contrib.sqla import ModelView
@@ -9,24 +6,14 @@ from flask_login import current_user
 from wtforms import PasswordField
 
 from models import User, Role
-
-_TEST_PHRASES = [
-    "тест", "пример", "слово", "запись", "элемент", "вариант", "образец", "проверка", "данные", "строка",
-]
-
-TEST_WORDS = [
-    SimpleNamespace(
-        phrase=_TEST_PHRASES[i],
-        created_at=(datetime.now() - timedelta(days=10 - i)).strftime("%Y-%m-%d %H:%M"),
-    )
-    for i in range(10)
-]
+from models.phrase_list.list_phrase import ListPhrase
+from models.phrase_list.list_record import ListRecord
+from models.phrase_list.phrase_record import PhraseRecord
 
 
 class WordsListView(BaseView):
-    def __init__(self, list_slug: str, list_title: str, **kwargs):
+    def __init__(self, list_slug: str, **kwargs):
         self.list_slug = list_slug
-        self.list_title = list_title
         super().__init__(**kwargs)
 
     def is_visible(self) -> bool:
@@ -40,11 +27,21 @@ class WordsListView(BaseView):
 
     @expose("/")
     def index(self):
+        list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
+        words: list[PhraseRecord] = []
+        if list_record:
+            words = (
+                PhraseRecord.query.join(ListPhrase)
+                .filter(ListPhrase.list_id == list_record.id)
+                .order_by(PhraseRecord.created_at.desc())
+                .all()
+            )
+        list_title = list_record.title if list_record else self.list_slug
         return self.render(
             "admin/words_list.html",
-            list_title=self.list_title,
+            list_title=list_title,
             list_slug=self.list_slug,
-            words=TEST_WORDS,
+            words=words,
         )
 
 
@@ -94,44 +91,17 @@ def init_admin(app: Flask, db) -> Admin:
     )
     admin.add_view(UserView(User, db.session, category="Пользователи", name="Пользователи"))
     admin.add_view(RoleView(Role, db.session, category="Пользователи", name="Роли"))
-    admin.add_view(
-        WordsListView(
-            "profanity",
-            "Матные слова",
-            name="Матные слова",
-            url="words-list/profanity",
-            endpoint="words_list_profanity",
-            category="Готовые списки",
+    with app.app_context():
+        list_records = ListRecord.query.order_by(ListRecord.id).all()
+    for list_record in list_records:
+        endpoint = f"words_list_{list_record.slug.replace('-', '_')}"
+        admin.add_view(
+            WordsListView(
+                list_record.slug,
+                name=list_record.title or list_record.slug,
+                url=f"words-list/{list_record.slug}",
+                endpoint=endpoint,
+                category="Готовые списки",
+            )
         )
-    )
-    admin.add_view(
-        WordsListView(
-            "prohibited-substances",
-            "Запрещенные вещества",
-            name="Запрещенные вещества",
-            url="words-list/prohibited-substances",
-            endpoint="words_list_prohibited_substances",
-            category="Готовые списки",
-        )
-    )
-    admin.add_view(
-        WordsListView(
-            "swear-words",
-            "Ругательства",
-            name="Ругательства",
-            url="words-list/swear-words",
-            endpoint="words_list_swear_words",
-            category="Готовые списки",
-        )
-    )
-    admin.add_view(
-        WordsListView(
-            "extremists-terrorists",
-            "Экстремисты и террористы",
-            name="Экстремисты и террористы",
-            url="words-list/extremists-terrorists",
-            endpoint="words_list_et",
-            category="Готовые списки",
-        )
-    )
     return admin

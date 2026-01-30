@@ -20,9 +20,12 @@ def upgrade():
         "pl_lists",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("name", sa.String(length=100), nullable=False),
+        sa.Column("slug", sa.String(length=100), nullable=False),
+        sa.Column("title", sa.String(length=100), nullable=False),
         sa.Column("created_at", sa.TIMESTAMP(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("name"),
+        sa.UniqueConstraint("slug"),
     )
     op.create_table(
         "pl_phrases",
