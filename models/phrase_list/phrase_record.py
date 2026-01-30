@@ -5,7 +5,7 @@ class PhraseRecord(db.Model):
     __tablename__ = "pl_phrases"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    phrase = db.Column(db.String(200), unique=True, nullable=False)
+    phrase = db.Column(db.String(500), unique=True, nullable=False)
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp(), nullable=True)
 
     lists = db.relationship(

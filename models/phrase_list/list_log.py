@@ -6,7 +6,7 @@ class ListLog(db.Model):
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     list_id = db.Column(db.Integer, db.ForeignKey("pl_lists.id", ondelete="CASCADE"), nullable=False)
-    phrase = db.Column(db.String(200), nullable=False)
+    phrase = db.Column(db.String(500), nullable=False)
     add_date = db.Column(db.TIMESTAMP, nullable=True)
     remove_date = db.Column(db.TIMESTAMP, nullable=True)
 

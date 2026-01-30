@@ -30,7 +30,7 @@ def upgrade():
     op.create_table(
         "pl_phrases",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("phrase", sa.String(length=200), nullable=False),
+        sa.Column("phrase", sa.String(length=500), nullable=False),
         sa.Column("created_at", sa.TIMESTAMP(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=True),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("phrase"),
@@ -49,7 +49,7 @@ def upgrade():
         "pl_lists_logs",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True, nullable=False),
         sa.Column("list_id", sa.Integer(), nullable=False),  # Добавлен list_id как колонка
-        sa.Column("phrase", sa.String(length=200), nullable=False),
+        sa.Column("phrase", sa.String(length=500), nullable=False),
         sa.Column("add_date", sa.TIMESTAMP(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=True),
         sa.Column("remove_date", sa.TIMESTAMP(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=True),
         sa.ForeignKeyConstraint(["list_id"], ["pl_lists.id"], ondelete="CASCADE"),
