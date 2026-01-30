@@ -5,11 +5,17 @@
 <div class="container-fluid">
   {{ page_title(list_title ~ ' (' ~ words|length ~ ')') }}
 
-  <div class="mи-3 d-flex gap-2">
-    <button type="button" class="btn btn-primary"><i class="fa fa-upload"></i> Импорт</button>
+  <div class="my-3 d-flex gap-2">
+    {% if import_url %}
+    <button type="button" class="btn btn-primary" data-modal-open="import-modal"><i class="fa fa-upload"></i> Импорт</button>
+    {% endif %}
     <button type="button" class="btn btn-secondary"><i class="fa fa-download"></i> Экспорт</button>
     <button type="button" class="btn btn-secondary"><i class="fa fa-minus-circle"></i> Минусация</button>
   </div>
+
+  {% if import_url %}
+  {% include 'admin/components/import_txt_modal.html' with context %}
+  {% endif %}
 
   <div class="relative my-3">
     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">

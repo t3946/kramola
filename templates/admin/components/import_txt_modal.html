@@ -1,0 +1,37 @@
+<div id="import-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="import-modal-title" role="dialog" aria-modal="true">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="fixed inset-0 bg-black/50 transition-opacity" data-modal-close="import-modal" aria-hidden="true"></div>
+    <div class="relative rounded-lg bg-white shadow-xl w-full max-w-md p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="import-modal-title" class="text-lg font-semibold">Импорт фраз из TXT</h3>
+        <button type="button" class="rounded-md text-gray-400 hover:text-gray-600" data-modal-close="import-modal" aria-label="Закрыть">
+          <i class="fa fa-times" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form action="{{ import_url }}" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".txt" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-4" required>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="btn btn-secondary" data-modal-close="import-modal">Отмена</button>
+          <button type="submit" class="btn btn-primary"><i class="fa fa-upload"></i> Отправить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  document.querySelectorAll("[data-modal-open]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-modal-open");
+      if (id) document.getElementById(id).classList.remove("hidden");
+    });
+  });
+  document.querySelectorAll("[data-modal-close]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var id = el.getAttribute("data-modal-close");
+      if (id) document.getElementById(id).classList.add("hidden");
+    });
+  });
+})();
+</script>

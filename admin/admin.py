@@ -1,14 +1,22 @@
-from flask import Flask, redirect, request, url_for
+from flask import Flask, flash, redirect, request, url_for
 from flask_admin import Admin, AdminIndexView, BaseView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.theme import Bootstrap4Theme
 from flask_login import current_user
 from wtforms import PasswordField
 
+from extensions import db
 from models import User, Role
 from models.phrase_list.list_phrase import ListPhrase
 from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
+
+
+def _lines_from_uploaded_file(file) -> list[str]:
+    content = file.read()
+    if isinstance(content, bytes):
+        content = content.decode("utf-8-sig")
+    return [line.strip() for line in content.splitlines() if line.strip()]
 
 
 class WordsListView(BaseView):
@@ -37,12 +45,43 @@ class WordsListView(BaseView):
                 .all()
             )
         list_title = list_record.title if list_record else self.list_slug
+        import_url = url_for(f".import_phrases") if list_record else None
         return self.render(
             "admin/words_list.html",
             list_title=list_title,
             list_slug=self.list_slug,
             words=words,
+            import_url=import_url,
         )
+
+    @expose("/import", methods=["POST"])
+    def import_phrases(self):
+        list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
+        if not list_record:
+            return redirect(url_for(".index"))
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            return redirect(url_for(".index"))
+        if not file.filename.lower().endswith(".txt"):
+            return redirect(url_for(".index"))
+        lines: list[str] = _lines_from_uploaded_file(file)
+        added = 0
+        for phrase_text in lines:
+            phrase_record = PhraseRecord.query.filter_by(phrase=phrase_text).first()
+            if not phrase_record:
+                phrase_record = PhraseRecord(phrase=phrase_text)
+                db.session.add(phrase_record)
+                db.session.flush()
+            link = ListPhrase.query.filter_by(
+                phrase_id=phrase_record.id,
+                list_id=list_record.id,
+            ).first()
+            if not link:
+                db.session.add(ListPhrase(phrase_id=phrase_record.id, list_id=list_record.id))
+                added += 1
+        db.session.commit()
+        flash(f"Импорт: добавлено фраз в список: {added}.")
+        return redirect(url_for(".index"))
 
 
 class SecureAdminIndexView(AdminIndexView):
