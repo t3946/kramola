@@ -1,0 +1,20 @@
+<div id="delete-phrase-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="delete-phrase-modal-title" role="dialog" aria-modal="true">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="fixed inset-0 bg-black/50 transition-opacity" data-modal-close="delete-phrase-modal" aria-hidden="true"></div>
+    <div class="relative rounded-lg bg-white shadow-xl w-full max-w-md p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="delete-phrase-modal-title" class="text-lg font-semibold">Удалить из списка</h3>
+        <button type="button" class="rounded-md text-gray-400 hover:text-gray-600" data-modal-close="delete-phrase-modal" aria-label="Закрыть">
+          <i class="fa fa-times" aria-hidden="true"></i>
+        </button>
+      </div>
+      <p id="delete-phrase-message" class="mb-4 text-gray-600"></p>
+      <form id="delete-phrase-form" method="post">
+        <div class="flex justify-end gap-2">
+          <button type="button" class="btn btn-secondary" data-modal-close="delete-phrase-modal">Отмена</button>
+          <button type="submit" class="btn btn-danger"><i class="fa fa-trash"></i> Удалить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

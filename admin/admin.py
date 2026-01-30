@@ -14,6 +14,8 @@ from admin.words_list_controller import (
     get_phrases_sorted,
     import_phrases_from_file,
     minusate_phrases_from_file,
+    remove_phrase_from_list,
+    update_phrase_in_list,
 )
 
 
@@ -39,11 +41,16 @@ class WordsListView(BaseView):
         import_url = url_for(".import_phrases") if list_record else None
         export_url = url_for(".export_phrases") if list_record else None
         minusate_url = url_for(".minusate_phrases") if list_record else None
+        endpoint = self.endpoint
+        words_with_actions = [
+            (w, url_for(f"{endpoint}.edit_phrase", phrase_id=w.id), url_for(f"{endpoint}.delete_phrase", phrase_id=w.id))
+            for w in words
+        ]
         return self.render(
             "admin/words_list.html",
             list_title=list_title,
             list_slug=self.list_slug,
-            words=words,
+            words_with_actions=words_with_actions,
             import_url=import_url,
             export_url=export_url,
             minusate_url=minusate_url,
@@ -77,6 +84,34 @@ class WordsListView(BaseView):
             return redirect(url_for(".index"))
         removed = minusate_phrases_from_file(list_record, file)
         flash(f"Минусация: удалено фраз из списка: {removed}.")
+        return redirect(url_for(".index"))
+
+    @expose("/phrase/<int:phrase_id>/edit", methods=["GET", "POST"])
+    def edit_phrase(self, phrase_id: int):
+        if request.method != "POST":
+            return redirect(url_for(".index"))
+        list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
+        if not list_record:
+            return redirect(url_for(".index"))
+        new_text = request.form.get("phrase", "").strip()
+        err = update_phrase_in_list(list_record, phrase_id, new_text)
+        if err:
+            flash(err)
+        else:
+            flash("Фраза сохранена.")
+        return redirect(url_for(".index"))
+
+    @expose("/phrase/<int:phrase_id>/delete", methods=["GET", "POST"])
+    def delete_phrase(self, phrase_id: int):
+        if request.method != "POST":
+            return redirect(url_for(".index"))
+        list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
+        if not list_record:
+            return redirect(url_for(".index"))
+        if remove_phrase_from_list(list_record, phrase_id):
+            flash("Фраза удалена из списка.")
+        else:
+            flash("Фраза не найдена в списке.")
         return redirect(url_for(".index"))
 
     @expose("/export")

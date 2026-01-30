@@ -1,0 +1,20 @@
+<div id="edit-phrase-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="edit-phrase-modal-title" role="dialog" aria-modal="true">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="fixed inset-0 bg-black/50 transition-opacity" data-modal-close="edit-phrase-modal" aria-hidden="true"></div>
+    <div class="relative rounded-lg bg-white shadow-xl w-full max-w-md p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 id="edit-phrase-modal-title" class="text-lg font-semibold">Редактировать фразу</h3>
+        <button type="button" class="rounded-md text-gray-400 hover:text-gray-600" data-modal-close="edit-phrase-modal" aria-label="Закрыть">
+          <i class="fa fa-times" aria-hidden="true"></i>
+        </button>
+      </div>
+      <form id="edit-phrase-form" method="post">
+        <input type="text" id="edit-phrase-input" name="phrase" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 mb-4" required>
+        <div class="flex justify-end gap-2">
+          <button type="button" class="btn btn-secondary" data-modal-close="edit-phrase-modal">Отмена</button>
+          <button type="submit" class="btn btn-primary"><i class="fa fa-check"></i> Сохранить</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

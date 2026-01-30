@@ -60,6 +60,33 @@ def minusate_phrases_from_file(list_record: ListRecord, file) -> int:
     return removed
 
 
+def update_phrase_in_list(list_record: ListRecord, phrase_id: int, new_text: str) -> str | None:
+    new_text = new_text.strip()
+    if not new_text:
+        return "Фраза не может быть пустой"
+    link = ListPhrase.query.filter_by(list_id=list_record.id, phrase_id=phrase_id).first()
+    if not link:
+        return "Фраза не найдена в списке"
+    existing = PhraseRecord.query.filter_by(phrase=new_text).first()
+    if existing and existing.id != phrase_id:
+        return "Фраза уже существует"
+    phrase_record = PhraseRecord.query.get(phrase_id)
+    if not phrase_record:
+        return "Фраза не найдена"
+    phrase_record.phrase = new_text
+    db.session.commit()
+    return None
+
+
+def remove_phrase_from_list(list_record: ListRecord, phrase_id: int) -> bool:
+    link = ListPhrase.query.filter_by(list_id=list_record.id, phrase_id=phrase_id).first()
+    if not link:
+        return False
+    db.session.delete(link)
+    db.session.commit()
+    return True
+
+
 def export_phrases_to_text(list_record: ListRecord | None) -> str:
     phrases = get_phrases_sorted(list_record)
     return "\n".join(p.phrase for p in phrases)

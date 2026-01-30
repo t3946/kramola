@@ -18,20 +18,3 @@
     </div>
   </div>
 </div>
-
-<script>
-(function () {
-  document.querySelectorAll("[data-modal-open]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var id = btn.getAttribute("data-modal-open");
-      if (id) document.getElementById(id).classList.remove("hidden");
-    });
-  });
-  document.querySelectorAll("[data-modal-close]").forEach(function (el) {
-    el.addEventListener("click", function () {
-      var id = el.getAttribute("data-modal-close");
-      if (id) document.getElementById(id).classList.add("hidden");
-    });
-  });
-})();
-</script>

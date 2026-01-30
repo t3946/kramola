@@ -3,7 +3,7 @@
 
 {% block body %}
 <div class="container-fluid">
-  {{ page_title(list_title ~ ' (' ~ words|length ~ ')') }}
+  {{ page_title(list_title ~ ' (' ~ words_with_actions|length ~ ')') }}
 
   <div class="my-3 d-flex gap-2">
     {% if import_url %}
@@ -24,6 +24,8 @@
   {% if import_url %}
   {% include 'admin/components/import_txt_modal.html' with context %}
   {% include 'admin/components/minusate_txt_modal.html' with context %}
+  {% include 'admin/components/edit_phrase_modal.html' %}
+  {% include 'admin/components/delete_phrase_modal.html' %}
   {% endif %}
 
   <div class="relative my-3">
@@ -43,13 +45,13 @@
         </tr>
       </thead>
       <tbody>
-        {% for word in words %}
+        {% for word, edit_url, delete_url in words_with_actions %}
         <tr>
           <td>{{ word.phrase }}</td>
           <td>{{ word.created_at }}</td>
           <td class="text-end">
-            <a href="#" title="Изменить" class="btn btn-sm btn-outline-primary"><i class="fa fa-pencil"></i></a>
-            <a href="#" title="Удалить" class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></a>
+            <button type="button" class="btn btn-sm btn-outline-primary" title="Изменить" data-edit-url="{{ edit_url }}" data-phrase="{{ word.phrase|e }}"><i class="fa fa-pencil"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-danger" title="Удалить" data-delete-url="{{ delete_url }}" data-phrase="{{ word.phrase|e }}"><i class="fa fa-trash"></i></button>
           </td>
         </tr>
         {% else %}
@@ -70,4 +72,43 @@
 .words-list-table .btn { margin-left: 0.2rem; padding: 0.15rem 0.35rem; font-size: 0.75rem; }
 .words-list-table .btn:first-child { margin-left: 0; }
 </style>
+
+<script>
+(function () {
+  document.querySelectorAll("[data-modal-open]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-modal-open");
+      if (id) document.getElementById(id).classList.remove("hidden");
+    });
+  });
+  document.querySelectorAll("[data-modal-close]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      var id = el.getAttribute("data-modal-close");
+      if (id) document.getElementById(id).classList.add("hidden");
+    });
+  });
+  document.querySelectorAll("button[data-edit-url]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var form = document.getElementById("edit-phrase-form");
+      var input = document.getElementById("edit-phrase-input");
+      if (form && input) {
+        form.action = btn.getAttribute("data-edit-url");
+        input.value = btn.getAttribute("data-phrase") || "";
+        document.getElementById("edit-phrase-modal").classList.remove("hidden");
+      }
+    });
+  });
+  document.querySelectorAll("button[data-delete-url]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var form = document.getElementById("delete-phrase-form");
+      var message = document.getElementById("delete-phrase-message");
+      if (form && message) {
+        form.action = btn.getAttribute("data-delete-url");
+        message.textContent = "Удалить фразу «" + (btn.getAttribute("data-phrase") || "") + "» из списка?";
+        document.getElementById("delete-phrase-modal").classList.remove("hidden");
+      }
+    });
+  });
+})();
+</script>
 {% endblock %}
