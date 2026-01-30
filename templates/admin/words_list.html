@@ -3,7 +3,7 @@
 
 {% block body %}
 <div class="container-fluid">
-  {{ page_title(list_title) }}
+  {{ page_title(list_title ~ ' (' ~ words|length ~ ')') }}
 
   <div class="mи-3 d-flex gap-2">
     <button type="button" class="btn btn-primary"><i class="fa fa-upload"></i> Импорт</button>

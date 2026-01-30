@@ -22,7 +22,10 @@ from blueprints.tool_footnotes.routes import footnotes_bp
 from blueprints.tool_highlight.routes import highlight_bp
 from blueprints.tool_highlight.socketio.socketio_handlers import register_socketio_handlers
 from commands.commands import register_commands
+from sqlalchemy import func
+
 from extensions import db
+from models.phrase_list.list_phrase import ListPhrase
 from models.phrase_list.list_record import ListRecord
 from services.pymorphy_service import load_pymorphy, load_nltk_lemmatizer
 from services.redis.connection import get_redis_connection, get_redis_host
@@ -178,8 +181,18 @@ init_admin(app, db)
 def inject_admin_words_lists():
     def _items():
         records = ListRecord.query.order_by(ListRecord.id).all()
+        count_rows = (
+            db.session.query(ListPhrase.list_id, func.count(ListPhrase.id).label("cnt"))
+            .group_by(ListPhrase.list_id)
+            .all()
+        )
+        count_by_list_id = {row.list_id: row.cnt for row in count_rows}
         return [
-            {"endpoint": f"words_list_{r.slug.replace('-', '_')}", "title": r.title or r.slug}
+            {
+                "endpoint": f"words_list_{r.slug.replace('-', '_')}",
+                "title": r.title or r.slug,
+                "count": count_by_list_id.get(r.id, 0),
+            }
             for r in records
         ]
     return {"admin_words_lists": _items}
