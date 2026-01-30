@@ -13,6 +13,7 @@ from admin.words_list_controller import (
     export_phrases_to_text,
     get_phrases_sorted,
     import_phrases_from_file,
+    minusate_phrases_from_file,
 )
 
 
@@ -37,6 +38,7 @@ class WordsListView(BaseView):
         list_title = list_record.title if list_record else self.list_slug
         import_url = url_for(".import_phrases") if list_record else None
         export_url = url_for(".export_phrases") if list_record else None
+        minusate_url = url_for(".minusate_phrases") if list_record else None
         return self.render(
             "admin/words_list.html",
             list_title=list_title,
@@ -44,6 +46,7 @@ class WordsListView(BaseView):
             words=words,
             import_url=import_url,
             export_url=export_url,
+            minusate_url=minusate_url,
         )
 
     @expose("/import", methods=["POST"])
@@ -58,6 +61,22 @@ class WordsListView(BaseView):
             return redirect(url_for(".index"))
         added = import_phrases_from_file(list_record, file)
         flash(f"Импорт: добавлено фраз в список: {added}.")
+        return redirect(url_for(".index"))
+
+    @expose("/minusate", methods=["GET", "POST"])
+    def minusate_phrases(self):
+        if request.method != "POST":
+            return redirect(url_for(".index"))
+        list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
+        if not list_record:
+            return redirect(url_for(".index"))
+        file = request.files.get("file")
+        if not file or file.filename == "":
+            return redirect(url_for(".index"))
+        if not file.filename.lower().endswith(".txt"):
+            return redirect(url_for(".index"))
+        removed = minusate_phrases_from_file(list_record, file)
+        flash(f"Минусация: удалено фраз из списка: {removed}.")
         return redirect(url_for(".index"))
 
     @expose("/export")

@@ -14,11 +14,16 @@
     {% else %}
     <button type="button" class="btn btn-secondary" disabled><i class="fa fa-download"></i> Экспорт</button>
     {% endif %}
-    <button type="button" class="btn btn-secondary"><i class="fa fa-minus-circle"></i> Минусация</button>
+    {% if import_url %}
+    <button type="button" class="btn btn-secondary" data-modal-open="minusate-modal"><i class="fa fa-minus-circle"></i> Минусация</button>
+    {% else %}
+    <button type="button" class="btn btn-secondary" disabled><i class="fa fa-minus-circle"></i> Минусация</button>
+    {% endif %}
   </div>
 
   {% if import_url %}
   {% include 'admin/components/import_txt_modal.html' with context %}
+  {% include 'admin/components/minusate_txt_modal.html' with context %}
   {% endif %}
 
   <div class="relative my-3">

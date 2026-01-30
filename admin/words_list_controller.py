@@ -42,6 +42,24 @@ def import_phrases_from_file(list_record: ListRecord, file) -> int:
     return added
 
 
+def minusate_phrases_from_file(list_record: ListRecord, file) -> int:
+    lines: list[str] = _lines_from_uploaded_file(file)
+    removed = 0
+    for phrase_text in lines:
+        phrase_record = PhraseRecord.query.filter_by(phrase=phrase_text).first()
+        if not phrase_record:
+            continue
+        link = ListPhrase.query.filter_by(
+            phrase_id=phrase_record.id,
+            list_id=list_record.id,
+        ).first()
+        if link:
+            db.session.delete(link)
+            removed += 1
+    db.session.commit()
+    return removed
+
+
 def export_phrases_to_text(list_record: ListRecord | None) -> str:
     phrases = get_phrases_sorted(list_record)
     return "\n".join(p.phrase for p in phrases)
