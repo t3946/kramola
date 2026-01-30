@@ -1,22 +1,19 @@
-from flask import Flask, flash, redirect, request, url_for
+from flask import Flask, flash, redirect, request, Response, url_for
 from flask_admin import Admin, AdminIndexView, BaseView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.theme import Bootstrap4Theme
 from flask_login import current_user
 from wtforms import PasswordField
 
-from extensions import db
 from models import User, Role
-from models.phrase_list.list_phrase import ListPhrase
 from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
 
-
-def _lines_from_uploaded_file(file) -> list[str]:
-    content = file.read()
-    if isinstance(content, bytes):
-        content = content.decode("utf-8-sig")
-    return [line.strip() for line in content.splitlines() if line.strip()]
+from admin.words_list_controller import (
+    export_phrases_to_text,
+    get_phrases_sorted,
+    import_phrases_from_file,
+)
 
 
 class WordsListView(BaseView):
@@ -36,22 +33,17 @@ class WordsListView(BaseView):
     @expose("/")
     def index(self):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
-        words: list[PhraseRecord] = []
-        if list_record:
-            words = (
-                PhraseRecord.query.join(ListPhrase)
-                .filter(ListPhrase.list_id == list_record.id)
-                .order_by(PhraseRecord.created_at.desc())
-                .all()
-            )
+        words: list[PhraseRecord] = get_phrases_sorted(list_record)
         list_title = list_record.title if list_record else self.list_slug
-        import_url = url_for(f".import_phrases") if list_record else None
+        import_url = url_for(".import_phrases") if list_record else None
+        export_url = url_for(".export_phrases") if list_record else None
         return self.render(
             "admin/words_list.html",
             list_title=list_title,
             list_slug=self.list_slug,
             words=words,
             import_url=import_url,
+            export_url=export_url,
         )
 
     @expose("/import", methods=["POST"])
@@ -64,24 +56,22 @@ class WordsListView(BaseView):
             return redirect(url_for(".index"))
         if not file.filename.lower().endswith(".txt"):
             return redirect(url_for(".index"))
-        lines: list[str] = _lines_from_uploaded_file(file)
-        added = 0
-        for phrase_text in lines:
-            phrase_record = PhraseRecord.query.filter_by(phrase=phrase_text).first()
-            if not phrase_record:
-                phrase_record = PhraseRecord(phrase=phrase_text)
-                db.session.add(phrase_record)
-                db.session.flush()
-            link = ListPhrase.query.filter_by(
-                phrase_id=phrase_record.id,
-                list_id=list_record.id,
-            ).first()
-            if not link:
-                db.session.add(ListPhrase(phrase_id=phrase_record.id, list_id=list_record.id))
-                added += 1
-        db.session.commit()
+        added = import_phrases_from_file(list_record, file)
         flash(f"Импорт: добавлено фраз в список: {added}.")
         return redirect(url_for(".index"))
+
+    @expose("/export")
+    def export_phrases(self) -> Response:
+        list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
+        if not list_record:
+            return redirect(url_for(".index"))
+        content = export_phrases_to_text(list_record)
+        filename = f"{list_record.slug}.txt"
+        return Response(
+            content,
+            mimetype="text/plain; charset=utf-8",
+            headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        )
 
 
 class SecureAdminIndexView(AdminIndexView):

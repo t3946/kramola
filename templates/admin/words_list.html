@@ -9,7 +9,11 @@
     {% if import_url %}
     <button type="button" class="btn btn-primary" data-modal-open="import-modal"><i class="fa fa-upload"></i> Импорт</button>
     {% endif %}
-    <button type="button" class="btn btn-secondary"><i class="fa fa-download"></i> Экспорт</button>
+    {% if export_url %}
+    <a href="{{ export_url }}" class="btn btn-secondary" download><i class="fa fa-download"></i> Экспорт</a>
+    {% else %}
+    <button type="button" class="btn btn-secondary" disabled><i class="fa fa-download"></i> Экспорт</button>
+    {% endif %}
     <button type="button" class="btn btn-secondary"><i class="fa fa-minus-circle"></i> Минусация</button>
   </div>
 
