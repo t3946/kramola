@@ -3,7 +3,7 @@
 
 {% block body %}
 <div class="container-fluid">
-  <h1 class="page-title text-black text-3xl font-semibold mb-3">{{ list_title }} (<span id="words-count">{{ words_with_actions|length }}</span>)</h1>
+  <h1 class="page-title text-black text-3xl font-semibold mb-3">{{ list_title }} (<span id="words-count">{% if total_count > 1000 %}1000 из {{ total_count }}{% else %}{{ words_with_actions|length }}{% endif %}</span>)</h1>
 
   <div class="my-3 d-flex gap-2">
     {% if import_url %}
@@ -39,7 +39,7 @@
     <table class="table table-striped table-hover words-list-table table-sm">
       <thead class="table-light">
         <tr>
-          <th scope="col">Слово</th>
+          <th scope="col">Фраза</th>
           <th scope="col">Дата добавления</th>
           <th scope="col" class="text-end" style="width: 8rem;">Действия</th>
         </tr>
@@ -48,7 +48,7 @@
         {% for word, edit_url, delete_url in words_with_actions %}
         <tr>
           <td>{{ word.phrase }}</td>
-          <td>{{ word.created_at }}</td>
+          <td>{{ word.created_at.strftime('%d.%m.%Y') if word.created_at else '' }}</td>
           <td class="text-end">
             <button type="button" class="btn btn-sm btn-outline-primary" title="Изменить" data-edit-url="{{ edit_url }}" data-phrase="{{ word.phrase|e }}"><i class="fa fa-pencil"></i></button>
             <button type="button" class="btn btn-sm btn-outline-danger" title="Удалить" data-delete-url="{{ delete_url }}" data-phrase="{{ word.phrase|e }}"><i class="fa fa-trash"></i></button>

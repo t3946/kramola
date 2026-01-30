@@ -1,21 +1,45 @@
+from sqlalchemy import func
+
 from extensions import db
 from models.phrase_list.list_phrase import ListPhrase
 from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
 
+TABLE_PHRASES_LIMIT: int = 1000
 
-def get_phrases_sorted(list_record: ListRecord | None) -> list[PhraseRecord]:
+
+def get_phrases_count(list_record: ListRecord | None) -> int:
     if not list_record:
-        return []
+        return 0
     return (
-        PhraseRecord.query.join(ListPhrase)
+        db.session.query(func.count(ListPhrase.phrase_id))
         .filter(ListPhrase.list_id == list_record.id)
-        .order_by(PhraseRecord.phrase.asc())
-        .all()
+        .scalar()
+        or 0
     )
 
 
-def search_phrases(list_record: ListRecord | None, query: str) -> list[PhraseRecord]:
+def get_phrases_sorted(
+    list_record: ListRecord | None,
+    limit: int | None = None,
+) -> list[PhraseRecord]:
+    if not list_record:
+        return []
+    q = (
+        PhraseRecord.query.join(ListPhrase)
+        .filter(ListPhrase.list_id == list_record.id)
+        .order_by(PhraseRecord.phrase.asc())
+    )
+    if limit is not None:
+        q = q.limit(limit)
+    return q.all()
+
+
+def search_phrases(
+    list_record: ListRecord | None,
+    query: str,
+    limit: int | None = None,
+) -> list[PhraseRecord]:
     if not list_record:
         return []
     terms = [t.strip() for t in query.split() if t.strip()]
@@ -25,7 +49,10 @@ def search_phrases(list_record: ListRecord | None, query: str) -> list[PhraseRec
     )
     for term in terms:
         q = q.filter(PhraseRecord.phrase.like(f"%{term}%"))
-    return q.order_by(PhraseRecord.phrase.asc()).all()
+    q = q.order_by(PhraseRecord.phrase.asc())
+    if limit is not None:
+        q = q.limit(limit)
+    return q.all()
 
 
 def _lines_from_uploaded_file(file) -> list[str]:
@@ -111,5 +138,5 @@ def remove_phrase_from_list(list_record: ListRecord, phrase_id: int) -> bool:
 
 
 def export_phrases_to_text(list_record: ListRecord | None) -> str:
-    phrases = get_phrases_sorted(list_record)
+    phrases = get_phrases_sorted(list_record, limit=None)
     return "\n".join(p.phrase for p in phrases)

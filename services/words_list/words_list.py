@@ -74,12 +74,17 @@ class WordsList:
 
         ListPhrase.query.filter_by(list_id=list_record.id).delete(synchronize_session=False)
 
-        for word in words_list:
+        # unique (phrase_id, list_id) — skip if same phrase_record already linked (e.g. collation)
+        linked_phrase_ids: set[int] = set()
+        for word in phrases_new_texts:
             phrase_record = PhraseRecord.query.filter_by(phrase=word).first()
             if phrase_record is None:
                 phrase_record = PhraseRecord(phrase=word)
                 db.session.add(phrase_record)
                 db.session.flush()
+            if phrase_record.id in linked_phrase_ids:
+                continue
+            linked_phrase_ids.add(phrase_record.id)
             link = ListPhrase(phrase_id=phrase_record.id, list_id=list_record.id)
             db.session.add(link)
 

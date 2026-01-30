@@ -1,3 +1,5 @@
+from sqlalchemy import inspect
+
 from flask import Flask, flash, jsonify, redirect, request, Response, url_for
 from flask_admin import Admin, AdminIndexView, BaseView, expose
 from flask_admin.contrib.sqla import ModelView
@@ -10,8 +12,10 @@ from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
 
 from admin.words_list_controller import (
+    TABLE_PHRASES_LIMIT,
     _lines_from_text,
     export_phrases_to_text,
+    get_phrases_count,
     get_phrases_sorted,
     import_phrases_from_file,
     import_phrases_from_lines,
@@ -40,7 +44,8 @@ class WordsListView(BaseView):
     @expose("/")
     def index(self):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
-        words: list[PhraseRecord] = get_phrases_sorted(list_record)
+        words: list[PhraseRecord] = get_phrases_sorted(list_record, limit=TABLE_PHRASES_LIMIT)
+        total_count: int = get_phrases_count(list_record) if list_record else 0
         list_title = list_record.title if list_record else self.list_slug
         import_url = url_for(".import_phrases") if list_record else None
         export_url = url_for(".export_phrases") if list_record else None
@@ -56,6 +61,7 @@ class WordsListView(BaseView):
             list_title=list_title,
             list_slug=self.list_slug,
             words_with_actions=words_with_actions,
+            total_count=total_count,
             import_url=import_url,
             export_url=export_url,
             minusate_url=minusate_url,
@@ -136,11 +142,11 @@ class WordsListView(BaseView):
     def search_phrases_route(self):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
         if not list_record:
-            return jsonify(words=[], search_terms=[])
+            return jsonify(words=[], search_terms=[], total_count=0)
         query = request.args.get("q", "").strip()
-        words_list = search_phrases(list_record, query)
+        words_list = search_phrases(list_record, query, limit=TABLE_PHRASES_LIMIT)
         endpoint = self.endpoint
-        created_at_str = lambda w: str(w.created_at) if w.created_at else ""
+        created_at_str = lambda w: w.created_at.strftime("%d.%m.%Y") if w.created_at else ""
         payload = {
             "words": [
                 {
@@ -152,6 +158,7 @@ class WordsListView(BaseView):
                 for w in words_list
             ],
             "search_terms": [t.strip() for t in query.split() if t.strip()],
+            "total_count": len(words_list),
         }
         return jsonify(payload)
 
@@ -216,7 +223,12 @@ def init_admin(app: Flask, db) -> Admin:
     admin.add_view(UserView(User, db.session, category="Пользователи", name="Пользователи"))
     admin.add_view(RoleView(Role, db.session, category="Пользователи", name="Роли"))
     with app.app_context():
-        list_records = ListRecord.query.order_by(ListRecord.id).all()
+        has_pl_lists = "pl_lists" in inspect(db.engine).get_table_names()
+        list_records = (
+            ListRecord.query.order_by(ListRecord.id).all()
+            if has_pl_lists
+            else []
+        )
     for list_record in list_records:
         endpoint = f"words_list_{list_record.slug.replace('-', '_')}"
         admin.add_view(

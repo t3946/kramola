@@ -174,7 +174,9 @@ for dir_path in dirs_to_create:
 app.logger.info(
     f"Base directories configured: UPLOAD={app.config['UPLOAD_DIR']}, RESULT={app.config['RESULT_DIR']}, LISTS={app.config['PREDEFINED_LISTS_DIR']}")
 
-init_admin(app, db)
+# Skip admin init when running migrations (flask db) — app is loaded only to get DB URL
+if "db" not in sys.argv:
+    init_admin(app, db)
 
 
 @app.context_processor

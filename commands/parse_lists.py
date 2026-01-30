@@ -24,10 +24,7 @@ log_file = log_dir / "parse_lists.log"
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(name)s - %(message)s',
-    handlers=[
-        logging.FileHandler(log_file, encoding='utf-8'),
-        logging.StreamHandler(sys.stdout)
-    ]
+    handlers=[logging.FileHandler(log_file, encoding='utf-8')],
 )
 
 logger = logging.getLogger(__name__)
