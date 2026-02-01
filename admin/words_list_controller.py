@@ -55,6 +55,27 @@ def search_phrases(
     return q.all()
 
 
+def get_phrases_paginated(
+    list_record: ListRecord | None,
+    limit: int,
+    offset: int,
+    query: str | None = None,
+) -> tuple[list[PhraseRecord], int]:
+    """Returns (phrases slice, total count)."""
+    if not list_record:
+        return [], 0
+    terms = [t.strip() for t in (query or "").split() if t.strip()]
+    base = (
+        PhraseRecord.query.join(ListPhrase)
+        .filter(ListPhrase.list_id == list_record.id)
+    )
+    for term in terms:
+        base = base.filter(PhraseRecord.phrase.like(f"%{term}%"))
+    total: int = base.count()
+    q = base.order_by(PhraseRecord.phrase.asc()).limit(limit).offset(offset)
+    return q.all(), total
+
+
 def _lines_from_uploaded_file(file) -> list[str]:
     content = file.read()
     if isinstance(content, bytes):

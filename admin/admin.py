@@ -12,10 +12,10 @@ from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
 
 from admin.words_list_controller import (
-    TABLE_PHRASES_LIMIT,
     _lines_from_text,
     export_phrases_to_text,
     get_phrases_count,
+    get_phrases_paginated,
     get_phrases_sorted,
     import_phrases_from_file,
     import_phrases_from_lines,
@@ -44,28 +44,22 @@ class WordsListView(BaseView):
     @expose("/")
     def index(self):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
-        words: list[PhraseRecord] = get_phrases_sorted(list_record, limit=TABLE_PHRASES_LIMIT)
         total_count: int = get_phrases_count(list_record) if list_record else 0
         list_title = list_record.title if list_record else self.list_slug
         import_url = url_for(".import_phrases") if list_record else None
         export_url = url_for(".export_phrases") if list_record else None
         minusate_url = url_for(".minusate_phrases") if list_record else None
         endpoint = self.endpoint
-        words_with_actions = [
-            (w, url_for(f"{endpoint}.edit_phrase", phrase_id=w.id), url_for(f"{endpoint}.delete_phrase", phrase_id=w.id))
-            for w in words
-        ]
-        search_url = url_for(f"{endpoint}.search_phrases_route") if list_record else None
+        data_url = url_for(f"{endpoint}.data_route") if list_record else None
         return self.render(
             "admin/words_list.html",
             list_title=list_title,
             list_slug=self.list_slug,
-            words_with_actions=words_with_actions,
             total_count=total_count,
             import_url=import_url,
             export_url=export_url,
             minusate_url=minusate_url,
-            search_url=search_url,
+            data_url=data_url,
         )
 
     @expose("/import", methods=["POST"])
@@ -138,28 +132,29 @@ class WordsListView(BaseView):
             flash("Фраза не найдена в списке.")
         return redirect(url_for(".index"))
 
-    @expose("/search")
-    def search_phrases_route(self):
+    @expose("/data")
+    def data_route(self):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
         if not list_record:
-            return jsonify(words=[], search_terms=[], total_count=0)
-        query = request.args.get("q", "").strip()
-        words_list = search_phrases(list_record, query, limit=TABLE_PHRASES_LIMIT)
+            return jsonify(data=[], total=0)
+        limit = request.args.get("limit", 100, type=int)
+        offset = request.args.get("offset", 0, type=int)
+        query = request.args.get("q", "").strip() or None
+        limit = min(max(1, limit), 500)
+        offset = max(0, offset)
+        words_list, total = get_phrases_paginated(list_record, limit=limit, offset=offset, query=query)
         endpoint = self.endpoint
         created_at_str = lambda w: w.created_at.strftime("%d.%m.%Y") if w.created_at else ""
-        payload = {
-            "words": [
-                {
-                    "phrase": w.phrase,
-                    "created_at": created_at_str(w),
-                    "edit_url": url_for(f"{endpoint}.edit_phrase", phrase_id=w.id),
-                    "delete_url": url_for(f"{endpoint}.delete_phrase", phrase_id=w.id),
-                }
-                for w in words_list
-            ],
-            "search_terms": [t.strip() for t in query.split() if t.strip()],
-            "total_count": len(words_list),
-        }
+
+        def row(w: PhraseRecord) -> dict:
+            return {
+                "phrase": w.phrase,
+                "created_at": created_at_str(w),
+                "edit_url": url_for(f"{endpoint}.edit_phrase", phrase_id=w.id),
+                "delete_url": url_for(f"{endpoint}.delete_phrase", phrase_id=w.id),
+            }
+
+        payload = {"data": [row(w) for w in words_list], "total": total}
         return jsonify(payload)
 
     @expose("/export")

@@ -3,7 +3,10 @@
 
 {% block body %}
 <div class="container-fluid">
-  <h1 class="page-title text-black text-3xl font-semibold mb-3">{{ list_title }} (<span id="words-count">{% if total_count > 1000 %}1000 из {{ total_count }}{% else %}{{ words_with_actions|length }}{% endif %}</span>)</h1>
+  <h1 class="page-title text-black text-3xl font-semibold mb-3">
+      <span>{{ list_title }}</span>
+      (<span id="words-count">{{ total_count }}</span>)
+  </h1>
 
   <div class="my-3 d-flex gap-2">
     {% if import_url %}
@@ -32,48 +35,38 @@
     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
       <i class="fa fa-search" aria-hidden="true"></i>
     </div>
-    <input type="text" id="word-search" name="q" placeholder="Введите слово для поиска" class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10  pr-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"{% if search_url %} data-search-url="{{ search_url }}"{% endif %}>
+    <input type="text" id="word-search" name="q" placeholder="Введите слово для поиска" class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10  pr-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"{% if data_url %} data-data-url="{{ data_url }}"{% endif %}>
   </div>
 
-  <div class="table-responsive">
-    <table class="table table-striped table-hover words-list-table table-sm">
-      <thead class="table-light">
-        <tr>
-          <th scope="col">Фраза</th>
-          <th scope="col">Дата добавления</th>
-          <th scope="col" class="text-end" style="width: 8rem;">Действия</th>
-        </tr>
-      </thead>
-      <tbody id="words-tbody">
-        {% for word, edit_url, delete_url in words_with_actions %}
-        <tr>
-          <td>{{ word.phrase }}</td>
-          <td>{{ word.created_at.strftime('%d.%m.%Y') if word.created_at else '' }}</td>
-          <td class="text-end">
-            <button type="button" class="btn btn-sm btn-outline-primary" title="Изменить" data-edit-url="{{ edit_url }}" data-phrase="{{ word.phrase|e }}"><i class="fa fa-pencil"></i></button>
-            <button type="button" class="btn btn-sm btn-outline-danger" title="Удалить" data-delete-url="{{ delete_url }}" data-phrase="{{ word.phrase|e }}"><i class="fa fa-trash"></i></button>
-          </td>
-        </tr>
-        {% else %}
-        <tr>
-          <td colspan="3" class="text-muted text-center py-4">Список пуст</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
+  <div id="words-grid-wrapper" class="my-3"></div>
 </div>
 
+<link href="https://cdn.jsdelivr.net/npm/gridjs@6.2.0/dist/theme/mermaid.min.css" rel="stylesheet"/>
 <style>
-.words-list-table { font-size: 0.8125rem; line-height: 1.3; }
-.words-list-table th,
-.words-list-table td { padding: 0.25rem 0.5rem; vertical-align: middle; }
-.words-list-table th { font-weight: 600; white-space: nowrap; }
-.words-list-table .btn { margin-left: 0.2rem; padding: 0.15rem 0.35rem; font-size: 0.75rem; }
-.words-list-table .btn:first-child { margin-left: 0; }
-.search-highlight { background-color: #93c5fd; }
+#words-grid-wrapper .gridjs-wrapper { font-size: 0.8125rem; }
+#words-grid-wrapper .gridjs-table { width: 100%; table-layout: auto; }
+#words-grid-wrapper .gridjs-th,
+#words-grid-wrapper .gridjs-td { padding: 0.25rem 0.5rem; vertical-align: middle; }
+#words-grid-wrapper .gridjs-th:first-child,
+#words-grid-wrapper .gridjs-td:first-child { width: 99%; }
+#words-grid-wrapper .gridjs-th:nth-child(2),
+#words-grid-wrapper .gridjs-td:nth-child(2),
+#words-grid-wrapper .gridjs-th:nth-child(3),
+#words-grid-wrapper .gridjs-td:nth-child(3) {
+  width: 1%;
+  white-space: nowrap;
+}
+#words-grid-wrapper .gridjs-th:last-child,
+#words-grid-wrapper .gridjs-td:last-child { text-align: right; }
+#words-grid-wrapper .gridjs-btn {
+    margin-left: 0.2rem;
+    padding: 0.15rem 0.35rem;
+    font-size: 0.75rem;
+}
+#words-grid-wrapper .gridjs-btn:first-child { margin-left: 0; }
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/gridjs@6.2.0/dist/gridjs.umd.js"></script>
 <script>
 (function () {
   document.querySelectorAll("[data-modal-open]").forEach(function (btn) {
@@ -88,84 +81,96 @@
       if (id) document.getElementById(id).classList.add("hidden");
     });
   });
-  var wordsTbody = document.getElementById("words-tbody");
-  if (wordsTbody) {
-    wordsTbody.addEventListener("click", function (e) {
-      var editBtn = e.target.closest("button[data-edit-url]");
-      if (editBtn) {
-        var form = document.getElementById("edit-phrase-form");
-        var input = document.getElementById("edit-phrase-input");
-        if (form && input) {
-          form.action = editBtn.getAttribute("data-edit-url");
-          input.value = editBtn.getAttribute("data-phrase") || "";
-          document.getElementById("edit-phrase-modal").classList.remove("hidden");
-        }
-        return;
+
+  var wrapper = document.getElementById("words-grid-wrapper");
+  var searchEl = document.getElementById("word-search");
+  var dataUrl = searchEl && searchEl.getAttribute("data-data-url");
+  if (!dataUrl || !wrapper) return;
+
+  var debounceTimer = null;
+  var debounceMs = 300;
+  var currentGrid = null;
+
+  wrapper.addEventListener("click", function (e) {
+    var editBtn = e.target.closest("button[data-edit-url]");
+    if (editBtn) {
+      var form = document.getElementById("edit-phrase-form");
+      var input = document.getElementById("edit-phrase-input");
+      if (form && input) {
+        form.action = editBtn.getAttribute("data-edit-url");
+        input.value = editBtn.getAttribute("data-phrase") || "";
+        document.getElementById("edit-phrase-modal").classList.remove("hidden");
       }
-      var delBtn = e.target.closest("button[data-delete-url]");
-      if (delBtn) {
-        var form = document.getElementById("delete-phrase-form");
-        var message = document.getElementById("delete-phrase-message");
-        if (form && message) {
-          form.action = delBtn.getAttribute("data-delete-url");
-          message.textContent = "Удалить фразу «" + (delBtn.getAttribute("data-phrase") || "") + "» из списка?";
-          document.getElementById("delete-phrase-modal").classList.remove("hidden");
-        }
+      return;
+    }
+    var delBtn = e.target.closest("button[data-delete-url]");
+    if (delBtn) {
+      var form = document.getElementById("delete-phrase-form");
+      var message = document.getElementById("delete-phrase-message");
+      if (form && message) {
+        form.action = delBtn.getAttribute("data-delete-url");
+        message.textContent = "Удалить фразу «" + (delBtn.getAttribute("data-phrase") || "") + "» из списка?";
+        document.getElementById("delete-phrase-modal").classList.remove("hidden");
       }
-    });
+    }
+  });
+
+  function escapeHtml(s) {
+    var div = document.createElement("div");
+    div.textContent = s;
+    return div.innerHTML;
   }
 
-  var searchInput = document.getElementById("word-search");
-  var searchUrl = searchInput && searchInput.getAttribute("data-search-url");
-  if (searchUrl) {
-    var tbody = document.getElementById("words-tbody");
-    var countEl = document.getElementById("words-count");
-    var debounceTimer = null;
-    var debounceMs = 300;
+  function actionsHtml(row) {
+    var phraseEsc = escapeHtml(row.phrase);
+    return "<button type=\"button\" class=\"btn btn-sm btn-outline-primary gridjs-btn\" title=\"Изменить\" data-edit-url=\"" + escapeHtml(row.edit_url) + "\" data-phrase=\"" + phraseEsc + "\"><i class=\"fa fa-pencil\"></i></button> " +
+      "<button type=\"button\" class=\"btn btn-sm btn-outline-danger gridjs-btn\" title=\"Удалить\" data-delete-url=\"" + escapeHtml(row.delete_url) + "\" data-phrase=\"" + phraseEsc + "\"><i class=\"fa fa-trash\"></i></button>";
+  }
 
-    function escapeHtml(s) {
-      var div = document.createElement("div");
-      div.textContent = s;
-      return div.innerHTML;
+  function buildServerUrl() {
+    var q = searchEl && searchEl.value.trim();
+    var sep = dataUrl.indexOf("?") >= 0 ? "&" : "?";
+    return dataUrl + (q ? sep + "q=" + encodeURIComponent(q) : "");
+  }
+
+  function renderGrid() {
+    if (currentGrid) {
+      currentGrid.destroy();
+      wrapper.innerHTML = "";
     }
-    function escapeRe(s) {
-      return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    }
-    function highlightPhrase(phrase, terms) {
-      var s = escapeHtml(phrase);
-      terms.forEach(function (term) {
-        if (!term) return;
-        var re = new RegExp(escapeRe(term), "gi");
-        s = s.replace(re, "<span class=\"search-highlight\">$&</span>");
-      });
-      return s;
-    }
-    function renderRow(word) {
-      var phraseHtml = highlightPhrase(word.phrase, window._lastSearchTerms || []);
-      var phraseEsc = escapeHtml(word.phrase);
-      return "<tr><td>" + phraseHtml + "</td><td>" + escapeHtml(word.created_at) + "</td><td class=\"text-end\">" +
-        "<button type=\"button\" class=\"btn btn-sm btn-outline-primary\" title=\"Изменить\" data-edit-url=\"" + escapeHtml(word.edit_url) + "\" data-phrase=\"" + phraseEsc + "\"><i class=\"fa fa-pencil\"></i></button> " +
-        "<button type=\"button\" class=\"btn btn-sm btn-outline-danger\" title=\"Удалить\" data-delete-url=\"" + escapeHtml(word.delete_url) + "\" data-phrase=\"" + phraseEsc + "\"><i class=\"fa fa-trash\"></i></button>" +
-        "</td></tr>";
-    }
-    function runSearch() {
-      var q = searchInput.value.trim();
-      var url = searchUrl + (q ? "?q=" + encodeURIComponent(q) : "");
-      fetch(url).then(function (r) { return r.json(); }).then(function (data) {
-        window._lastSearchTerms = data.search_terms || [];
-        if (data.words.length === 0) {
-          tbody.innerHTML = "<tr><td colspan=\"3\" class=\"text-muted text-center py-4\">Список пуст</td></tr>";
-        } else {
-          tbody.innerHTML = data.words.map(renderRow).join("");
+    var baseUrl = buildServerUrl();
+    var grid = new gridjs.Grid({
+      columns: ["Фраза", "Дата добавления", "Действия"],
+      pagination: {
+        limit: 100,
+        server: {
+          url: function (prev, page, limit) {
+            var sep = prev.indexOf("?") >= 0 ? "&" : "?";
+            return prev + sep + "limit=" + limit + "&offset=" + page * limit;
+          }
         }
-        if (countEl) countEl.textContent = data.words.length;
-      });
-    }
-    searchInput.addEventListener("input", function () {
+      },
+      server: {
+        url: baseUrl,
+        then: function (res) {
+          return (res.data || []).map(function (row) {
+            return [row.phrase, row.created_at, gridjs.html(actionsHtml(row))];
+          });
+        },
+        total: function (res) { return res.total || 0; }
+      }
+    });
+    grid.render(wrapper);
+    currentGrid = grid;
+  }
+
+  if (searchEl) {
+    searchEl.addEventListener("input", function () {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(runSearch, debounceMs);
+      debounceTimer = setTimeout(renderGrid, debounceMs);
     });
   }
+  renderGrid();
 })();
 </script>
 {% endblock %}
