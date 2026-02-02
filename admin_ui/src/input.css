@@ -1,3 +1,4 @@
+@import "gridjs/dist/theme/mermaid.min.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

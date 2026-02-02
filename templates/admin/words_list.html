@@ -41,7 +41,6 @@
   <div id="words-grid-wrapper" class="my-3"></div>
 </div>
 
-<link href="https://cdn.jsdelivr.net/npm/gridjs@6.2.0/dist/theme/mermaid.min.css" rel="stylesheet"/>
 <style>
 #words-grid-wrapper .gridjs-wrapper { font-size: 0.8125rem; }
 #words-grid-wrapper .gridjs-table { width: 100%; table-layout: auto; }
@@ -64,113 +63,6 @@
     font-size: 0.75rem;
 }
 #words-grid-wrapper .gridjs-btn:first-child { margin-left: 0; }
+.search-highlight { background-color: #93c5fd; }
 </style>
-
-<script src="https://cdn.jsdelivr.net/npm/gridjs@6.2.0/dist/gridjs.umd.js"></script>
-<script>
-(function () {
-  document.querySelectorAll("[data-modal-open]").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      var id = btn.getAttribute("data-modal-open");
-      if (id) document.getElementById(id).classList.remove("hidden");
-    });
-  });
-  document.querySelectorAll("[data-modal-close]").forEach(function (el) {
-    el.addEventListener("click", function () {
-      var id = el.getAttribute("data-modal-close");
-      if (id) document.getElementById(id).classList.add("hidden");
-    });
-  });
-
-  var wrapper = document.getElementById("words-grid-wrapper");
-  var searchEl = document.getElementById("word-search");
-  var dataUrl = searchEl && searchEl.getAttribute("data-data-url");
-  if (!dataUrl || !wrapper) return;
-
-  var debounceTimer = null;
-  var debounceMs = 300;
-  var currentGrid = null;
-
-  wrapper.addEventListener("click", function (e) {
-    var editBtn = e.target.closest("button[data-edit-url]");
-    if (editBtn) {
-      var form = document.getElementById("edit-phrase-form");
-      var input = document.getElementById("edit-phrase-input");
-      if (form && input) {
-        form.action = editBtn.getAttribute("data-edit-url");
-        input.value = editBtn.getAttribute("data-phrase") || "";
-        document.getElementById("edit-phrase-modal").classList.remove("hidden");
-      }
-      return;
-    }
-    var delBtn = e.target.closest("button[data-delete-url]");
-    if (delBtn) {
-      var form = document.getElementById("delete-phrase-form");
-      var message = document.getElementById("delete-phrase-message");
-      if (form && message) {
-        form.action = delBtn.getAttribute("data-delete-url");
-        message.textContent = "Удалить фразу «" + (delBtn.getAttribute("data-phrase") || "") + "» из списка?";
-        document.getElementById("delete-phrase-modal").classList.remove("hidden");
-      }
-    }
-  });
-
-  function escapeHtml(s) {
-    var div = document.createElement("div");
-    div.textContent = s;
-    return div.innerHTML;
-  }
-
-  function actionsHtml(row) {
-    var phraseEsc = escapeHtml(row.phrase);
-    return "<button type=\"button\" class=\"btn btn-sm btn-outline-primary gridjs-btn\" title=\"Изменить\" data-edit-url=\"" + escapeHtml(row.edit_url) + "\" data-phrase=\"" + phraseEsc + "\"><i class=\"fa fa-pencil\"></i></button> " +
-      "<button type=\"button\" class=\"btn btn-sm btn-outline-danger gridjs-btn\" title=\"Удалить\" data-delete-url=\"" + escapeHtml(row.delete_url) + "\" data-phrase=\"" + phraseEsc + "\"><i class=\"fa fa-trash\"></i></button>";
-  }
-
-  function buildServerUrl() {
-    var q = searchEl && searchEl.value.trim();
-    var sep = dataUrl.indexOf("?") >= 0 ? "&" : "?";
-    return dataUrl + (q ? sep + "q=" + encodeURIComponent(q) : "");
-  }
-
-  function renderGrid() {
-    if (currentGrid) {
-      currentGrid.destroy();
-      wrapper.innerHTML = "";
-    }
-    var baseUrl = buildServerUrl();
-    var grid = new gridjs.Grid({
-      columns: ["Фраза", "Дата добавления", "Действия"],
-      pagination: {
-        limit: 100,
-        server: {
-          url: function (prev, page, limit) {
-            var sep = prev.indexOf("?") >= 0 ? "&" : "?";
-            return prev + sep + "limit=" + limit + "&offset=" + page * limit;
-          }
-        }
-      },
-      server: {
-        url: baseUrl,
-        then: function (res) {
-          return (res.data || []).map(function (row) {
-            return [row.phrase, row.created_at, gridjs.html(actionsHtml(row))];
-          });
-        },
-        total: function (res) { return res.total || 0; }
-      }
-    });
-    grid.render(wrapper);
-    currentGrid = grid;
-  }
-
-  if (searchEl) {
-    searchEl.addEventListener("input", function () {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(renderGrid, debounceMs);
-    });
-  }
-  renderGrid();
-})();
-</script>
 {% endblock %}

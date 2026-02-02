@@ -22,4 +22,4 @@ static/js/bundle.js
 venv
 .venv
 
-static/css/admin.css
+static/admin/bundle.js

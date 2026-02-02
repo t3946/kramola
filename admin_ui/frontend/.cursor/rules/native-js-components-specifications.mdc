@@ -1,0 +1,419 @@
+---
+description: "This specification describes development rules for modular architecture without frameworks"
+alwaysApply: true
+appliesTo: ["**/*js", "**/*ts"]
+priority: 1
+tags: [javascript, modular]
+---
+
+***
+
+# Спецификация: Архитектура компонентов на нативном JS
+
+## Общая концепция
+
+- Система компонентов строится на трех типах сущностей: **Сервисы**, **Страницы** и **Компоненты (блоки)**. Каждый класс
+  имеет строгую структуру и lifecycle.
+- Каждая сущность должна содержаться в отдельном файле подробнее смотри раздел "Полная файловая структура"
+
+## Структура файло
+
+## Типы классов
+
+### 1. Сервисы
+
+- Глобальные утилиты и бизнес-логика
+- Не привязаны к DOM
+- Пример: `UserService`, `ApiService`, `StorageService`
+
+### 2. Страницы
+
+- Обслуживают скрипт на уровне роута
+- Инициализируют все компоненты на странице
+- Наследуют от базового класса с регистратором
+- Пример: `HomePage`, `UserProfilePage`
+
+### 3. Компоненты (блоки)
+
+- UI-блоки: кнопки, поля ввода, формы, прогресс-бары
+
+#### Правила написания компонентов
+
+- Компонент — это **один класс в одном файле**. Имя файла совпадает с именем класса: `ProgressBar.js` →
+  `class ProgressBar`.
+- Компонент **всегда наследуется** от `BaseComponent`(или его наследником) и принимает `el` (
+  HTMLElement/селектор/umbrellajs-объект в зависимости от реализации `BaseComponent`).
+- В конструкторе предполагается вызывать:
+    - `super(el)`
+    - чтение `dataset`/атрибутов для инициализации
+    - начальная `state({...})`
+    - `init()`
+- Обязательные части компонента:
+    - **`static commonClass`** — класс для автосканирования (пример: `js-progress-bar`)
+    - **`state(newState)`** — геттер/сеттер состояния, при сеттере обязан вызывать `updateView()`
+    - **`updateView()`** — единственное место, где меняется DOM по состоянию
+- События:
+    - все обработчики событий объявляются методами класса и **привязываются один раз** в `init()`
+    - если компонент может удаляться/пересоздаваться, должен быть метод `destroy()` для снятия обработчиков
+- DOM-правила:
+    - не делать повторных `querySelector` в каждом событии/рендере — кешировать элементы в `init()` (
+      `this.ui = { ... }`)
+    - не хранить “источник правды” в DOM — источник правды это `this._state`, DOM только отражение
+- Публичный API компонента:
+    - наружу отдаём **короткие методы** (например `setValue`, `setDisabled`) вместо прямой работы с DOM извне
+    - любое внешнее изменение должно проходить через методы/`state()`, а не через прямые правки DOM
+
+#### Шаблон классического компонента:
+
+  ```javascript
+  /**
+ * Описание компонента
+ */
+class ComponentName extends BaseComponent {
+    constructor(el) {
+        super(el);
+        this.state = {}; // Локальное состояние
+        this.init();
+    }
+
+    init() {
+        // Инициализация компонента
+    }
+
+    state(newState) {
+        // Обновление состояния
+        if (newState) {
+            this._state = {...this._state, ...newState};
+            this.updateView();
+        }
+        return this._state;
+    }
+
+    updateView() {
+        // Перерисовка DOM на основе состояния
+    }
+
+    static commonClass = 'js-component-name'; // CSS-класс для автосканирования
+}
+  ```
+
+## Базовый класс BaseComponent
+
+```javascript
+class BaseComponent {
+    constructor(el) {
+        if (typeof el === 'string') {
+            this.el = document.querySelector(el);
+        } else {
+            this.el = el;
+        }
+
+        if (!this.el) throw new Error('Element not found');
+
+        // Привязываем экземпляр к DOM-элементу
+        this.el.instance = this;
+        this._state = {};
+    }
+
+    static register() {
+        // Регистрация для автосканирования
+        BaseComponent.components.push(this);
+    }
+}
+
+// Глобальный реестр
+BaseComponent.components = [];
+```
+
+## Регистратор (функция инициализации)
+
+```javascript
+class PageName {
+    constructor() {
+        this.initComponents();
+    }
+
+    initComponents() {
+        // Сканируем страницу на компоненты
+        BaseComponent.components.forEach(ComponentClass => {
+            const selector = `.${ComponentClass.commonClass}`;
+            const elements = document.querySelectorAll(selector);
+
+            elements.forEach(el => {
+                if (!el.instance) { // Избегаем повторной инициализации
+                    new ComponentClass(el);
+                }
+            });
+        });
+    }
+}
+```
+
+## Правила создания компонентов
+
+### Обязательные методы
+
+1. **constructor(el)** - принимает HTML-элемент или селектор
+2. **state(newState)** - геттер/сеттер состояния с автообновлением view
+3. **updateView()** - перерисовка DOM по состоянию
+
+### Обязательные поля
+
+- **static commonClass** - CSS-класс для автопоиска элементов
+
+### Автоматическая инициализация
+
+```
+1. Страница вызывает Page.initComponents()
+2. Сканируются все элементы с классами из commonClass
+3. Каждый подходящий элемент инициализируется
+4. Экземпляр класса привязывается: el.instance = this
+```
+
+## Пример полного компонента (ProgressBar)
+
+```javascript
+class ProgressBar extends BaseComponent {
+    constructor(el) {
+        super(el);
+        this.state({
+            value: 0,
+            max: 100,
+            color: '#4CAF50'
+        });
+    }
+
+    updateView() {
+        const {value, max, color} = this.state();
+        this.el.style.setProperty('--progress-value', value);
+        this.el.style.setProperty('--progress-max', max);
+        this.el.style.setProperty('--progress-color', color);
+        this.el.setAttribute('aria-valuenow', value);
+    }
+
+    state(newState) {
+        return super.state(newState);
+    }
+
+    static commonClass = 'js-progress-bar';
+}
+
+// Обязательная регистрация
+ProgressBar.register();
+```
+
+## Использование на странице
+
+```html
+<!-- HTML -->
+<div class="js-progress-bar" style="--progress-value: 0;"></div>
+```
+
+фВот финальная спецификация с главным классом App и глобальным хранилищем:
+
+***
+
+# Спецификация: Архитектура компонентов на нативном JS (v4)
+
+## Главный класс App
+
+**Точка входа всего приложения**. Регистрирует страницы и сервисы, создает глобальный объект `app`.
+
+```javascript
+// src/App.js
+class App {
+    constructor() {
+        this.pages = new Map();     // Реестр страниц
+        this.services = new Map();  // Реестр сервисов
+        this.data = {};             // Глобальное хранилище (как Redux/Pinia)
+
+        // Привязываем к document
+        document.app = this;
+
+        this.registerCoreServices();
+        this.registerPages();
+        this.initCurrentPage();
+    }
+
+    registerCoreServices() {
+        // Проектные обертки над библиотеками
+        this.services.set('api', new ApiService());
+        this.services.set('socket', new SocketService());
+        this.services.set('storage', new StorageService());
+    }
+
+    registerPages() {
+        // Регистрируем страницы
+        this.pages.set('home', HomePage);
+        this.pages.set('register', RegisterPage);
+        this.pages.set('profile', ProfilePage);
+    }
+
+    initCurrentPage() {
+        // Определяем текущую страницу по data-page атрибуту
+        const currentPageEl = document.querySelector('[data-page]');
+        const pageName = currentPageEl?.dataset.page;
+
+        if (pageName && this.pages.has(pageName)) {
+            new this.pages.get(pageName)(currentPageEl);
+        }
+    }
+
+    // Глобальное хранилище данных
+    data(key, value) {
+        if (value !== undefined) {
+            this.data[key] = value;
+            document.dispatchEvent(new CustomEvent('app:data:change', {
+                detail: {key, value}
+            }));
+        }
+        return this.data[key];
+    }
+}
+
+// Запуск приложения
+new App();
+```
+
+## Сервисы (проектные обертки)
+
+**Не голые библиотеки, а классы с проектной логикой**:
+
+```javascript
+// src/services/ApiService.js
+class ApiService {
+    constructor() {
+        this.axios = axios.create({
+            baseURL: '/api',
+            headers: {'X-App-Version': '1.0'}
+        });
+    }
+
+    async getUsers() {
+        return this.axios.get('/users');
+    }
+
+    async register(data) {
+        return this.axios.post('/register', data);
+    }
+}
+```
+
+## Полная файловая структура
+
+- Каждая из сущностей (**Сервисы**, **Страницы** и **Компоненты (блоки)**.) обязана содержаться в отдельном файле
+- Для компонентов имеющих тесную логичекскую связь допускается группировка в общий каталог
+- Для страниц структуру каталогов рекоммендуется содержать в соответствии с маршрутизацией страниц сайта
+
+```
+src/
+├── App.js                   # Главный класс
+├── components/              # Общие компоненты
+│   ├── Button.js
+│   └── BaseComponent.js
+│   └── Slider/              # Сложный компонент, поделен на несколько простых. Инкапсулирован в отдельный каталог. 
+│       ├── Slide.js
+│       ├── Slider.js
+│       └── SliderNavigation.js
+├── pages/
+│   ├── home/
+│   │   ├── HomePage.js
+│   │   └── Header.js
+│   └── register/
+│       ├── RegisterPage.js
+│       └── RegisterForm.js
+├── services/                # Проектные сервисы
+│   ├── ApiService.js
+│   ├── SocketService.js
+│   └── StorageService.js
+└── index.js                 # new App()
+```
+
+## Использование app в компонентах
+
+```javascript
+// В любом компоненте
+class RegisterForm extends BaseComponent {
+    constructor(el) {
+        super(el);
+
+        // Доступ к сервисам
+        this.api = document.app.services.get('api');
+
+        // Глобальное хранилище
+        document.app.data('userName', '');
+
+        // Подписка на изменения
+        document.addEventListener('app:data:change', this.handleDataChange.bind(this));
+    }
+
+    async submit() {
+        const result = await this.api.register(this.state());
+        document.app.data('isRegistered', true); // Глобальное состояние
+    }
+}
+```
+
+## HTML с data-page
+
+```html
+<!-- home.html -->
+<body data-page="home" class="js-page-home">
+  <header class="js-header"></header>
+  <main class="js-content"></main>
+</body>
+
+<!-- register.html -->
+<body data-page="register" class="js-register-page">
+  <form class="js-register-form"></form>
+</body>
+```
+
+## Поток инициализации
+
+```
+1. new App()
+2. document.app = { pages, services, data }
+3. registerCoreServices() → ApiService, SocketService
+4. registerPages() → HomePage, RegisterPage
+5. initCurrentPage() → new HomePage(body)
+6. HomePage.initChildComponents() → все компоненты оживают
+```
+
+## Доступ к app из консоли
+
+```javascript
+// В DevTools всегда доступно
+document.app.data('globalCounter', 42);     // Глобальное состояние
+document.app.services.get('api').getUsers(); // Сервисы
+document.app.pages.get('home');              // Страницы
+```
+
+***
+
+## Итоговая архитектура
+
+```
+App (document.app)
+├── pages: Map(HomePage, RegisterPage)
+├── services: Map(ApiService, SocketService)
+└── data: {}  // userName, isLoading, theme, etc.
+
+HomePage → Header → Button (общий)
+         ↓
+RegisterPage → RegisterForm → InputField (общий)
+```
+
+Теперь спецификация **полностью готова** для Cursor! Все связи описаны, от глобального App до примитивных кнопок. Нужны
+примеры конкретных сервисов или роутинга между страницами?
+
+```javascript
+// Page.js
+class HomePage {
+    constructor() {
+        // логика упраления компонентами на странице их можно выбрать по селекторам и получить доступ к функциям через instance
+    }
+}
+```
+
+***
