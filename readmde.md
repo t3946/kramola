@@ -1,4 +1,9 @@
-# Run command
+## Installation
+### Install libs
+- `sudo apt update`
+- `sudo apt install libreoffice`
+
+## Run command
 
 You can run all services by
 ```docker-compose up```
