@@ -7,12 +7,12 @@ import logging
 from typing import List, Dict
 from flask import Request
 
-from services.document_service import save_uploaded_file, extract_lines_from_docx, convert_odt_to_docx
+from services.document_service import save_uploaded_file, extract_lines_from_docx
+from services.convert import ConvertODT, ConvertError
 from services.utils.load_lines_from_txt import load_lines_from_txt
 from services.highlight_upload.upload_result import UploadResult
 from services.highlight_upload.upload_error import UploadError
 from services.analysis.analysis_data import AnalysisData
-from services.words_list import PredefinedListKey
 
 logger = logging.getLogger(__name__)
 
@@ -98,17 +98,14 @@ class HighlightUploadService:
             # Конвертируем ODT в DOCX
             docx_filename_unique = f"source_{task_id}.docx"
             docx_path = os.path.join(upload_dir, docx_filename_unique)
-            
-            if not convert_odt_to_docx(odt_path, docx_path):
-                # Удаляем ODT файл при ошибке конвертации
-                try:
-                    if os.path.exists(odt_path):
-                        os.remove(odt_path)
-                except Exception as e:
-                    logger.error(e)
-                    pass
-                raise UploadError('Ошибка при конвертации ODT файла в DOCX. Убедитесь, что библиотека odfpy установлена.', 500)
-            
+
+            try:
+                ConvertODT().convert(odt_path, docx_path)
+            except ConvertError as e:
+                if os.path.exists(odt_path):
+                    os.remove(odt_path)
+                raise UploadError(f'Ошибка конвертации ODT в DOCX: {e}', 500)
+
             # Удаляем временный ODT файл после успешной конвертации
             try:
                 if os.path.exists(odt_path):

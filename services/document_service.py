@@ -5,14 +5,6 @@ import docx # Для работы с .docx файлами
 import re   # Для регулярных выражений
 import logging # Для логирования
 
-# Для работы с ODT файлами
-try:
-    from odf import text, teletype
-    from odf.opendocument import load
-    ODT_AVAILABLE = True
-except ImportError:
-    ODT_AVAILABLE = False
-
 # --- Настройка логирования ---
 logger_ds = logging.getLogger(__name__)
 
@@ -124,53 +116,5 @@ def extract_lines_from_docx(file_path):
     except Exception as e:
         logger_ds.error(f"Ошибка при извлечении строк из DOCX '{file_path}': {e}", exc_info=True)
         return []
-
-
-def convert_odt_to_docx(odt_path, docx_path):
-    """
-    Конвертирует ODT файл в DOCX формат.
-    
-    Args:
-        odt_path: Путь к исходному ODT файлу
-        docx_path: Путь для сохранения DOCX файла
-        
-    Returns:
-        bool: True если конвертация успешна, False в противном случае
-    """
-    if not ODT_AVAILABLE:
-        logger_ds.error("Библиотека odfpy не установлена. Установите: pip install odfpy")
-        return False
-        
-    if not os.path.exists(odt_path):
-        logger_ds.error(f"ODT файл не найден: {odt_path}")
-        return False
-        
-    try:
-        logger_ds.info(f"Конвертация ODT в DOCX: {odt_path} -> {docx_path}")
-        # Загружаем ODT документ
-        odt_doc = load(odt_path)
-        
-        # Создаем новый DOCX документ
-        docx_doc = docx.Document()
-        
-        # Извлекаем весь текст из ODT
-        text_content = []
-        for paragraph in odt_doc.getElementsByType(text.P):
-            para_text = teletype.extractText(paragraph)
-            if para_text.strip():
-                text_content.append(para_text)
-        
-        # Добавляем текст в DOCX
-        for para_text in text_content:
-            docx_doc.add_paragraph(para_text)
-        
-        # Сохраняем DOCX
-        docx_doc.save(docx_path)
-        logger_ds.info(f"ODT успешно конвертирован в DOCX: {docx_path}")
-        return True
-        
-    except Exception as e:
-        logger_ds.error(f"Ошибка при конвертации ODT в DOCX '{odt_path}': {e}", exc_info=True)
-        return False
 
 # --- END OF FILE document_service.py ---
