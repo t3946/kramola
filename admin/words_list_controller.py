@@ -12,16 +12,16 @@ def get_phrases_count(list_record: ListRecord | None) -> int:
     if not list_record:
         return 0
     return (
-        db.session.query(func.count(ListPhrase.phrase_id))
-        .filter(ListPhrase.list_id == list_record.id)
-        .scalar()
-        or 0
+            db.session.query(func.count(ListPhrase.phrase_id))
+            .filter(ListPhrase.list_id == list_record.id)
+            .scalar()
+            or 0
     )
 
 
 def get_phrases_sorted(
-    list_record: ListRecord | None,
-    limit: int | None = None,
+        list_record: ListRecord | None,
+        limit: int | None = None,
 ) -> list[PhraseRecord]:
     if not list_record:
         return []
@@ -36,9 +36,9 @@ def get_phrases_sorted(
 
 
 def search_phrases(
-    list_record: ListRecord | None,
-    query: str,
-    limit: int | None = None,
+        list_record: ListRecord | None,
+        query: str,
+        limit: int | None = None,
 ) -> list[PhraseRecord]:
     if not list_record:
         return []
@@ -56,10 +56,10 @@ def search_phrases(
 
 
 def get_phrases_paginated(
-    list_record: ListRecord | None,
-    limit: int,
-    offset: int,
-    query: str | None = None,
+        list_record: ListRecord | None,
+        limit: int,
+        offset: int,
+        query: str | None = None,
 ) -> tuple[list[PhraseRecord], int]:
     """Returns (phrases slice, total count)."""
     if not list_record:
@@ -89,20 +89,26 @@ def _lines_from_text(text: str) -> list[str]:
 
 def import_phrases_from_lines(list_record: ListRecord, lines: list[str]) -> int:
     added = 0
+
     for phrase_text in lines:
         phrase_record = PhraseRecord.query.filter_by(phrase=phrase_text).first()
+
         if not phrase_record:
             phrase_record = PhraseRecord(phrase=phrase_text)
             db.session.add(phrase_record)
             db.session.flush()
+
         link = ListPhrase.query.filter_by(
             phrase_id=phrase_record.id,
             list_id=list_record.id,
         ).first()
+
         if not link:
             db.session.add(ListPhrase(phrase_id=phrase_record.id, list_id=list_record.id))
             added += 1
+
     db.session.commit()
+
     return added
 
 

@@ -65,31 +65,43 @@ class WordsListView(BaseView):
     @expose("/import", methods=["POST"])
     def import_phrases(self):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
+
         if not list_record:
             return redirect(url_for(".index"))
+
         phrases_text = request.form.get("phrases_text", "").strip()
+
         if phrases_text:
             lines = _lines_from_text(phrases_text)
             added = import_phrases_from_lines(list_record, lines)
         else:
             file = request.files.get("file")
+
             if not file or file.filename == "":
                 flash("Укажите файл или введите текст.")
                 return redirect(url_for(".index"))
+
             if not file.filename.lower().endswith(".txt"):
                 return redirect(url_for(".index"))
+
             added = import_phrases_from_file(list_record, file)
+
         flash(f"Импорт: добавлено фраз в список: {added}.")
+
         return redirect(url_for(".index"))
 
     @expose("/minusate", methods=["GET", "POST"])
     def minusate_phrases(self):
         if request.method != "POST":
             return redirect(url_for(".index"))
+
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
+
         if not list_record:
             return redirect(url_for(".index"))
+
         phrases_text = request.form.get("phrases_text", "").strip()
+
         if phrases_text:
             lines = _lines_from_text(phrases_text)
             removed = minusate_phrases_from_lines(list_record, lines)
