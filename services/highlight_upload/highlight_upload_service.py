@@ -8,7 +8,7 @@ from typing import List, Dict
 from flask import Request
 
 from services.document_service import save_uploaded_file, extract_lines_from_docx
-from services.convert import ConvertODT, ConvertError
+from services.convert import ConvertODT, ConvertDOC, ConvertError
 from services.utils.load_lines_from_txt import load_lines_from_txt
 from services.highlight_upload.upload_result import UploadResult
 from services.highlight_upload.upload_error import UploadError
@@ -71,24 +71,50 @@ class HighlightUploadService:
     ) -> Dict:
         """Process and validate source file upload."""
         if 'source_file' not in request.files or not request.files['source_file'].filename:
-            raise UploadError('Загрузите исходный документ (.docx, .pdf или .odt)', 400)
+            raise UploadError('Загрузите исходный документ (.doc, .docx, .pdf или .odt)', 400)
 
         source_file = request.files['source_file']
         source_filename_original = source_file.filename
         source_filename_lower = source_filename_original.lower()
         is_docx_source = source_filename_lower.endswith('.docx')
+        is_doc_source = source_filename_lower.endswith('.doc')
         is_pdf_source = source_filename_lower.endswith('.pdf')
         is_odt_source = source_filename_lower.endswith('.odt')
 
-        if not is_docx_source and not is_pdf_source and not is_odt_source:
-            raise UploadError('Недопустимый формат исходного файла. Загрузите .docx, .pdf или .odt', 400)
+        if not is_docx_source and not is_doc_source and not is_pdf_source and not is_odt_source:
+            raise UploadError('Недопустимый формат исходного файла. Загрузите .doc, .docx, .pdf или .odt', 400)
 
         if is_pdf_source and not FIT_AVAILABLE:
             raise UploadError('Обработка PDF файлов недоступна на сервере (PyMuPDF).', 400)
 
-        # Если это ODT файл, сначала сохраняем его, затем конвертируем в DOCX
-        if is_odt_source:
-            # Сохраняем оригинальный ODT файл
+        if is_doc_source:
+            doc_filename_unique = f"source_{task_id}.doc"
+            doc_path = save_uploaded_file(source_file, upload_dir, doc_filename_unique)
+
+            if not doc_path:
+                raise UploadError('Ошибка при сохранении исходного документа.', 500)
+
+            docx_filename_unique = f"source_{task_id}.docx"
+            docx_path = os.path.join(upload_dir, docx_filename_unique)
+
+            try:
+                ConvertDOC().convert(doc_path, docx_path)
+            except ConvertError as e:
+                if os.path.exists(doc_path):
+                    os.remove(doc_path)
+                raise UploadError(f'Ошибка конвертации DOC в DOCX: {e}', 500)
+
+            try:
+                if os.path.exists(doc_path):
+                    os.remove(doc_path)
+            except Exception as e:
+                logger.warning(f"Не удалось удалить временный DOC файл {doc_path}: {e}")
+
+            source_path = docx_path
+            file_ext = ".docx"
+            is_docx_source = True
+        elif is_odt_source:
+            # ODT: сохраняем, конвертируем в DOCX, удаляем временный ODT
             odt_filename_unique = f"source_{task_id}.odt"
             odt_path = save_uploaded_file(source_file, upload_dir, odt_filename_unique)
             
