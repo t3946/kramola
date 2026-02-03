@@ -4,7 +4,7 @@ Service for handling file uploads and data preparation for highlight tool.
 
 import os
 import logging
-from typing import List, Dict
+from typing import List, Dict, Union
 from flask import Request
 
 from services.document_service import save_uploaded_file, extract_lines_from_docx
@@ -12,16 +12,10 @@ from services.convert import ConvertODT, ConvertDOC, ConvertError
 from services.utils.load_lines_from_txt import load_lines_from_txt
 from services.highlight_upload.upload_result import UploadResult
 from services.highlight_upload.upload_error import UploadError
+from services.highlight_upload.enum import SourceFormat, WordsFormat
 from services.analysis.analysis_data import AnalysisData
 
 logger = logging.getLogger(__name__)
-
-try:
-    import pymupdf
-
-    FIT_AVAILABLE = True
-except ImportError:
-    FIT_AVAILABLE = False
 
 
 class HighlightUploadService:
@@ -69,93 +63,61 @@ class HighlightUploadService:
             task_id: str,
             upload_dir: str
     ) -> Dict:
-        """Process and validate source file upload."""
-        if 'source_file' not in request.files or not request.files['source_file'].filename:
-            raise UploadError('Загрузите исходный документ (.doc, .docx, .pdf или .odt)', 400)
-
+        #get ext
         source_file = request.files['source_file']
-        source_filename_original = source_file.filename
-        source_filename_lower = source_filename_original.lower()
-        is_docx_source = source_filename_lower.endswith('.docx')
-        is_doc_source = source_filename_lower.endswith('.doc')
-        is_pdf_source = source_filename_lower.endswith('.pdf')
-        is_odt_source = source_filename_lower.endswith('.odt')
+        filename = source_file.filename
+        ext = os.path.splitext(filename)[1].lower()
 
-        if not is_docx_source and not is_doc_source and not is_pdf_source and not is_odt_source:
-            raise UploadError('Недопустимый формат исходного файла. Загрузите .doc, .docx, .pdf или .odt', 400)
+        #[start] validate format
+        allowed_ext = SourceFormat.extensions()
+        formats_str = ", ".join(allowed_ext)
 
-        if is_pdf_source and not FIT_AVAILABLE:
-            raise UploadError('Обработка PDF файлов недоступна на сервере (PyMuPDF).', 400)
+        if 'source_file' not in request.files or not request.files['source_file'].filename:
+            raise UploadError(f"Загрузите исходный документ ({formats_str})", 400)
 
-        if is_doc_source:
-            doc_filename_unique = f"source_{task_id}.doc"
-            doc_path = save_uploaded_file(source_file, upload_dir, doc_filename_unique)
+        if ext not in allowed_ext:
+            raise UploadError(f"Недопустимый формат исходного файла. Загрузите {formats_str}", 400)
+        #[end]
 
-            if not doc_path:
-                raise UploadError('Ошибка при сохранении исходного документа.', 500)
+        source_path = save_uploaded_file(source_file, upload_dir, f"source_{task_id}{ext}")
 
-            docx_filename_unique = f"source_{task_id}.docx"
-            docx_path = os.path.join(upload_dir, docx_filename_unique)
-
-            try:
-                ConvertDOC().convert(doc_path, docx_path)
-            except ConvertError as e:
-                if os.path.exists(doc_path):
-                    os.remove(doc_path)
-                raise UploadError(f'Ошибка конвертации DOC в DOCX: {e}', 500)
-
-            try:
-                if os.path.exists(doc_path):
-                    os.remove(doc_path)
-            except Exception as e:
-                logger.warning(f"Не удалось удалить временный DOC файл {doc_path}: {e}")
-
-            source_path = docx_path
-            file_ext = ".docx"
-            is_docx_source = True
-        elif is_odt_source:
-            # ODT: сохраняем, конвертируем в DOCX, удаляем временный ODT
-            odt_filename_unique = f"source_{task_id}.odt"
-            odt_path = save_uploaded_file(source_file, upload_dir, odt_filename_unique)
-            
-            if not odt_path:
-                raise UploadError('Ошибка при сохранении исходного документа.', 500)
-            
-            # Конвертируем ODT в DOCX
-            docx_filename_unique = f"source_{task_id}.docx"
-            docx_path = os.path.join(upload_dir, docx_filename_unique)
-
-            try:
-                ConvertODT().convert(odt_path, docx_path)
-            except ConvertError as e:
-                if os.path.exists(odt_path):
-                    os.remove(odt_path)
-                raise UploadError(f'Ошибка конвертации ODT в DOCX: {e}', 500)
-
-            # Удаляем временный ODT файл после успешной конвертации
-            try:
-                if os.path.exists(odt_path):
-                    os.remove(odt_path)
-            except Exception as e:
-                logger.warning(f"Не удалось удалить временный ODT файл {odt_path}: {e}")
-            
-            source_path = docx_path
-            file_ext = ".docx"
-            is_docx_source = True  # После конвертации обрабатываем как DOCX
-        else:
-            file_ext = ".docx" if is_docx_source else ".pdf"
-            source_filename_unique = f"source_{task_id}{file_ext}"
-            source_path = save_uploaded_file(source_file, upload_dir, source_filename_unique)
-
-            if not source_path:
-                raise UploadError('Ошибка при сохранении исходного документа.', 500)
+        #[start] convert to docx
+        to_docx = {SourceFormat.DOC.value: ConvertDOC(), SourceFormat.ODT.value: ConvertODT()}
+        if ext in to_docx:
+            source_path = HighlightUploadService._convert_upload_to_docx(
+                source_path, upload_dir, task_id, to_docx[ext]
+            )
+            ext = SourceFormat.DOCX.value
+        #[end]
 
         return {
             'path': source_path,
-            'filename_original': source_filename_original,
-            'is_docx': is_docx_source,
-            'file_ext': file_ext
+            'filename_original': filename,
+            'is_docx': ext == SourceFormat.DOCX.value,
+            'file_ext': ext
         }
+
+    @staticmethod
+    def _convert_upload_to_docx(
+            temp_path: str,
+            upload_dir: str,
+            task_id: str,
+            converter: Union[ConvertDOC, ConvertODT],
+    ) -> str:
+        docx_path = os.path.join(upload_dir, f"source_{task_id}.docx")
+
+        try:
+            converter.convert(temp_path, docx_path)
+        except ConvertError:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            source_ext = os.path.splitext(temp_path)[1].lstrip('.')
+            raise UploadError(f'Ошибка конвертации {source_ext} в docx', 500)
+
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+
+        return docx_path
 
     @staticmethod
     def _process_words_file(
@@ -172,38 +134,27 @@ class HighlightUploadService:
 
         if words_file_input and words_file_input.filename:
             words_filename_original = words_file_input.filename
-            words_filename_lower = words_filename_original.lower()
-
-            allowed_extensions: list[str] = [
-                '.docx',
-                '.xlsx',
-                '.txt',
-            ]
-
-            is_allowed = any(words_filename_lower.endswith(ext) for ext in allowed_extensions)
-
-            if not is_allowed:
-                allowed_formats = ', '.join(allowed_extensions)
-                raise UploadError(f'Файл слов должен быть в формате {allowed_formats}.', 400)
-
-            if words_filename_lower.endswith('.docx'):
-                words_filename_unique = f"words_{task_id}.docx"
+            words_ext = os.path.splitext(words_filename_original)[1].lower()
+            allowed_words = WordsFormat.extensions()
+            if words_ext not in allowed_words:
+                raise UploadError(
+                    f'Файл слов должен быть в формате {", ".join(allowed_words)}.', 400
+                )
+            if words_ext == WordsFormat.DOCX:
+                words_filename_unique = f"words_{task_id}{WordsFormat.DOCX}"
                 words_path = save_uploaded_file(words_file_input, upload_dir, words_filename_unique)
                 if not words_path:
                     raise UploadError('Ошибка сохранения файла слов (.docx).', 500)
                 search_lines_from_file = extract_lines_from_docx(words_path)
                 if not isinstance(search_lines_from_file, list):
                     search_lines_from_file = []
-            elif words_filename_lower.endswith('.xlsx'):
-                # words_path is not set for xlsx currently
+            elif words_ext == WordsFormat.XLSX:
                 search_lines_from_file = []
-            elif words_filename_lower.endswith('.txt'):
-                words_filename_unique = f"words_{task_id}.txt"
+            elif words_ext == WordsFormat.TXT:
+                words_filename_unique = f"words_{task_id}{WordsFormat.TXT}"
                 words_path = save_uploaded_file(words_file_input, upload_dir, words_filename_unique)
-
                 if not words_path:
                     raise UploadError('Ошибка сохранения файла слов (.txt).', 500)
-
                 search_lines_from_file = load_lines_from_txt(words_path)
 
         return {
