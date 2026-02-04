@@ -35,7 +35,7 @@ class BaseDocxTest(BaseTest):
 
         search_terms = instance.load_search_terms(instance.find_search_file(test_dir, ['search.txt']))
 
-        analyser, analysis_results = cls._run_analysis(source_docx_path, search_terms)
+        analyser, analysis_results = cls._run_analysis(cls, source_docx_path, search_terms)
 
         results_subdir = instance._get_results_subdir(test_file_path)
         output_docx_path, stats_json_path = cls._save_results(
@@ -55,9 +55,14 @@ class BaseDocxTest(BaseTest):
         )
 
     @staticmethod
-    def _run_analysis(source_docx_path: Path, search_terms: list[str]) -> Tuple[AnalyserDocx, Dict]:
+    def _run_analysis(cls, source_docx_path: Path, search_terms: list[str]) -> Tuple[AnalyserDocx, Dict]:
         analyse_data = AnalysisData()
         analyse_data.read_from_list(search_terms)
+
+        # load lists
+        predefined_lists = getattr(cls, 'predefined_lists', None)
+        analyse_data.load_predefined_lists(predefined_lists)
+
         analyser = AnalyserDocx(str(source_docx_path))
         analyser.set_analyse_data(analyse_data)
         analysis_results: Dict = analyser.analyse_and_highlight()
