@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional, List
 
+from flask import Flask
 from services.analysis.analysis_data import AnalysisData
 
 
@@ -191,3 +192,9 @@ class BaseTest(BaseTestHelper):
     Test classes should inherit from this class and set test_data_subdir and
     results_subdir as class attributes instead of using __init__.
     """
+
+    @staticmethod
+    def init_app() -> Flask:
+        """Return Flask app. Use: with self.init_app().app_context(): ... for DB access."""
+        from app import app
+        return app
