@@ -3,6 +3,7 @@ import time
 from typing import List, Union, Optional, Tuple, Dict, TYPE_CHECKING
 
 from services.analysis.stats import StatsDocx
+from services.utils.intersects_at import intersects_at
 
 if TYPE_CHECKING:
     from services.progress.docx.combined_progress import CombinedProgress
@@ -13,7 +14,6 @@ from docx.table import Table
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
-from services.analysis import AnalysisData
 from services.analysis.analyser import Analyser
 from services.analysis.analysis_match import AnalysisMatch
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
@@ -94,10 +94,12 @@ class AnalyserDocx(Analyser):
             run_start_index = proceed_chars
             run_end_index = run_start_index + len(text)
 
-            if run_start_index <= phrase_start_index <= run_end_index:
-                match_length: int = phrase_end_index - phrase_start_index
-                run_relative_char_start_index: int = phrase_start_index - proceed_chars
-                run_relative_char_end_index: int = run_relative_char_start_index + match_length
+            intersection = intersects_at((run_start_index, run_end_index), (phrase_start_index, phrase_end_index))
+
+            if intersection:
+                intersection_len = intersection[1] - intersection[0]
+                run_relative_char_start_index: int = intersection[0] - proceed_chars
+                run_relative_char_end_index: int = run_relative_char_start_index + intersection_len
 
                 # [start] split run text on three new parts: before, match and after
                 part_before_match: str = text[:run_relative_char_start_index]
