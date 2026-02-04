@@ -131,9 +131,6 @@ class AnalyserDocx(Analyser):
             search_phrases: List[Phrase]
     ) -> List[AnalysisMatch]:
         """Search all phrases using optimized strategy with dictionary."""
-        if not source_tokens or not search_phrases:
-            return []
-
         fulltext_search = FulltextSearch(source_tokens)
         search_phrases_for_search: List[Tuple[str, List[Token]]] = [
             (phrase.phrase, phrase.tokens) for phrase in search_phrases
@@ -192,19 +189,12 @@ class AnalyserDocx(Analyser):
     def __split_on_batches(element: Union[CT_P, CT_Hyperlink]) -> List[List[CT_R]]:
         batches = []
         batch_runs = []
-        qn_ct_r = qn('w:r')
 
-        # [start] split paragraph text on batches of runs
-        for child in element:
-            if child.tag == qn_ct_r:
-                batch_runs.append(child)
-            elif len(batch_runs) > 0:
-                batches.append(batch_runs)
-                batch_runs = []
+        for child in element.r_lst:
+            batch_runs.append(child)
 
         if len(batch_runs) > 0:
             batches.append(batch_runs)
-        # [end]
 
         return batches
 
