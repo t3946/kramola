@@ -37,15 +37,15 @@ class BaseDocxTest(BaseTest):
 
         analyser, analysis_results = cls._run_analysis(source_docx_path, search_terms)
 
-        instance._validate_results_structure(analysis_results)
-        instance._validate_expected_count(analysis_results, result_json_path)
-
         results_subdir = instance._get_results_subdir(test_file_path)
         output_docx_path, stats_json_path = cls._save_results(
             analyser,
             analysis_results,
             results_subdir
         )
+
+        instance._validate_results_structure(analysis_results)
+        instance._validate_expected_count(analysis_results, result_json_path)
 
         instance._print_test_results(
             analysis_results,
