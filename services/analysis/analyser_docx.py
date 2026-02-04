@@ -164,13 +164,8 @@ class AnalyserDocx(Analyser):
         return matches
 
     def __process_batch(self, batch: List[CT_R]) -> None:
-        text = ''
-        highlight_val: str = self.get_highlight_color_docx_val()
-
         # [start] find matches in concatenated batch text
-        for run in batch:
-            text += run.text
-
+        text = ''.join([run.text for run in batch])
         start_time = time.time()
         source_tokens: List[Token] = FulltextSearch.tokenize_text(text)
         self._tokenize_time_total += time.time() - start_time
@@ -180,6 +175,8 @@ class AnalyserDocx(Analyser):
             self._search_phrases
         )
         # [end]
+
+        highlight_val: str = self.get_highlight_color_docx_val()
 
         for match in matches:
             self.stats.add(match)
