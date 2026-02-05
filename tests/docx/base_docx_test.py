@@ -30,10 +30,14 @@ class BaseDocxTest(BaseTest):
         instance.validate_test_directory(
             test_dir,
             source_filename='source.docx',
-            search_filenames=['search.txt']
+            search_filenames=['search.txt'],
+            require_search=False
         )
 
-        search_terms = instance.load_search_terms(instance.find_search_file(test_dir, ['search.txt']))
+        if search_txt_path.exists():
+            search_terms = instance.load_search_terms(instance.find_search_file(test_dir, ['search.txt']))
+        else:
+            search_terms = []
 
         analyser, analysis_results = cls._run_analysis(cls, source_docx_path, search_terms)
 

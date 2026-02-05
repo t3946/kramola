@@ -150,17 +150,19 @@ class BaseTestHelper:
             self,
             test_dir: Path,
             source_filename: str = 'source.docx',
-            search_filenames: Optional[List[str]] = None
+            search_filenames: Optional[List[str]] = None,
+            require_search: bool = True
     ) -> None:
         """
         Validate that test directory contains required files.
-        
+
         Args:
             test_dir: Path to test directory
             source_filename: Name of the source file (default: 'source.docx')
             search_filenames: List of possible search file names.
                             If None, defaults to ['search.txt', 'search.docx']
-        
+            require_search: If False, search file is optional
+
         Raises:
             ValueError: If directory is missing required files
         """
@@ -170,6 +172,9 @@ class BaseTestHelper:
         source_path = test_dir / source_filename
         if not source_path.exists():
             raise ValueError(f"Test directory {test_dir.name} is missing required file ({source_filename})")
+
+        if not require_search:
+            return
 
         if search_filenames is None:
             search_filenames = ['search.txt', 'search.docx']
