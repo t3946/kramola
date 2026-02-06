@@ -1,6 +1,7 @@
 import docx
 import time
 from typing import List, Union, Optional, Tuple, Dict, TYPE_CHECKING
+from functools import cmp_to_key
 
 from services.analysis.stats import StatsDocx
 from services.utils.intersects_at import intersects_at
@@ -45,10 +46,19 @@ class AnalyserDocx(Analyser):
         self.stats = StatsDocx([])
 
     @staticmethod
-    def __clone_run(source_run: CT_R, new_text: str, highlight: bool, highlight_val: str) -> CT_R:
+    def __clone_run(
+            source_run: CT_R,
+            new_text: str,
+            highlight: bool,
+            highlight_val: str,
+            skip_break_lines: bool = False,
+    ) -> CT_R:
         new_run: CT_R = OxmlElement('w:r')
 
         for child in source_run:
+            if skip_break_lines and child.tag == qn('w:br'):
+                continue
+
             new_run.append(deepcopy(child))
 
         # update text
@@ -77,6 +87,10 @@ class AnalyserDocx(Analyser):
             phrase_end_index: int,
             highlight_val: str
     ) -> List[CT_R]:
+        # end_index-1 because in python slices index interval standard is [start, end) but not [start, end] like in the other world
+        # todo: эту хуйню с индексами надо бы убрать я думаю, но для начала надо починить баги
+        phrase_end_index -= 1
+
         # after Run split operation, batch need to be updated
         new_batch = []
 
@@ -84,13 +98,19 @@ class AnalyserDocx(Analyser):
         proceed_chars = 0
 
         for run_source in batch:
+            # specification suppose w:r could contain multiple w:t, but ms word automatically reduces it to: 1 w:r = 1 w:t
             source_run_text_element: CT_Text = run_source.find(qn('w:t'))
 
             if source_run_text_element is None:
+                proceed_chars += len(run_source.text)
                 new_batch.append(run_source)
                 continue
 
+            # skip line break "\n" in run if it exists
+            proceed_chars += run_source.text.find(source_run_text_element.text)
+
             text: str = source_run_text_element.text
+            run_source_text_len = len(run_source.text)
             run_start_index = proceed_chars
             run_end_index = run_start_index + len(text)
 
@@ -103,14 +123,14 @@ class AnalyserDocx(Analyser):
 
                 # [start] split run text on three new parts: before, match and after
                 part_before_match: str = text[:run_relative_char_start_index]
-                part_match: str = text[run_relative_char_start_index:run_relative_char_end_index]
-                part_after_match: str = text[run_relative_char_end_index:]
+                part_match: str = text[run_relative_char_start_index:run_relative_char_end_index+1]
+                part_after_match: str = text[run_relative_char_end_index+1:]
 
                 # needs to avoid cases "This is an apple" -> "This is anapple"
                 source_run_text_element.set(qn('xml:space'), 'preserve')
 
-                run_match = AnalyserDocx.__clone_run(run_source, part_match, True, highlight_val)
-                run_after = AnalyserDocx.__clone_run(run_source, part_after_match, False, highlight_val)
+                run_match = AnalyserDocx.__clone_run(run_source, part_match, True, highlight_val, skip_break_lines=True)
+                run_after = AnalyserDocx.__clone_run(run_source, part_after_match, False, highlight_val, skip_break_lines=True)
                 source_run_text_element.text = part_before_match
                 run_source.addnext(run_match)
                 run_match.addnext(run_after)
@@ -122,7 +142,7 @@ class AnalyserDocx(Analyser):
             else:
                 new_batch.append(run_source)
 
-            proceed_chars += len(text)
+            proceed_chars += run_source_text_len
         # [end]
 
         return new_batch
@@ -159,6 +179,13 @@ class AnalyserDocx(Analyser):
         # [end]
 
         matches = self._convert_fts_matches(fts_matches)
+
+        # [start] sort matches by position in text
+        def cmp(m1: AnalysisMatch, m2: AnalysisMatch):
+            return m1.search_match.start_token_idx - m2.search_match.start_token_idx
+
+        matches = sorted(matches, key=cmp_to_key(cmp))
+        # [end]
 
         return matches
 
