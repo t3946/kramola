@@ -1,11 +1,10 @@
 {% extends 'admin/master.html' %}
 
 {% block body %}
-<div class="max-w-2xl">
+<div class="">
     <form method="post" action="{{ url_for(admin_view.endpoint + '.index') }}" class="space-y-4">
         <div>
-            <label for="agent_type" class="block text-sm font-medium text-gray-700 mb-1">Тип иностранного
-                агента</label>
+            <label for="agent_type" class="block text-sm font-medium text-gray-700 mb-1">Тип иностранного агента</label>
             <select id="agent_type" name="agent_type"
                     class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
                 <option value="organization" {% if form_data and form_data.agent_type==
@@ -15,44 +14,47 @@
             </select>
         </div>
 
-        <div class="flex items-center gap-2">
-            <input type="checkbox" id="status_removed" name="status_removed" value="1"
-                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" {% if form_data and
-                   form_data.status_removed %} checked{% endif %}>
-            <label for="status_removed" class="text-sm font-medium text-gray-700">Снят</label>
-            <span class="text-sm text-gray-500">(иначе — числится)</span>
+        <div class="grid gap-3 grid-cols-3 grid-cols-[auto,1fr,auto]">
+            <div>
+                <label for="number" class="block text-sm font-medium text-gray-700 mb-1">Номер</label>
+                <input type="text" id="number" name="number" value="{{ form_data.number or '' }}"
+                       class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                       placeholder="Номер в реестре">
+            </div>
+
+            <div>
+                <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">Полное наименование
+                    организации / имя инагента</label>
+                <input type="text" id="full_name" name="full_name" value="{{ form_data.full_name or '' }}"
+                       class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                       placeholder="Наименование или ФИО">
+            </div>
+
+            <div>
+                <label for="status_removed" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+                <select id="status_removed" name="status_removed"
+                        class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <option value="0" {% if form_data and not form_data.status_removed %} selected{% endif %}>Числится</option>
+                    <option value="1" {% if form_data and form_data.status_removed %} selected{% endif %}>Снят</option>
+                </select>
+            </div>
         </div>
 
-        <div>
-            <label for="number" class="block text-sm font-medium text-gray-700 mb-1">Номер</label>
-            <input type="text" id="number" name="number" value="{{ form_data.number or '' }}"
-                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                   placeholder="Номер в реестре">
-        </div>
+        <div class="grid gap-3 grid-cols-2">
+            <div>
+                <label for="date_included" class="block text-sm font-medium text-gray-700 mb-1">Дата принятия Минюстом
+                    России решения о включении в реестр</label>
+                <input type="date" id="date_included" name="date_included" value="{{ form_data.date_included or '' }}"
+                       class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
 
-        <div>
-            <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">Полное наименование
-                организации
-                / имя инагента</label>
-            <input type="text" id="full_name" name="full_name" value="{{ form_data.full_name or '' }}"
-                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                   placeholder="Наименование или ФИО">
+            <div>
+                <label for="date_excluded" class="block text-sm font-medium text-gray-700 mb-1">Дата принятия Минюстом
+                    России решения об исключении из реестра</label>
+                <input type="date" id="date_excluded" name="date_excluded" value="{{ form_data.date_excluded or '' }}"
+                       class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
         </div>
-
-        <div>
-            <label for="date_included" class="block text-sm font-medium text-gray-700 mb-1">Дата принятия Минюстом
-                России решения о включении в реестр</label>
-            <input type="date" id="date_included" name="date_included" value="{{ form_data.date_included or '' }}"
-                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-        </div>
-
-        <div>
-            <label for="date_excluded" class="block text-sm font-medium text-gray-700 mb-1">Дата принятия Минюстом
-                России решения об исключении из реестра</label>
-            <input type="date" id="date_excluded" name="date_excluded" value="{{ form_data.date_excluded or '' }}"
-                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-        </div>
-
         <div>
             <label for="domain" class="block text-sm font-medium text-gray-700 mb-1">Доменное имя информационного
                 ресурса</label>
