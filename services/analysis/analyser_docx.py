@@ -128,9 +128,9 @@ class AnalyserDocx(Analyser):
             intersection = intersects_at((run_start_index, run_end_index), (phrase_start_index, phrase_end_index))
 
             if intersection:
-                phrase_len = phrase_end_index - phrase_start_index
+                intersection_len = intersection[1] - intersection[0]
                 r_start = intersection[0] - run_start_index
-                r_end = r_start + phrase_len
+                r_end = r_start + intersection_len
                 map_item.search_intersection = _SearchIntersection(
                     start=intersection[0],
                     end=intersection[1],
