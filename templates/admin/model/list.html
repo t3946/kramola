@@ -1,0 +1,164 @@
+{% extends 'admin/master.html' %}
+{% import 'admin/lib.html' as lib with context %}
+{% import 'admin/static.html' as admin_static with context %}
+{% import 'admin/model/layout.html' as model_layout with context %}
+{% import 'admin/actions.html' as actionlib with context %}
+{% import 'admin/model/row_actions.html' as row_actions with context %}
+
+{% block head %}
+{{ super() }}
+{{ lib.form_css() }}
+{% endblock %}
+
+{% block body %}
+{% block model_menu_bar %}
+<div class="flex flex-wrap items-center gap-2 mb-4">
+  <span class="font-medium text-gray-700">{{ _gettext('List') }}{% if count %} ({{ count }}){% endif %}</span>
+  {% if admin_view.can_create %}
+  {% if admin_view.create_modal %}
+  {{ lib.add_modal_button(url=get_url('.create_view', url=return_url, modal=True), btn_class='px-3 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700', title=_gettext('Create New Record'), content=_gettext('Create')) }}
+  {% else %}
+  <a class="px-3 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700" href="{{ get_url('.create_view', url=return_url) }}">{{ _gettext('Create') }}</a>
+  {% endif %}
+  {% endif %}
+  {% if admin_view.can_export %}
+  {{ model_layout.export_options() }}
+  {% endif %}
+  {% block model_menu_bar_before_filters %}{% endblock %}
+  {% if filters %}
+  {{ model_layout.filter_options() }}
+  {% endif %}
+  {% if can_set_page_size %}
+  {{ model_layout.page_size_form(page_size_url, admin_view.page_size_options) }}
+  {% endif %}
+  {% if actions %}
+  {{ actionlib.dropdown(actions) }}
+  {% endif %}
+  {% if search_supported %}
+  {{ model_layout.search_form() }}
+  {% endif %}
+  {% block model_menu_bar_after_filters %}{% endblock %}
+</div>
+{% endblock %}
+
+{% if filters %}
+{{ model_layout.filter_form() }}
+{% endif %}
+
+{% block model_list_table %}
+<div class="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+  <table class="min-w-full divide-y divide-gray-200">
+    <thead class="bg-gray-50">
+      <tr>
+        {% block list_header scoped %}
+        {% if actions %}
+        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase w-12">
+          <input type="checkbox" name="rowtoggle" class="form-checkbox">
+        </th>
+        {% endif %}
+        {% block list_row_actions_header %}
+        {% if admin_view.column_display_actions %}
+        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 w-24">&nbsp;</th>
+        {% endif %}
+        {% endblock %}
+        {% for c, name in list_columns %}
+        {% set column = loop.index0 %}
+        <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+          {% if admin_view.is_sortable(c) %}
+          {% if sort_column == column %}
+          <a href="{{ get_url('.index_view', sort=column, desc=1 if not sort_desc else 0, **request.args) }}" class="text-gray-700 font-semibold">
+            {{ name }}
+            {% if sort_desc %}<i class="fa fa-sort-desc ml-1"></i>{% else %}<i class="fa fa-sort-asc ml-1"></i>{% endif %}
+          </a>
+          {% else %}
+          <a href="{{ get_url('.index_view', sort=column, desc=0, **request.args) }}" class="text-gray-600 hover:text-gray-900">{{ name }}</a>
+          {% endif %}
+          {% else %}
+          {{ name }}
+          {% endif %}
+          {% if admin_view.column_descriptions.get(c) %}
+          <span class="text-gray-400" title="{{ admin_view.column_descriptions[c] }}">?</span>
+          {% endif %}
+        </th>
+        {% endfor %}
+        {% endblock %}
+      </tr>
+    </thead>
+    <tbody class="bg-white divide-y divide-gray-200">
+      {% for row in data %}
+      {% block list_row scoped %}
+      <tr class="hover:bg-gray-50">
+        {% if actions %}
+        <td class="px-4 py-2">
+          <input type="checkbox" name="rowid" class="form-checkbox" value="{{ get_pk_value(row) }}">
+        </td>
+        {% endif %}
+        {% block list_row_actions_column scoped %}
+        {% if admin_view.column_display_actions %}
+        <td class="px-4 py-2">
+          {% block list_row_actions scoped %}
+          {% for action in list_row_actions %}
+          {{ action.render_ctx(get_pk_value(row), row) }}
+          {% endfor %}
+          {% endblock %}
+        </td>
+        {% endif %}
+        {% endblock %}
+        {% for c, name in list_columns %}
+        <td class="px-4 py-2 text-sm text-gray-700">
+          {% if admin_view.is_editable(c) %}
+          {% set form = list_forms[get_pk_value(row)] %}
+          {% if form.csrf_token is defined and form.csrf_token %}
+          {{ form[c](pk=get_pk_value(row), display_value=get_value(row, c), csrf=form.csrf_token._value()) }}
+          {% elif csrf_token is defined and csrf_token %}
+          {{ form[c](pk=get_pk_value(row), display_value=get_value(row, c), csrf=csrf_token()) }}
+          {% else %}
+          {{ form[c](pk=get_pk_value(row), display_value=get_value(row, c)) }}
+          {% endif %}
+          {% else %}
+          {{ get_value(row, c) }}
+          {% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endblock %}
+      {% else %}
+      {% block empty_list_message %}
+      <tr>
+        <td colspan="100" class="px-4 py-8 text-center text-gray-500">
+          {{ admin_view.get_empty_list_message() }}
+        </td>
+      </tr>
+      {% endblock %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% block list_pager %}
+{% if num_pages is not none %}
+{{ lib.pager(page, num_pages, pager_url) }}
+{% else %}
+{{ lib.simple_pager(page, data|length == page_size, pager_url) }}
+{% endif %}
+{% endblock %}
+{% endblock %}
+
+{% block actions %}
+{{ actionlib.form(actions, get_url('.action_view')) }}
+{% endblock %}
+
+{% if admin_view.edit_modal or admin_view.create_modal or admin_view.details_modal %}
+{{ lib.add_modal_window() }}
+{% endif %}
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+{% if filter_groups %}
+<script type="application/json" id="filter-groups">{{ filter_groups|tojson|safe }}</script>
+<script type="application/json" id="active-filters">{{ active_filters|tojson|safe }}</script>
+{% endif %}
+{{ lib.form_js() }}
+{{ actionlib.script(_gettext('Please select at least one record.'), actions, actions_confirmation) }}
+{% endblock %}

@@ -1,0 +1,78 @@
+{% macro menu_icon(item) -%}
+{% if item %}
+{% set icon_type = item.get_icon_type() %}
+{% if icon_type %}
+{% set icon_value = item.get_icon_value() %}
+{% if icon_type == 'fa' %}
+<i class="fa {{ icon_value }} mr-1"></i>
+{% elif icon_type == 'glyph' %}
+<span class="glyphicon {{ icon_value }}"></span>
+{% endif %}
+{% endif %}
+{% endif %}
+{%- endmacro %}
+
+{% macro menu(menu_root=None) %}
+{% if menu_root is none %}{% set menu_root = admin_view.admin.menu() %}{% endif %}
+{% for item in menu_root %}
+{% if item.is_category() %}
+{% set children = item.get_children() %}
+{% if children %}
+{% set class_name = item.get_class_name() or '' %}
+<div class="relative inline-block" x-data="{ open: false }">
+  <button type="button" class="px-3 py-2 rounded hover:bg-gray-700 text-left flex items-center gap-1" @click="open = !open" @click.outside="open = false">
+    {{ menu_icon(item) }}{{ item.name }} <i class="fa fa-caret-down text-xs"></i>
+  </button>
+  <div x-show="open" x-cloak class="absolute left-0 top-full mt-1 py-1 bg-gray-700 rounded shadow-lg z-50 min-w-[160px]"
+       x-transition:enter="transition ease-out duration-100"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100">
+    {% for child in children %}
+    {% if not child.is_category() %}
+    {% if 'dropdown-divider' not in (child.get_class_name() or '') %}
+    {% if child.is_active(admin_view) %}
+    <a class="block px-4 py-2 text-white bg-gray-600 hover:bg-gray-600" href="{{ child.get_url() }}">{{ menu_icon(child) }}{{ child.name }}</a>
+    {% else %}
+    <a class="block px-4 py-2 text-gray-200 hover:bg-gray-600 hover:text-white" href="{{ child.get_url() }}">{{ menu_icon(child) }}{{ child.name }}</a>
+    {% endif %}
+    {% endif %}
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% else %}
+{% if item.is_accessible() and item.is_visible() %}
+{% if item.is_active(admin_view) %}
+<a class="px-3 py-2 rounded bg-gray-700 text-white" href="{{ item.get_url() }}">{{ menu_icon(item) }}{{ item.name }}</a>
+{% else %}
+<a class="px-3 py-2 rounded hover:bg-gray-700 text-gray-200" href="{{ item.get_url() }}">{{ menu_icon(item) }}{{ item.name }}</a>
+{% endif %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro menu_links(links=None) %}
+{% if links is none %}{% set links = admin_view.admin.menu_links() %}{% endif %}
+{% for item in links %}
+{% if item.is_accessible() and item.is_visible() %}
+<a class="px-3 py-2 rounded hover:bg-gray-700 text-gray-200" href="{{ item.get_url() }}">{{ menu_icon(item) }}{{ item.name }}</a>
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro messages() %}
+{% with messages = get_flashed_messages(with_categories=True) %}
+{% if messages %}
+{% for category, m in messages %}
+{% set mapping = {'message': 'blue', 'error': 'red', 'danger': 'red'} %}
+{% set bg = mapping.get(category, 'blue') %}
+<div class="mb-4 p-4 rounded-lg {% if bg == 'red' %}bg-red-100 text-red-800 border border-red-200{% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %} flex items-center justify-between">
+  <span><i class="fa fa-info-circle mr-2"></i>{{ m }}</span>
+  <button type="button" class="text-current opacity-70 hover:opacity-100" onclick="this.parentElement.remove()">&times;</button>
+</div>
+{% endfor %}
+{% endif %}
+{% endwith %}
+{% endmacro %}

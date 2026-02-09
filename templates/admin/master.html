@@ -7,30 +7,30 @@
 
 {% block main_menu %}
 {% if current_user.is_authenticated %}
-<ul class="nav navbar-nav mr-auto">
-    {{ layout.menu() }}
-
-    <li class="nav-item dropdown">
-        <a class="nav-link dropdown-toggle" href="#" id="navbar-ready-lists" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Готовые списки</a>
-        <div class="dropdown-menu" aria-labelledby="navbar-ready-lists">
-            {% for item in admin_words_lists() %}
-            <a class="dropdown-item d-flex justify-content-between align-items-center gap-4" href="{{ url_for(item.endpoint + '.index') }}">
-                <span>{{ item.title }}</span>
-                <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-200 text-gray-800">{{ item.count }}</span>
-            </a>
-            {% endfor %}
-        </div>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link" target="_blank" href="{{ url_for('highlight.index') }}">Сервис</a>
-    </li>
-</ul>
+{{ layout.menu() }}
+<div class="relative inline-block" x-data="{ open: false }">
+  <button type="button" class="px-3 py-2 rounded hover:bg-gray-700 text-left flex items-center gap-1" @click="open = !open" @click.outside="open = false">
+    Готовые списки <i class="fa fa-caret-down text-xs"></i>
+  </button>
+  <div x-show="open" x-cloak class="absolute left-0 top-full mt-1 py-1 bg-gray-700 rounded shadow-lg z-50 min-w-[200px]"
+       x-transition:enter="transition ease-out duration-100"
+       x-transition:enter-start="opacity-0"
+       x-transition:enter-end="opacity-100">
+    {% for item in admin_words_lists() %}
+    <a class="flex items-center justify-between gap-4 px-4 py-2 text-gray-200 hover:bg-gray-600 hover:text-white" href="{{ url_for(item.endpoint + '.index') }}">
+      <span>{{ item.title }}</span>
+      <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-600 text-gray-200">{{ item.count }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+<a class="px-3 py-2 rounded hover:bg-gray-700 text-gray-200" target="_blank" href="{{ url_for('highlight.index') }}">Сервис</a>
 {% endif %}
 {% endblock %}
 
 {% block access_control %}
 {% if current_user.is_authenticated %}
-<a class="nav-link text-white" href="{{ url_for('admin_auth.logout') }}"><i class="fa fa-sign-out"></i> Выход</a>
+<a class="px-3 py-2 rounded hover:bg-gray-700 text-gray-200" href="{{ url_for('admin_auth.logout') }}"><i class="fa fa-sign-out"></i> Выход</a>
 {% endif %}
 {% endblock %}
 

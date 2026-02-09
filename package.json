@@ -7,9 +7,7 @@
     "dev": "vite build --watch",
     "watch": "npm run dev",
     "build": "vite build",
-    "preview": "vite preview",
-    "build:admin": "npm run build --prefix admin_ui",
-    "watch:admin": "npm run watch --prefix admin_ui"
+    "preview": "vite preview"
   },
   "dependencies": {
     "just-validate": "^4.3.0",

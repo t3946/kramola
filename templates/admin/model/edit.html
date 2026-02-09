@@ -1,0 +1,35 @@
+{% extends 'admin/master.html' %}
+{% import 'admin/lib.html' as lib with context %}
+{% from 'admin/lib.html' import extra with context %}
+
+{% block head %}
+{{ super() }}
+{{ lib.form_css() }}
+{% endblock %}
+
+{% block body %}
+{% block navlinks %}
+<nav class="mb-4 flex gap-2 text-sm">
+  <a class="text-blue-600 hover:underline" href="{{ get_url('.index_view') }}">{{ _gettext('List') }}</a>
+  <span class="text-gray-400">/</span>
+  {% if admin_view.can_create %}
+  <a class="text-blue-600 hover:underline" href="{{ get_url('.create_view') }}">{{ _gettext('Create') }}</a>
+  <span class="text-gray-400">/</span>
+  {% endif %}
+  <span class="text-gray-700">{{ _gettext('Edit') }}</span>
+  {% if admin_view.can_view_details %}
+  <span class="text-gray-400">/</span>
+  <a class="text-blue-600 hover:underline" href="{{ get_url('.details_view', id=request.args.get('id')) }}">{{ _gettext('Details') }}</a>
+  {% endif %}
+</nav>
+{% endblock %}
+
+{% block edit_form %}
+{{ lib.render_form(form, return_url, extra(), form_opts) }}
+{% endblock %}
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+{{ lib.form_js() }}
+{% endblock %}

@@ -2,25 +2,25 @@
 {% from 'admin/components/page_title.html' import page_title %}
 
 {% block body %}
-<div class="container-fluid">
-  <h1 class="page-title text-black text-3xl font-semibold mb-3">
+<div>
+  <h1 class="text-2xl font-semibold text-gray-800 mb-3">
       <span>{{ list_title }}</span>
       (<span id="words-count">{{ total_count }}</span>)
   </h1>
 
-  <div class="my-3 d-flex gap-2">
+  <div class="my-3 flex flex-wrap gap-2">
     {% if import_url %}
-    <button type="button" class="btn btn-primary" data-modal-open="import-modal"><i class="fa fa-upload"></i> Импорт</button>
+    <button type="button" class="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700" data-modal-open="import-modal"><i class="fa fa-upload"></i> Импорт</button>
     {% endif %}
     {% if export_url %}
-    <a href="{{ export_url }}" class="btn btn-secondary" download><i class="fa fa-download"></i> Экспорт</a>
+    <a href="{{ export_url }}" class="px-4 py-2 rounded border border-gray-300 bg-white text-sm hover:bg-gray-50" download><i class="fa fa-download"></i> Экспорт</a>
     {% else %}
-    <button type="button" class="btn btn-secondary" disabled><i class="fa fa-download"></i> Экспорт</button>
+    <button type="button" class="px-4 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed" disabled><i class="fa fa-download"></i> Экспорт</button>
     {% endif %}
     {% if import_url %}
-    <button type="button" class="btn btn-secondary" data-modal-open="minusate-modal"><i class="fa fa-minus-circle"></i> Минусация</button>
+    <button type="button" class="px-4 py-2 rounded border border-gray-300 bg-white text-sm hover:bg-gray-50" data-modal-open="minusate-modal"><i class="fa fa-minus-circle"></i> Минусация</button>
     {% else %}
-    <button type="button" class="btn btn-secondary" disabled><i class="fa fa-minus-circle"></i> Минусация</button>
+    <button type="button" class="px-4 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed" disabled><i class="fa fa-minus-circle"></i> Минусация</button>
     {% endif %}
   </div>
 

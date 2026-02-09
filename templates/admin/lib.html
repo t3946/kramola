@@ -1,0 +1,193 @@
+{% import 'admin/static.html' as admin_static with context %}
+
+{% macro pager(page, pages, generator) -%}
+{% if pages > 1 %}
+{% set min = page - 3 %}
+{% set max = page + 3 + 1 %}
+{% if min < 0 %}{% set max = max - min %}{% endif %}
+{% if max >= pages %}{% set min = min - max + pages %}{% endif %}
+{% if min < 0 %}{% set min = 0 %}{% endif %}
+{% if max >= pages %}{% set max = pages %}{% endif %}
+<nav class="flex items-center gap-1 my-4">
+  {% if min > 0 %}
+  <a class="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700" href="{{ generator(0) }}">&laquo;</a>
+  {% else %}
+  <span class="px-3 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed">&laquo;</span>
+  {% endif %}
+  {% if page > 0 %}
+  <a class="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700" href="{{ generator(page-1) }}">&lt;</a>
+  {% else %}
+  <span class="px-3 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed">&lt;</span>
+  {% endif %}
+  {% for p in range(min, max) %}
+  {% if page == p %}
+  <span class="px-3 py-2 rounded border border-blue-500 bg-blue-500 text-white">{{ p + 1 }}</span>
+  {% else %}
+  <a class="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700" href="{{ generator(p) }}">{{ p + 1 }}</a>
+  {% endif %}
+  {% endfor %}
+  {% if page + 1 < pages %}
+  <a class="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700" href="{{ generator(page + 1) }}">&gt;</a>
+  {% else %}
+  <span class="px-3 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed">&gt;</span>
+  {% endif %}
+  {% if max < pages %}
+  <a class="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50 text-gray-700" href="{{ generator(pages - 1) }}">&raquo;</a>
+  {% else %}
+  <span class="px-3 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed">&raquo;</span>
+  {% endif %}
+</nav>
+{% endif %}
+{%- endmacro %}
+
+{% macro simple_pager(page, have_next, generator) -%}
+<nav class="flex items-center gap-1 my-4">
+  {% if page > 0 %}
+  <a class="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50" href="{{ generator(page - 1) }}">&lt;</a>
+  {% else %}
+  <span class="px-3 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400">&lt;</span>
+  {% endif %}
+  {% if have_next %}
+  <a class="px-3 py-2 rounded border border-gray-300 bg-white hover:bg-gray-50" href="{{ generator(page + 1) }}">&gt;</a>
+  {% else %}
+  <span class="px-3 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400">&gt;</span>
+  {% endif %}
+</nav>
+{%- endmacro %}
+
+{% macro add_modal_window(modal_window_id='fa_modal_window', modal_label_id='fa_modal_label') %}
+<div class="fixed inset-0 z-50 hidden overflow-y-auto" id="{{ modal_window_id }}" tabindex="-1" role="dialog" aria-labelledby="{{ modal_label_id }}" x-data="{ open: false }" x-show="open" x-cloak>
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="fixed inset-0 bg-black/50" @click="open = false" aria-hidden="true"></div>
+    <div class="relative rounded-lg bg-white shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto p-6">
+      <div class="modal-content"></div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro add_modal_button(url='', title='', content='', modal_window_id='fa_modal_window', btn_class='icon') %}
+<a class="{{ btn_class }}" title="{{ title }}" href="{{ url }}" data-target="#{{ modal_window_id }}" data-toggle="modal">{{ content|safe }}</a>
+{% endmacro %}
+
+{% macro render_field(form, field, kwargs={}, caller=None) %}
+{% set direct_error = h.is_field_error(field.errors) %}
+{% set prepend = kwargs.pop('prepend', None) %}
+{% set append = kwargs.pop('append', None) %}
+<div class="mb-4 {{ kwargs.get('column_class', '') }}">
+  <label for="{{ field.id }}" class="block text-sm font-medium text-gray-700 mb-1">
+    {{ field.label.text }}
+    {% if h.is_required_form_field(field) %}<span class="text-red-500">*</span>{% endif %}
+  </label>
+  {% if field.widget.input_type is defined and field.widget.input_type == 'checkbox' %}
+  <div class="flex items-center">
+    {% set _ = kwargs.setdefault('class', 'rounded border-gray-300 text-blue-600 focus:ring-blue-500') %}
+    {% if direct_error %}{% set _ = kwargs.update({'class': kwargs['class'] ~ ' border-red-500'}) %}{% endif %}
+    {{ field(**kwargs) | safe }}
+  </div>
+  {% elif field.widget.input_type is defined and field.widget.input_type == 'file' %}
+  {% set _ = kwargs.setdefault('class', 'block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-100 file:text-gray-700') %}
+  {{ field(**kwargs) | safe }}
+  {% else %}
+  {% set _ = kwargs.setdefault('class', 'block w-full rounded border border-gray-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500') %}
+  {% if direct_error %}{% set _ = kwargs.update({'class': kwargs['class'] ~ ' border-red-500'}) %}{% endif %}
+  {{ field(**kwargs) | safe }}
+  {% endif %}
+  {% if direct_error %}
+  <ul class="mt-1 text-sm text-red-600 list-disc list-inside">
+    {% for e in field.errors if e is string %}<li>{{ e }}</li>{% endfor %}
+  </ul>
+  {% elif field.description %}
+  <p class="mt-1 text-xs text-gray-500">{{ field.description|safe }}</p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro render_form_fields(form, form_opts=None) %}
+{% if form.hidden_tag is defined %}
+{{ form.hidden_tag() }}
+{% else %}
+{% if csrf_token is defined and csrf_token %}
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+{% endif %}
+{% for f in form if f.widget.input_type is defined and f.widget.input_type == 'hidden' %}
+{{ f }}
+{% endfor %}
+{% endif %}
+{% if form_opts and form_opts.form_rules %}
+{% for r in form_opts.form_rules %}
+{{ r(form, form_opts=form_opts) }}
+{% endfor %}
+{% else %}
+{% for f in form if f.widget.input_type is undefined or f.widget.input_type != 'hidden' %}
+{% if form_opts %}
+{% set kwargs = form_opts.widget_args.get(f.short_name, {}) %}
+{% else %}
+{% set kwargs = {} %}
+{% endif %}
+{{ render_field(form, f, kwargs) }}
+{% endfor %}
+{% endif %}
+{% endmacro %}
+
+{% macro form_tag(form=None, action=None) %}
+<form action="{{ action or '' }}" method="POST" role="form" class="admin-form" enctype="multipart/form-data">
+<fieldset>
+  {{ caller() }}
+</fieldset>
+</form>
+{% endmacro %}
+
+{% macro render_form_buttons(cancel_url, extra=None, is_modal=False) %}
+<div class="mt-6 pt-4 border-t border-gray-200 flex flex-wrap gap-2">
+  <button type="submit" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500">
+    {{ _gettext('Save') }}
+  </button>
+  {% if extra %}{{ extra }}{% endif %}
+  {% if cancel_url is defined and cancel_url %}
+  <a href="{{ cancel_url }}" class="px-4 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50" {% if is_modal %}data-dismiss="modal"{% endif %}>{{ _gettext('Cancel') }}</a>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{% macro render_form(form, cancel_url, extra=None, form_opts=None, action=None, is_modal=False) -%}
+{% call form_tag(action=action) %}
+{{ render_form_fields(form, form_opts=form_opts) }}
+{{ render_form_buttons(cancel_url, extra, is_modal) }}
+{% endcall %}
+{% endmacro %}
+
+{% macro form_css() %}
+<link href="{{ admin_static.url(filename='vendor/select2/select2.css', v='4.2.1') }}" rel="stylesheet">
+<link href="{{ admin_static.url(filename='vendor/select2/select2-bootstrap4.css', v='1.4.6') }}" rel="stylesheet">
+<link href="{{ admin_static.url(filename='vendor/bootstrap-daterangepicker/daterangepicker-bs4.css', v='1.3.22') }}" rel="stylesheet">
+{% if config.FLASK_ADMIN_MAPS is defined and config.FLASK_ADMIN_MAPS %}
+<link href="{{ admin_static.url(filename='vendor/leaflet/leaflet.css', v='1.0.2') }}" rel="stylesheet">
+<link href="{{ admin_static.url(filename='vendor/leaflet/leaflet.draw.css', v='0.4.6') }}" rel="stylesheet">
+{% endif %}
+{% if editable_columns is defined and editable_columns %}
+<link href="{{ admin_static.url(filename='vendor/x-editable/css/bootstrap4-editable.css', v='1.5.1.1') }}" rel="stylesheet">
+{% endif %}
+{% endmacro %}
+
+{% macro form_js() %}
+{% if config.FLASK_ADMIN_MAPS is defined and config.FLASK_ADMIN_MAPS %}
+<script {{ admin_csp_nonce_attribute }}>window.FLASK_ADMIN_MAPS = true;</script>
+<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='vendor/leaflet/leaflet.js', v='1.0.2') }}"></script>
+<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='vendor/leaflet/leaflet.draw.js', v='0.4.6') }}"></script>
+{% endif %}
+<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='vendor/bootstrap-daterangepicker/daterangepicker.js', v='1.3.22') }}"></script>
+{% if editable_columns is defined and editable_columns %}
+<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='vendor/x-editable/js/bootstrap4-editable.min.js', v='1.5.1.1') }}"></script>
+{% endif %}
+<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='admin/js/form.js', v='1.0.1') }}"></script>
+{% endmacro %}
+
+{% macro extra() %}
+{% if admin_view.can_create %}
+<button type="submit" name="_add_another" class="px-4 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50" value="1">{{ _gettext('Save and Add Another') }}</button>
+{% endif %}
+{% if admin_view.can_edit %}
+<button type="submit" name="_continue_editing" class="px-4 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50" value="1">{{ _gettext('Save and Continue Editing') }}</button>
+{% endif %}
+{% endmacro %}
