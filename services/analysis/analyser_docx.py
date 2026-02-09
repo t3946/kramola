@@ -137,7 +137,6 @@ class AnalyserDocx(Analyser):
                     r_start=r_start,
                     r_end=r_end,
                 )
-                break
         # [end]
 
         # [start] get run with phrase
