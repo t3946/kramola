@@ -3,76 +3,90 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <title>{% block title %}{% if admin_view.category %}{{ admin_view.category }} - {% endif %}{{ admin_view.name }} - {{ admin_view.admin.name }}{% endblock %}</title>
-  {% block head_meta %}
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  {% endblock %}
-  {% block head_css %}
-  <link href="{{ admin_static.url(filename='bootstrap/bootstrap4/css/font-awesome.min.css', v='4.7.0') }}" rel="stylesheet" {{ admin_csp_nonce_attribute }}>
-  {% if admin_view.extra_css %}
-  {% for css_url in admin_view.extra_css %}
-  <link href="{{ css_url }}" rel="stylesheet" {{ admin_csp_nonce_attribute }}>
-  {% endfor %}
-  {% endif %}
-  {% endblock %}
-  {% block head %}
-  {% endblock %}
-  {% block head_tail %}
-  <style>[x-cloak]{display:none!important}</style>
-  {% endblock %}
+    <title>{% block title %}{% if admin_view.category %}{{ admin_view.category }} - {% endif %}{{ admin_view.name }} -
+        {{ admin_view.admin.name }}{% endblock %}</title>
+    {% block head_meta %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% endblock %}
+    {% block head_css %}
+    <link href="{{ admin_static.url(filename='bootstrap/bootstrap4/css/font-awesome.min.css', v='4.7.0') }}"
+          rel="stylesheet" {{ admin_csp_nonce_attribute }}>
+    {% if admin_view.extra_css %}
+    {% for css_url in admin_view.extra_css %}
+    <link href="{{ css_url }}" rel="stylesheet" {{ admin_csp_nonce_attribute }}>
+    {% endfor %}
+    {% endif %}
+    {% endblock %}
+    {% block head %}
+    {% endblock %}
+    {% block head_tail %}
+    <style>[x-cloak] {
+        display: none !important
+    }</style>
+    {% endblock %}
 </head>
 <body class="bg-gray-50 min-h-screen">
 {% block page_body %}
 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-  <nav class="bg-gray-800 text-white mb-6 rounded-lg" role="navigation" x-data="{ open: false, dropdown: null }">
-    <div class="flex items-center justify-between px-4 py-3">
-      <div class="flex items-center gap-4">
-        <button type="button" class="md:hidden p-2 rounded hover:bg-gray-700" @click="open = !open" aria-label="Menu">
-          <i class="fa fa-bars"></i>
-        </button>
-        {% block brand %}
-        <a class="font-semibold text-lg hover:text-gray-200" href="{{ admin_view.admin.url }}">{{ admin_view.admin.name }}</a>
-        {% endblock %}
-        <div class="gap-1 flex-col md:flex-row items-center hidden md:flex" :class="{ '!flex': open }">
-          {% block main_menu %}
-          {{ layout.menu() }}
-          {% endblock %}
+    <nav class="bg-gray-800 text-white mb-6 rounded-b-lg" role="navigation" x-data="{ open: false, dropdown: null }">
+        <div class="flex items-center justify-between px-4 py-3">
+            <div class="grid grid-cols-[auto,1fr,auto] gap-4 w-full">
+                <button type="button" class="md:hidden p-2 rounded hover:bg-gray-700" @click="open = !open"
+                        aria-label="Menu">
+                    <i class="fa fa-bars"></i>
+                </button>
+                {% block brand %}
+                <div class="flex items-center">
+                    <a class="font-semibold text-lg hover:text-gray-200" href="{{ admin_view.admin.url }}">
+                        {{ admin_view.admin.name }}
+                    </a>
+                </div>
+                {% endblock %}
+                <div class="gap-1 flex-col md:flex-row items-center hidden md:flex" :class="{ '!flex': open }">
+                    {% block main_menu %}
+                    {{ layout.menu() }}
+                    {% endblock %}
+                </div>
+                <div class="hidden md:flex items-center ml-auto gap-1">
+                    {% block menu_links %}
+                    {{ layout.menu_links() }}
+                    {% endblock %}
+                    {% block access_control %}
+                    {% endblock %}
+                </div>
+            </div>
         </div>
-        <div class="hidden md:flex items-center ml-auto gap-1">
-          {% block menu_links %}
-          {{ layout.menu_links() }}
-          {% endblock %}
-          {% block access_control %}
-          {% endblock %}
-        </div>
-      </div>
-    </div>
-  </nav>
+    </nav>
 
-  {% block messages %}
-  {{ layout.messages() }}
-  {% endblock %}
+    {% block messages %}
+    {{ layout.messages() }}
+    {% endblock %}
 
-  {% set render_ctx = h.resolve_ctx() %}
+    {% set render_ctx = h.resolve_ctx() %}
 
-  {% block page_title %}
-  <h1 class="text-xl font-semibold text-gray-800 mb-4">
-    {{ layout.menu_icon(admin_view.menu) }}
-    {{ admin_view.name }}
-  </h1>
-  {% endblock %}
+    {% block page_title %}
+    <h1 class="text-xl font-semibold text-gray-800 mb-4">
+        {{ layout.menu_icon(admin_view.menu) }}
+        {{ admin_view.name }}
+    </h1>
+    {% endblock %}
 
-  {% block body %}{% endblock %}
+    {% block body %}{% endblock %}
 </div>
 {% endblock %}
 
 {% block tail_js %}
 <script {{ admin_csp_nonce_attribute }} src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
-<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='vendor/jquery.min.js', v='3.5.1') }}" type="text/javascript"></script>
-<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='vendor/moment.min.js', v='2.9.4') }}" type="text/javascript"></script>
-<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='vendor/select2/select2.min.js', v='4.2.1') }}" type="text/javascript"></script>
-<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='admin/js/helpers.js', v='1.0.0') }}" type="text/javascript"></script>
+<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='vendor/jquery.min.js', v='3.5.1') }}"
+        type="text/javascript"></script>
+<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='vendor/moment.min.js', v='2.9.4') }}"
+        type="text/javascript"></script>
+<script {{ admin_csp_nonce_attribute }}
+        src="{{ admin_static.url(filename='vendor/select2/select2.min.js', v='4.2.1') }}"
+        type="text/javascript"></script>
+<script {{ admin_csp_nonce_attribute }} src="{{ admin_static.url(filename='admin/js/helpers.js', v='1.0.0') }}"
+        type="text/javascript"></script>
 {% if admin_view.extra_js %}
 {% for js_url in admin_view.extra_js %}
 <script {{ admin_csp_nonce_attribute }} src="{{ js_url }}" type="text/javascript"></script>

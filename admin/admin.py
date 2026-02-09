@@ -200,6 +200,20 @@ class InagentEditView(BaseView):
         return self.render("admin/inagent_edit.html", form_data=form_data)
 
 
+class AutoloadView(BaseView):
+    """Admin page for autoload lists logs."""
+
+    def is_accessible(self) -> bool:
+        return current_user.is_authenticated and current_user.has_role("admin")
+
+    def inaccessible_callback(self, name: str, **kwargs) -> redirect:
+        return redirect(url_for("admin_auth.login", next=request.url))
+
+    @expose("/")
+    def index(self):
+        return self.render("admin/autoload.html")
+
+
 class SecureAdminIndexView(AdminIndexView):
     def is_accessible(self) -> bool:
         return current_user.is_authenticated and current_user.has_role("admin")
@@ -247,6 +261,7 @@ def init_admin(app: Flask, db) -> Admin:
     admin.add_view(UserView(User, db.session, category="Пользователи", name="Пользователи"))
     admin.add_view(RoleView(Role, db.session, category="Пользователи", name="Роли"))
     admin.add_view(InagentEditView(name="Инагент: Редактирование", url="inagent-edit", endpoint="inagent_edit"))
+    admin.add_view(AutoloadView(name="Автозагрузка", url="autoload", endpoint="autoload"))
     with app.app_context():
         has_pl_lists = "pl_lists" in inspect(db.engine).get_table_names()
         list_records = (
