@@ -1,6 +1,7 @@
 import docx
 import time
-from typing import List, Union, Optional, Tuple, Dict, TYPE_CHECKING
+from dataclasses import dataclass
+from typing import List, Union, Optional, Tuple, Dict, NamedTuple, TYPE_CHECKING
 from functools import cmp_to_key
 
 from services.analysis.stats import StatsDocx
@@ -24,6 +25,22 @@ from services.fulltext_search.phrase import Phrase
 from services.utils.timeit import timeit
 from copy import deepcopy
 from services.progress.docx.combined_progress import CombinedProgress, ProgressType
+
+
+class _SearchIntersection(NamedTuple):
+    start: int
+    end: int
+    r_start: int
+    r_end: int
+
+
+@dataclass
+class _RunMapEntry:
+    start: int
+    end: int
+    text: str
+    run: CT_R
+    search_intersection: Union[_SearchIntersection, None] = None
 
 
 class AnalyserDocx(Analyser):
@@ -87,62 +104,78 @@ class AnalyserDocx(Analyser):
             phrase_end_index: int,
             highlight_val: str
     ) -> List[CT_R]:
-        # end_index-1 because in python slices index interval standard is [start, end) but not [start, end] like in the other world
-        # todo: эту хуйню с индексами надо бы убрать я думаю, но для начала надо починить баги
+        # normalize index
         phrase_end_index -= 1
 
-        # after Run split operation, batch need to be updated
-        new_batch = []
+        # [start] build map
+        run_map: List[_RunMapEntry] = []
+        start_index = 0
 
-        # [start] find run by char index
-        proceed_chars = 0
+        for run in batch:
+            run_map.append(_RunMapEntry(
+                start=start_index,
+                end=start_index + len(run.text) - 1,
+                text=run.text,
+                run=run,
+            ))
+            start_index += len(run.text)
+        # [end]
 
-        for run_source in batch:
-            # specification suppose w:r could contain multiple w:t, but ms word automatically reduces it to: 1 w:r = 1 w:t
-            source_run_text_element: CT_Text = run_source.find(qn('w:t'))
-
-            if source_run_text_element is None:
-                proceed_chars += len(run_source.text)
-                new_batch.append(run_source)
-                continue
-
-            # skip line break "\n" in run if it exists
-            proceed_chars += run_source.text.find(source_run_text_element.text)
-
-            text: str = source_run_text_element.text
-            run_source_text_len = len(run_source.text)
-            run_start_index = proceed_chars
-            run_end_index = run_start_index + len(text)
-
+        # [start] get run with phrase
+        for map_item in run_map:
+            run_start_index = map_item.start
+            run_end_index = map_item.end
             intersection = intersects_at((run_start_index, run_end_index), (phrase_start_index, phrase_end_index))
 
             if intersection:
-                intersection_len = intersection[1] - intersection[0]
-                run_relative_char_start_index: int = intersection[0] - proceed_chars
-                run_relative_char_end_index: int = run_relative_char_start_index + intersection_len
+                phrase_len = phrase_end_index - phrase_start_index
+                r_start = intersection[0] - run_start_index
+                r_end = r_start + phrase_len
+                map_item.search_intersection = _SearchIntersection(
+                    start=intersection[0],
+                    end=intersection[1],
+                    r_start=r_start,
+                    r_end=r_end,
+                )
+                break
+        # [end]
 
-                # [start] split run text on three new parts: before, match and after
-                part_before_match: str = text[:run_relative_char_start_index]
-                part_match: str = text[run_relative_char_start_index:run_relative_char_end_index+1]
-                part_after_match: str = text[run_relative_char_end_index+1:]
+        # [start] get run with phrase
+        new_batch = []
 
-                # needs to avoid cases "This is an apple" -> "This is anapple"
-                source_run_text_element.set(qn('xml:space'), 'preserve')
+        for map_item in run_map:
+            if map_item.search_intersection is None:
+                new_batch.append(map_item.run)
+                continue
 
-                run_match = AnalyserDocx.__clone_run(run_source, part_match, True, highlight_val, skip_break_lines=True)
-                run_after = AnalyserDocx.__clone_run(run_source, part_after_match, False, highlight_val, skip_break_lines=True)
-                source_run_text_element.text = part_before_match
-                run_source.addnext(run_match)
-                run_match.addnext(run_after)
-                # [end]
+            # [start] split run text on three new parts: before, match and after
+            text = map_item.run.text
+            i_start = map_item.search_intersection.r_start
+            i_end = map_item.search_intersection.r_end
+            part_before_match: str = text[:i_start]
+            part_match: str = text[i_start:i_end + 1]
+            part_after_match: str = text[i_end + 1:]
 
-                new_batch.append(run_source)
-                new_batch.append(run_match)
-                new_batch.append(run_after)
+            if len(map_item.run.br_lst) == 1:
+                part_before_match = part_before_match.lstrip("\n")
+                skip_break_lines = False
             else:
-                new_batch.append(run_source)
+                skip_break_lines = True
 
-            proceed_chars += run_source_text_len
+            run_before_match = AnalyserDocx.__clone_run(map_item.run, part_before_match, False, highlight_val, skip_break_lines=skip_break_lines)
+            run_match = AnalyserDocx.__clone_run(map_item.run, part_match, True, highlight_val, skip_break_lines=True)
+            run_after_match = AnalyserDocx.__clone_run(map_item.run, part_after_match, False, highlight_val, skip_break_lines=True)
+
+            parent = map_item.run.getparent()
+            index = list(parent).index(map_item.run)
+            parent.remove(map_item.run)
+            for i, run_el in enumerate([run_before_match, run_match, run_after_match]):
+                parent.insert(index + i, run_el)
+
+            new_batch.append(run_before_match)
+            new_batch.append(run_match)
+            new_batch.append(run_after_match)
+            # [end]
         # [end]
 
         return new_batch
