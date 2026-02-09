@@ -2,77 +2,108 @@
 
 {% block body %}
 <div class="max-w-2xl">
-  <form method="post" action="{{ url_for(admin_view.endpoint + '.index') }}" class="space-y-4">
-    <div>
-      <label for="agent_type" class="block text-sm font-medium text-gray-700 mb-1">Тип иностранного агента</label>
-      <select id="agent_type" name="agent_type" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-        <option value="organization"{% if form_data and form_data.agent_type == 'organization' %} selected{% endif %}>Организация</option>
-        <option value="individual"{% if form_data and form_data.agent_type == 'individual' %} selected{% endif %}>Физическое лицо</option>
-      </select>
-    </div>
-    <div class="flex items-center gap-2">
-      <input type="checkbox" id="status_removed" name="status_removed" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"{% if form_data and form_data.status_removed %} checked{% endif %}>
-      <label for="status_removed" class="text-sm font-medium text-gray-700">Снят</label>
-      <span class="text-sm text-gray-500">(иначе — числится)</span>
-    </div>
-    <div>
-      <label for="number" class="block text-sm font-medium text-gray-700 mb-1">Номер</label>
-      <input type="text" id="number" name="number" value="{{ form_data.number or '' }}" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Номер в реестре">
-    </div>
-    <div>
-      <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">Полное наименование организации / имя инагента</label>
-      <input type="text" id="full_name" name="full_name" value="{{ form_data.full_name or '' }}" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Наименование или ФИО">
-    </div>
-    <div>
-      <label for="date_included" class="block text-sm font-medium text-gray-700 mb-1">Дата принятия Минюстом России решения о включении в реестр</label>
-      <input type="date" id="date_included" name="date_included" value="{{ form_data.date_included or '' }}" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-    </div>
-    <div>
-      <label for="date_excluded" class="block text-sm font-medium text-gray-700 mb-1">Дата принятия Минюстом России решения об исключении из реестра</label>
-      <input type="date" id="date_excluded" name="date_excluded" value="{{ form_data.date_excluded or '' }}" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-    </div>
-    <div>
-      <label for="domain" class="block text-sm font-medium text-gray-700 mb-1">Доменное имя информационного ресурса</label>
-      <textarea id="domain" name="domain" rows="3" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Доменное имя или адрес">{{ form_data.domain or '' }}</textarea>
-    </div>
-    <div>
-      <label for="activity" class="block text-sm font-medium text-gray-700 mb-1">Деятельность</label>
-      <textarea id="activity" name="activity" rows="4" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Описание деятельности (разделяйте пункты точкой с запятой)">{{ form_data.activity or '' }}</textarea>
-      <div id="activity-list" class="mt-2 text-sm text-gray-600"></div>
-    </div>
-    <div class="flex gap-2 pt-2">
-      <button type="submit" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"><i class="fa fa-check"></i> Сохранить</button>
-      <a href="{{ url_for('admin.index') }}" class="px-4 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Отмена</a>
-    </div>
-  </form>
+    <form method="post" action="{{ url_for(admin_view.endpoint + '.index') }}" class="space-y-4">
+        <div>
+            <label for="agent_type" class="block text-sm font-medium text-gray-700 mb-1">Тип иностранного
+                агента</label>
+            <select id="agent_type" name="agent_type"
+                    class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <option value="organization" {% if form_data and form_data.agent_type==
+                'organization' %} selected{% endif %}>Организация</option>
+                <option value="individual" {% if form_data and form_data.agent_type==
+                'individual' %} selected{% endif %}>Физическое лицо</option>
+            </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+            <input type="checkbox" id="status_removed" name="status_removed" value="1"
+                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" {% if form_data and
+                   form_data.status_removed %} checked{% endif %}>
+            <label for="status_removed" class="text-sm font-medium text-gray-700">Снят</label>
+            <span class="text-sm text-gray-500">(иначе — числится)</span>
+        </div>
+
+        <div>
+            <label for="number" class="block text-sm font-medium text-gray-700 mb-1">Номер</label>
+            <input type="text" id="number" name="number" value="{{ form_data.number or '' }}"
+                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                   placeholder="Номер в реестре">
+        </div>
+
+        <div>
+            <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">Полное наименование
+                организации
+                / имя инагента</label>
+            <input type="text" id="full_name" name="full_name" value="{{ form_data.full_name or '' }}"
+                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                   placeholder="Наименование или ФИО">
+        </div>
+
+        <div>
+            <label for="date_included" class="block text-sm font-medium text-gray-700 mb-1">Дата принятия Минюстом
+                России решения о включении в реестр</label>
+            <input type="date" id="date_included" name="date_included" value="{{ form_data.date_included or '' }}"
+                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        </div>
+
+        <div>
+            <label for="date_excluded" class="block text-sm font-medium text-gray-700 mb-1">Дата принятия Минюстом
+                России решения об исключении из реестра</label>
+            <input type="date" id="date_excluded" name="date_excluded" value="{{ form_data.date_excluded or '' }}"
+                   class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        </div>
+
+        <div>
+            <label for="domain" class="block text-sm font-medium text-gray-700 mb-1">Доменное имя информационного
+                ресурса</label>
+            <textarea id="domain" name="domain" rows="3"
+                      class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Доменное имя или адрес">{{ form_data.domain or '' }}</textarea>
+        </div>
+
+        <div>
+            <label for="activity" class="block text-sm font-medium text-gray-700 mb-1">Деятельность</label>
+            <textarea id="activity" name="activity" rows="4"
+                      class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      placeholder="Описание деятельности (разделяйте пункты точкой с запятой)">{{ form_data.activity or '' }}</textarea>
+            <div id="activity-list" class="mt-2 text-sm text-gray-600"></div>
+        </div>
+
+        <div class="flex gap-2 pt-2">
+            <button type="submit" class="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"><i
+                    class="fa fa-check"></i> Сохранить
+            </button>
+            <a href="{{ url_for('admin.index') }}"
+               class="px-4 py-2 rounded border border-gray-300 bg-white text-gray-700 hover:bg-gray-50">Отмена</a>
+        </div>
+        <script {{ admin_csp_nonce_attribute }}>
+            (function () {
+                var textarea = document.getElementById("activity");
+                var listEl = document.getElementById("activity-list");
+                if (!textarea || !listEl) return;
+
+                function updateList() {
+                    var raw = textarea.value || "";
+                    var items = raw.split(";").map(function (s) {
+                        return s.trim();
+                    }).filter(Boolean);
+                    if (items.length === 0) {
+                        listEl.innerHTML = "";
+                        return;
+                    }
+                    listEl.innerHTML = "<ul class=\"list-disc pl-5 space-y-0.5\">" +
+                        items.map(function (item) {
+                            var span = document.createElement("span");
+                            span.textContent = item;
+                            return "<li>" + span.innerHTML + "</li>";
+                        }).join("") +
+                        "</ul>";
+                }
+
+                textarea.addEventListener("input", updateList);
+                updateList();
+            })();
+        </script>
+    </form>
 </div>
-{% endblock %}
-
-{% block tail %}
-<script {{ admin_csp_nonce_attribute }}>
-(function () {
-  var textarea = document.getElementById("activity");
-  var listEl = document.getElementById("activity-list");
-  if (!textarea || !listEl) return;
-
-  function updateList() {
-    var raw = textarea.value || "";
-    var items = raw.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
-    if (items.length === 0) {
-      listEl.innerHTML = "";
-      return;
-    }
-    listEl.innerHTML = "<ul class=\"list-disc pl-5 space-y-0.5\">" +
-      items.map(function (item) {
-        var span = document.createElement("span");
-        span.textContent = item;
-        return "<li>" + span.innerHTML + "</li>";
-      }).join("") +
-      "</ul>";
-  }
-
-  textarea.addEventListener("input", updateList);
-  updateList();
-})();
-</script>
 {% endblock %}

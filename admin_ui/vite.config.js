@@ -29,7 +29,7 @@ export default defineConfig({
     outDir: distAdminDir,
     emptyOutDir: true,
     rollupOptions: {
-      input: resolve(__dirname, "frontend", "js", "main.js"),
+      input: resolve(__dirname, "frontend", "js", "main.ts"),
       output: {
         format: "iife",
         entryFileNames: "bundle.js",

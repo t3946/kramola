@@ -2,28 +2,31 @@ import { Grid, html } from "gridjs";
 
 const DEBOUNCE_MS = 300;
 
-/**
- * @param {string} s
- * @returns {string}
- */
-function escapeHtml(s) {
+interface WordsRow {
+  phrase: string;
+  edit_url: string;
+  delete_url: string;
+  created_at: string;
+}
+
+interface WordsApiResponse {
+  data?: WordsRow[];
+  total?: number;
+}
+
+function escapeHtml(s: string): string {
   const div = document.createElement("div");
   div.textContent = s;
   return div.innerHTML;
 }
 
-/**
- * @param {string} text
- * @param {string} searchTerm
- * @returns {string} HTML with highlighted matches
- */
-function highlightSearch(text, searchTerm) {
+function highlightSearch(text: string, searchTerm: string): string {
   if (!searchTerm) return escapeHtml(text);
   const escapedSearch = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp("(" + escapedSearch + ")", "gi");
   const parts = text.split(re);
   return parts
-    .map((part, i) =>
+    .map((part: string, i: number) =>
       i % 2 === 1
         ? '<span class="search-highlight">' + escapeHtml(part) + "</span>"
         : escapeHtml(part)
@@ -31,11 +34,7 @@ function highlightSearch(text, searchTerm) {
     .join("");
 }
 
-/**
- * @param {{ phrase: string, edit_url: string, delete_url: string }} row
- * @returns {string}
- */
-function actionsHtml(row) {
+function actionsHtml(row: WordsRow): string {
   const phraseEsc = escapeHtml(row.phrase);
   return (
     '<button type="button" class="btn btn-sm btn-outline-primary gridjs-btn" title="Изменить" data-edit-url="' +
@@ -51,66 +50,66 @@ function actionsHtml(row) {
   );
 }
 
-function initWordsList() {
+function initWordsList(): void {
   document.querySelectorAll("[data-modal-open]").forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = btn.getAttribute("data-modal-open");
-      if (id) document.getElementById(id).classList.remove("hidden");
+      if (id) document.getElementById(id)?.classList.remove("hidden");
     });
   });
   document.querySelectorAll("[data-modal-close]").forEach((el) => {
     el.addEventListener("click", () => {
       const id = el.getAttribute("data-modal-close");
-      if (id) document.getElementById(id).classList.add("hidden");
+      if (id) document.getElementById(id)?.classList.add("hidden");
     });
   });
 
   const wrapper = document.getElementById("words-grid-wrapper");
-  const searchEl = document.getElementById("word-search");
-  const dataUrl = searchEl?.getAttribute("data-data-url");
+  const searchEl = document.getElementById("word-search") as HTMLInputElement | null;
+  const dataUrl = searchEl?.getAttribute("data-data-url") ?? null;
   if (!dataUrl || !wrapper) return;
+  const dataUrlStr: string = dataUrl;
+  const wrapperEl: HTMLElement = wrapper;
 
-  let debounceTimer = null;
-  let currentGrid = null;
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let currentGrid: Grid | null = null;
 
-  wrapper.addEventListener("click", (e) => {
-    const editBtn = e.target.closest("button[data-edit-url]");
+  wrapperEl.addEventListener("click", (e: Event) => {
+    const target = e.target as HTMLElement;
+    const editBtn = target.closest("button[data-edit-url]");
     if (editBtn) {
       const form = document.getElementById("edit-phrase-form");
       const input = document.getElementById("edit-phrase-input");
       if (form && input) {
-        form.action = editBtn.getAttribute("data-edit-url");
-        input.value = editBtn.getAttribute("data-phrase") || "";
-        document.getElementById("edit-phrase-modal").classList.remove("hidden");
+        (form as HTMLFormElement).action = editBtn.getAttribute("data-edit-url") ?? "";
+        (input as HTMLInputElement).value = editBtn.getAttribute("data-phrase") ?? "";
+        document.getElementById("edit-phrase-modal")?.classList.remove("hidden");
       }
       return;
     }
-    const delBtn = e.target.closest("button[data-delete-url]");
+    const delBtn = target.closest("button[data-delete-url]");
     if (delBtn) {
       const form = document.getElementById("delete-phrase-form");
       const message = document.getElementById("delete-phrase-message");
       if (form && message) {
-        form.action = delBtn.getAttribute("data-delete-url");
+        (form as HTMLFormElement).action = delBtn.getAttribute("data-delete-url") ?? "";
         message.textContent =
-          "Удалить фразу «" + (delBtn.getAttribute("data-phrase") || "") + "» из списка?";
-        document.getElementById("delete-phrase-modal").classList.remove("hidden");
+          "Удалить фразу «" + (delBtn.getAttribute("data-phrase") ?? "") + "» из списка?";
+        document.getElementById("delete-phrase-modal")?.classList.remove("hidden");
       }
     }
   });
 
-  /**
-   * @returns {string}
-   */
-  function buildServerUrl() {
+  function buildServerUrl(): string {
     const q = searchEl?.value.trim();
-    const sep = dataUrl.indexOf("?") >= 0 ? "&" : "?";
-    return dataUrl + (q ? sep + "q=" + encodeURIComponent(q) : "");
+    const sep = dataUrlStr.indexOf("?") >= 0 ? "&" : "?";
+    return dataUrlStr + (q ? sep + "q=" + encodeURIComponent(q) : "");
   }
 
-  function renderGrid() {
+  function renderGrid(): void {
     if (currentGrid) {
       currentGrid.destroy();
-      wrapper.innerHTML = "";
+      wrapperEl.innerHTML = "";
     }
     const baseUrl = buildServerUrl();
     const grid = new Grid({
@@ -118,7 +117,7 @@ function initWordsList() {
       pagination: {
         limit: 100,
         server: {
-          url: (prev, page, limit) => {
+          url: (prev: string, page: number, limit: number) => {
             const sep = prev.indexOf("?") >= 0 ? "&" : "?";
             return prev + sep + "limit=" + limit + "&offset=" + page * limit;
           },
@@ -126,24 +125,24 @@ function initWordsList() {
       },
       server: {
         url: baseUrl,
-        then: (res) => {
+        then: (res: WordsApiResponse) => {
           const q = searchEl?.value?.trim() ?? "";
-          return (res.data || []).map((row) => [
+          return (res.data ?? []).map((row: WordsRow) => [
             html(highlightSearch(row.phrase, q)),
             row.created_at,
             html(actionsHtml(row)),
           ]);
         },
-        total: (res) => res.total || 0,
+        total: (res: WordsApiResponse) => res.total ?? 0,
       },
     });
-    grid.render(wrapper);
+    grid.render(wrapperEl);
     currentGrid = grid;
   }
 
   if (searchEl) {
     searchEl.addEventListener("input", () => {
-      clearTimeout(debounceTimer);
+      if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(renderGrid, DEBOUNCE_MS);
     });
   }

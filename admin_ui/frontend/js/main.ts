@@ -1,2 +1,2 @@
 import "../../src/input.css";
-import "./words-list.js";
+import "./words-list";
