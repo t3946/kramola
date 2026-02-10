@@ -211,6 +211,9 @@ class InagentsListView(BaseView):
         agent_type = request.args.get("agent_type", "").strip() or None
         if agent_type and agent_type not in ("fiz", "ur", "other"):
             agent_type = None
+        status_filter = request.args.get("status", "").strip() or None
+        if status_filter and status_filter not in ("listed", "removed"):
+            status_filter = None
         limit = request.args.get("limit", 100, type=int)
         offset = request.args.get("offset", 0, type=int)
         limit = min(max(1, limit), 500)
@@ -221,6 +224,17 @@ class InagentsListView(BaseView):
             query = query.filter(Inagent.full_name.ilike(f"%{q}%"))
         if agent_type:
             query = query.filter(Inagent.agent_type == agent_type)
+        if status_filter == "listed":
+            query = query.filter(
+                Inagent.include_minjust_date.isnot(None),
+                (Inagent.exclude_minjust_date.is_(None)) | (Inagent.include_minjust_date > Inagent.exclude_minjust_date),
+            )
+        elif status_filter == "removed":
+            query = query.filter(
+                Inagent.include_minjust_date.isnot(None),
+                Inagent.exclude_minjust_date.isnot(None),
+                Inagent.include_minjust_date <= Inagent.exclude_minjust_date,
+            )
         total = query.count()
         rows = query.order_by(Inagent.registry_number, Inagent.id).offset(offset).limit(limit).all()
 
