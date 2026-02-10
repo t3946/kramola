@@ -7,6 +7,7 @@ from models.phrase_list.list_log import ListLog
 from models.phrase_list.list_phrase import ListPhrase
 from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
+from models.inagents import Inagent
 
 
 class Role(db.Model):
