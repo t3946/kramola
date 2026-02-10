@@ -68,8 +68,22 @@
             name="domain"
             rows="3"
             class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            placeholder="Доменное имя или адрес"
+            placeholder="Доменное имя или адрес (каждое с новой строки)"
         >{{ form_data.domain or '' }}</textarea>
+    </div>
+
+    <div>
+        <label for="inagent-search-terms" class="block text-sm font-medium text-gray-700 mb-1">
+            Поисковые фразы
+        </label>
+
+        <textarea
+            id="inagent-search-terms"
+            name="search_terms"
+            rows="3"
+            class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Поисковые фразы (каждое с новой строки)"
+        >{{ form_data.search_terms or '' }}</textarea>
     </div>
 
     <div class="flex gap-2 pt-2">
