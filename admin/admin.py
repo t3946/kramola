@@ -1,5 +1,6 @@
 from sqlalchemy import inspect
 
+from extensions import db
 from flask import Flask, flash, jsonify, redirect, request, Response, url_for
 from flask_admin import Admin, AdminIndexView, BaseView, expose
 from flask_admin.contrib.sqla import ModelView
@@ -7,7 +8,7 @@ from flask_admin.theme import Bootstrap4Theme
 from flask_login import current_user
 from wtforms import PasswordField
 
-from models import User, Role
+from models import Inagent, User, Role
 from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
 
@@ -183,6 +184,134 @@ class WordsListView(BaseView):
         )
 
 
+AGENT_TYPE_LABELS = {"fiz": "Физ. лицо", "ur": "Юр. лицо", "other": "Иное"}
+
+
+class InagentsListView(BaseView):
+    def is_visible(self) -> bool:
+        return False
+
+    def is_accessible(self) -> bool:
+        return current_user.is_authenticated and current_user.has_role("admin")
+
+    def inaccessible_callback(self, name: str, **kwargs) -> redirect:
+        return redirect(url_for("admin_auth.login", next=request.url))
+
+    @expose("/")
+    def index(self):
+        total_count: int = db.session.query(Inagent).count()
+        return self.render(
+            "admin/inagents_list.html",
+            total_count=total_count,
+        )
+
+    @expose("/data")
+    def data_route(self):
+        q = request.args.get("q", "").strip() or None
+        agent_type = request.args.get("agent_type", "").strip() or None
+        if agent_type and agent_type not in ("fiz", "ur", "other"):
+            agent_type = None
+        limit = request.args.get("limit", 100, type=int)
+        offset = request.args.get("offset", 0, type=int)
+        limit = min(max(1, limit), 500)
+        offset = max(0, offset)
+
+        query = Inagent.query
+        if q:
+            query = query.filter(Inagent.full_name.ilike(f"%{q}%"))
+        if agent_type:
+            query = query.filter(Inagent.agent_type == agent_type)
+        total = query.count()
+        rows = query.order_by(Inagent.registry_number, Inagent.id).offset(offset).limit(limit).all()
+
+        base_path = request.path.rstrip("/").rsplit("/data", 1)[0]
+        def _agent_type_val(agent_type_attr) -> str:
+            if agent_type_attr is None:
+                return ""
+            return getattr(agent_type_attr, "value", None) or str(agent_type_attr) or ""
+
+        def row(r: Inagent) -> dict:
+            at = _agent_type_val(r.agent_type)
+            return {
+                "id": r.id,
+                "registry_number": r.registry_number,
+                "full_name": r.full_name or "",
+                "agent_type": at,
+                "agent_type_label": AGENT_TYPE_LABELS.get(at, at),
+                "edit_form_url": f"{base_path}/{r.id}/form",
+                "edit_save_url": f"{base_path}/{r.id}/edit",
+            }
+
+        return jsonify(data=[row(r) for r in rows], total=total)
+
+    @expose("/<int:id>/form")
+    def edit_form(self, id: int):
+        inagent = Inagent.query.get_or_404(id)
+        form_data = _inagent_to_form_data(inagent)
+        base_path = request.path.rstrip("/").rsplit("/form", 1)[0]
+        edit_save_url = f"{base_path}/edit"
+        return self.render(
+            "admin/inagent_edit_fragment.html",
+            form_data=form_data,
+            inagent_id=id,
+            edit_save_url=edit_save_url,
+        )
+
+    @expose("/<int:id>/edit", methods=["POST"])
+    def edit_save(self, id: int):
+        inagent = Inagent.query.get_or_404(id)
+        form_to_inagent(request.form, inagent)
+        db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(success=True)
+        flash("Инагент сохранён.")
+        return redirect(url_for(".index"))
+
+
+def _inagent_to_form_data(inagent: Inagent) -> dict:
+    return {
+        "agent_type": inagent.agent_type.value if inagent.agent_type else "",
+        "number": str(inagent.registry_number) if inagent.registry_number is not None else "",
+        "full_name": inagent.full_name or "",
+        "status_removed": bool(inagent.exclude_minjust_date),
+        "date_included": inagent.include_minjust_date.strftime("%Y-%m-%d") if inagent.include_minjust_date else "",
+        "date_excluded": inagent.exclude_minjust_date.strftime("%Y-%m-%d") if inagent.exclude_minjust_date else "",
+        "domain": _domain_to_text(inagent.domain_name),
+        "activity": "",
+    }
+
+
+def _domain_to_text(domain_name: list | None) -> str:
+    if not domain_name:
+        return ""
+    return "\n".join(domain_name) if isinstance(domain_name, list) else str(domain_name)
+
+
+def form_to_inagent(form, inagent: Inagent) -> None:
+    from extensions import db
+
+    val = form.get("agent_type")
+    if val in ("fiz", "ur", "other"):
+        inagent.agent_type = val
+    num = form.get("number", "").strip()
+    inagent.registry_number = int(num) if num.isdigit() else None
+    inagent.full_name = form.get("full_name", "").strip() or None
+    inagent.include_minjust_date = _parse_date(form.get("date_included"))
+    inagent.exclude_minjust_date = _parse_date(form.get("date_excluded"))
+    domain_raw = form.get("domain", "").strip()
+    inagent.domain_name = [s.strip() for s in domain_raw.split() if s.strip()] if domain_raw else None
+
+
+def _parse_date(s: str | None):
+    if not s or not s.strip():
+        return None
+    from datetime import datetime
+    try:
+        return datetime.strptime(s.strip()[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+
 class InagentEditView(BaseView):
     def is_accessible(self) -> bool:
         return current_user.is_authenticated and current_user.has_role("admin")
@@ -260,6 +389,14 @@ def init_admin(app: Flask, db) -> Admin:
     )
     admin.add_view(UserView(User, db.session, category="Пользователи", name="Пользователи"))
     admin.add_view(RoleView(Role, db.session, category="Пользователи", name="Роли"))
+    admin.add_view(
+        InagentsListView(
+            name="Инагенты",
+            url="inagents-list",
+            endpoint="inagents_list",
+            category="Готовые списки",
+        )
+    )
     admin.add_view(InagentEditView(name="Инагент: Редактирование", url="inagent-edit", endpoint="inagent_edit"))
     admin.add_view(AutoloadView(name="Автозагрузка", url="autoload", endpoint="autoload"))
     with app.app_context():

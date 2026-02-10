@@ -25,6 +25,7 @@ from commands.commands import register_commands
 from sqlalchemy import func
 
 from extensions import db
+from models import Inagent
 from models.phrase_list.list_phrase import ListPhrase
 from models.phrase_list.list_record import ListRecord
 from services.pymorphy_service import load_pymorphy, load_nltk_lemmatizer
@@ -189,7 +190,7 @@ def inject_admin_words_lists():
             .all()
         )
         count_by_list_id = {row.list_id: row.cnt for row in count_rows}
-        return [
+        result = [
             {
                 "endpoint": f"words_list_{r.slug.replace('-', '_')}",
                 "title": r.title or r.slug,
@@ -197,6 +198,12 @@ def inject_admin_words_lists():
             }
             for r in records
         ]
+        result.append({
+            "endpoint": "inagents_list",
+            "title": "Инагенты",
+            "count": Inagent.query.count(),
+        })
+        return result
     return {"admin_words_lists": _items}
 
 # --- Загрузка анализаторов при старте ---
