@@ -1,13 +1,14 @@
 {% extends 'admin/master.html' %}
-{% from 'admin/components/page_title.html' import page_title %}
+
+{% block page_title %}
+<h1 class="text-xl font-semibold text-gray-800 mb-4">
+  {{ layout.menu_icon(admin_view.menu) }}
+  {{ list_title }} (<span id="words-count">{{ total_count }}</span>)
+</h1>
+{% endblock %}
 
 {% block body %}
 <div>
-  <h1 class="text-2xl font-semibold text-gray-800 mb-3">
-      <span>{{ list_title }}</span>
-      (<span id="words-count">{{ total_count }}</span>)
-  </h1>
-
   <div class="my-3 flex flex-wrap gap-2">
     {% if import_url %}
     <button type="button" class="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700" data-modal-open="import-modal"><i class="fa fa-upload"></i> Импорт</button>

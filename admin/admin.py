@@ -1,7 +1,7 @@
 from sqlalchemy import inspect
 
 from extensions import db
-from flask import Flask, flash, jsonify, redirect, request, Response, url_for
+from flask import Flask, flash, jsonify, redirect, render_template, request, Response, url_for
 from flask_admin import Admin, AdminIndexView, BaseView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.theme import Bootstrap4Theme
@@ -250,7 +250,7 @@ class InagentsListView(BaseView):
         form_data = _inagent_to_form_data(inagent)
         base_path = request.path.rstrip("/").rsplit("/form", 1)[0]
         edit_save_url = f"{base_path}/edit"
-        return self.render(
+        return render_template(
             "admin/inagent_edit_fragment.html",
             form_data=form_data,
             inagent_id=id,
@@ -268,9 +268,15 @@ class InagentsListView(BaseView):
         return redirect(url_for(".index"))
 
 
+def _agent_type_to_str(agent_type_attr) -> str:
+    if agent_type_attr is None:
+        return ""
+    return getattr(agent_type_attr, "value", None) or str(agent_type_attr) or ""
+
+
 def _inagent_to_form_data(inagent: Inagent) -> dict:
     return {
-        "agent_type": inagent.agent_type.value if inagent.agent_type else "",
+        "agent_type": _agent_type_to_str(inagent.agent_type),
         "number": str(inagent.registry_number) if inagent.registry_number is not None else "",
         "full_name": inagent.full_name or "",
         "status_removed": bool(inagent.exclude_minjust_date),
@@ -310,23 +316,6 @@ def _parse_date(s: str | None):
         return datetime.strptime(s.strip()[:10], "%Y-%m-%d").date()
     except ValueError:
         return None
-
-
-class InagentEditView(BaseView):
-    def is_accessible(self) -> bool:
-        return current_user.is_authenticated and current_user.has_role("admin")
-
-    def inaccessible_callback(self, name: str, **kwargs) -> redirect:
-        return redirect(url_for("admin_auth.login", next=request.url))
-
-    @expose("/", methods=["GET", "POST"])
-    def index(self):
-        if request.method == "POST":
-            # placeholder: persist form data when storage is defined
-            flash("Форма сохранена.")
-            return redirect(url_for(".index"))
-        form_data: dict = {}
-        return self.render("admin/inagent_edit.html", form_data=form_data)
 
 
 class AutoloadView(BaseView):
@@ -397,7 +386,6 @@ def init_admin(app: Flask, db) -> Admin:
             category="Готовые списки",
         )
     )
-    admin.add_view(InagentEditView(name="Инагент: Редактирование", url="inagent-edit", endpoint="inagent_edit"))
     admin.add_view(AutoloadView(name="Автозагрузка", url="autoload", endpoint="autoload"))
     with app.app_context():
         has_pl_lists = "pl_lists" in inspect(db.engine).get_table_names()

@@ -1,13 +1,14 @@
 {% extends 'admin/master.html' %}
-{% from 'admin/components/page_title.html' import page_title %}
+
+{% block page_title %}
+<h1 class="text-xl font-semibold text-gray-800 mb-4">
+  {{ layout.menu_icon(admin_view.menu) }}
+  Инагенты (<span id="inagents-count">{{ total_count }}</span>)
+</h1>
+{% endblock %}
 
 {% block body %}
 <div>
-  <h1 class="text-2xl font-semibold text-gray-800 mb-3">
-    <span>Инагенты</span>
-    (<span id="inagents-count">{{ total_count }}</span>)
-  </h1>
-
   <div class="my-3 flex flex-wrap gap-4 items-end">
     <div class="flex-1 min-w-[200px]">
       <label for="inagent-search" class="block text-sm font-medium text-gray-700 mb-1">Поиск</label>
@@ -34,19 +35,12 @@
   <div id="inagents-grid-wrapper" class="my-3"></div>
 </div>
 
-<div id="inagent-edit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="inagent-edit-modal-title" role="dialog" aria-modal="true">
+<div id="inagent-edit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
   <div class="flex min-h-full items-center justify-center p-4">
-    <div class="fixed inset-0 bg-black/50 transition-opacity" data-modal-close="inagent-edit-modal" aria-hidden="true"></div>
+    <div class="fixed inset-0 bg-black/50" data-modal-close="inagent-edit-modal"></div>
     <div class="relative rounded-lg bg-white shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 id="inagent-edit-modal-title" class="text-lg font-semibold">Инагент: Редактирование</h3>
-        <button type="button" class="rounded-md text-gray-400 hover:text-gray-600" data-modal-close="inagent-edit-modal" aria-label="Закрыть">
-          <i class="fa fa-times" aria-hidden="true"></i>
-        </button>
-      </div>
-      <div id="inagent-edit-modal-body">
-        <p class="text-gray-500">Загрузка…</p>
-      </div>
+      <button type="button" class="absolute top-2 right-2 rounded text-gray-400 hover:text-gray-600" data-modal-close="inagent-edit-modal" aria-label="Закрыть"><i class="fa fa-times"></i></button>
+      <div id="inagent-edit-modal-body"></div>
     </div>
   </div>
 </div>
