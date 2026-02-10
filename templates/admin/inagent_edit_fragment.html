@@ -30,14 +30,10 @@
                    placeholder="Наименование или ФИО">
         </div>
         <div>
-            <label for="inagent-fragment-status_removed"
-                   class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
-            <select id="inagent-fragment-status_removed" name="status_removed"
-                    class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                <option value="0" {% if form_data and not form_data.status_removed %} selected{% endif %}>Числится
-                </option>
-                <option value="1" {% if form_data and form_data.status_removed %} selected{% endif %}>Снят</option>
-            </select>
+            <label for="inagent-fragment-status" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
+            <input type="text" id="inagent-fragment-status" value="{{ form_data.status_label or '—' }}"
+                   disabled
+                   class="block w-full rounded-lg border border-gray-300 bg-gray-100 py-2 px-3 text-sm text-gray-700 cursor-not-allowed">
         </div>
     </div>
 

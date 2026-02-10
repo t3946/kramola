@@ -1,4 +1,4 @@
-from sqlalchemy import inspect
+from sqlalchemy import inspect, Date
 
 from extensions import db
 from flask import Flask, flash, jsonify, redirect, render_template, request, Response, url_for
@@ -184,7 +184,7 @@ class WordsListView(BaseView):
         )
 
 
-AGENT_TYPE_LABELS = {"fiz": "Физ. лицо", "ur": "Юр. лицо", "other": "Иное"}
+AGENT_TYPE_LABELS = {"fiz": "ФЛ", "ur": "ЮЛ", "other": "Иное"}
 
 
 class InagentsListView(BaseView):
@@ -236,6 +236,7 @@ class InagentsListView(BaseView):
                 "id": r.id,
                 "registry_number": r.registry_number,
                 "full_name": r.full_name or "",
+                "status_label": _inagent_status_label(r),
                 "agent_type": at,
                 "agent_type_label": AGENT_TYPE_LABELS.get(at, at),
                 "edit_form_url": f"{base_path}/{r.id}/form",
@@ -274,12 +275,24 @@ def _agent_type_to_str(agent_type_attr) -> str:
     return getattr(agent_type_attr, "value", None) or str(agent_type_attr) or ""
 
 
+def _inagent_status_label(inagent: Inagent) -> str:
+    i_d: Date | None = inagent.include_minjust_date
+    e_d: Date | None = inagent.exclude_minjust_date
+
+    if i_d and not e_d or i_d and e_d and i_d > e_d:
+        return "Числится"
+
+    if i_d and e_d and i_d <= e_d:
+        return "Снят"
+
+    return "—"
+
 def _inagent_to_form_data(inagent: Inagent) -> dict:
     return {
         "agent_type": _agent_type_to_str(inagent.agent_type),
         "number": str(inagent.registry_number) if inagent.registry_number is not None else "",
         "full_name": inagent.full_name or "",
-        "status_removed": bool(inagent.exclude_minjust_date),
+        "status_label": _inagent_status_label(inagent),
         "date_included": inagent.include_minjust_date.strftime("%Y-%m-%d") if inagent.include_minjust_date else "",
         "date_excluded": inagent.exclude_minjust_date.strftime("%Y-%m-%d") if inagent.exclude_minjust_date else "",
         "domain": _domain_to_text(inagent.domain_name),

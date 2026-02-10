@@ -6,6 +6,7 @@ interface InagentsRow {
   id: number;
   registry_number: number | null;
   full_name: string;
+  status_label: string;
   agent_type: string;
   agent_type_label: string;
   edit_form_url: string;
@@ -130,7 +131,7 @@ function initInagentsList(): void {
     }
     const baseUrl = buildServerUrl();
     const grid = new Grid({
-      columns: ["№ п/п", "Полное наименование / ФИО", "Тип", "Действия"],
+      columns: ["№ п/п", "Полное наименование / ФИО", "Статус инагента", "Тип", "Действия"],
       pagination: {
         limit: 100,
         server: {
@@ -147,6 +148,7 @@ function initInagentsList(): void {
           return (res.data ?? []).map((row: InagentsRow) => [
             row.registry_number ?? "",
             html(highlightSearch(row.full_name, q)),
+            row.status_label,
             row.agent_type_label,
             html(editButtonHtml(row)),
           ]);
