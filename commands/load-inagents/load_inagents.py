@@ -1,35 +1,16 @@
 """Open minjust registry page in Selenium, get export link via getLink.js, download xlsx to temp."""
 
-import os
 import ssl
 from pathlib import Path
 from urllib.request import Request, urlopen
-
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
+from services.loader_selenium import LoaderSelenium
+
 REGISTRY_URL = "https://minjust.gov.ru/ru/pages/reestr-inostryannykh-agentov/#"
-HEADLESS = True
-# True — Chrome на этом компьютере (окно видно). False — браузер в Docker (окна не будет, смотреть через VNC localhost:5900).
-USE_LOCAL_CHROME = False
-
-
-def _create_driver() -> WebDriver:
-    chrome_options = Options()
-    if HEADLESS:
-        chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--ignore-certificate-errors")
-    chrome_options.add_argument("--allow-insecure-localhost")
-    if USE_LOCAL_CHROME:
-        return webdriver.Chrome(options=chrome_options)
-    executor = os.environ.get("SELENIUM_URL", "http://localhost:4444/wd/hub")
-    return webdriver.Remote(command_executor=executor, options=chrome_options)
 
 
 def _read_get_link_script() -> str:
@@ -67,13 +48,13 @@ def _download_xlsx(export_url: str, driver: WebDriver, save_dir: Path) -> Path:
 
 def run() -> Path | None:
     """Open registry page, run getLink.js, download xlsx if link present. Returns path to xlsx or None."""
-    driver = _create_driver()
-    driver.get(REGISTRY_URL)
+    loader = LoaderSelenium()
+    driver = loader.driver
+    loader.get(REGISTRY_URL)
     WebDriverWait(driver, 15).until(
         EC.presence_of_element_located((By.TAG_NAME, "body"))
     )
     export_link = _get_export_link(driver)
-    print(export_link)
     if export_link is None:
         driver.quit()
         return None
