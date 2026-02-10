@@ -1,6 +1,7 @@
 """Open minjust registry page in Selenium, get export link via getLink.js, download xlsx to temp."""
 
 import os
+import ssl
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -12,9 +13,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 REGISTRY_URL = "https://minjust.gov.ru/ru/pages/reestr-inostryannykh-agentov/#"
-HEADLESS = False
+HEADLESS = True
 # True — Chrome на этом компьютере (окно видно). False — браузер в Docker (окна не будет, смотреть через VNC localhost:5900).
-USE_LOCAL_CHROME = True
+USE_LOCAL_CHROME = False
 
 
 def _create_driver() -> WebDriver:
@@ -48,7 +49,10 @@ def _download_xlsx(export_url: str, driver: WebDriver, save_dir: Path) -> Path:
     cookies = driver.get_cookies()
     cookie_header = "; ".join(f"{c['name']}={c['value']}" for c in cookies)
     req = Request(export_url, headers={"Cookie": cookie_header})
-    with urlopen(req) as resp:
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    with urlopen(req, context=ctx) as resp:
         content = resp.read()
     disposition = resp.headers.get("Content-Disposition")
     if disposition and "filename=" in disposition:
