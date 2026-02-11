@@ -9,6 +9,7 @@ interface InagentsRow {
   status_label: string;
   agent_type: string;
   agent_type_label: string;
+  search_terms_count: number;
   edit_form_url: string;
   edit_save_url: string;
 }
@@ -59,11 +60,12 @@ function initInagentsList(): void {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let currentGrid: Grid | null = null;
 
-  document.querySelectorAll("[data-modal-close]").forEach((el) => {
-    el.addEventListener("click", () => {
-      const id = el.getAttribute("data-modal-close");
+  document.addEventListener("click", (e: Event) => {
+    const target = (e.target as HTMLElement).closest("[data-modal-close]");
+    if (target) {
+      const id = target.getAttribute("data-modal-close");
       if (id) document.getElementById(id)?.classList.add("hidden");
-    });
+    }
   });
   document.getElementById("inagent-edit-modal")?.querySelector(".fixed.inset-0.bg-black")?.addEventListener("click", () => {
     document.getElementById("inagent-edit-modal")?.classList.add("hidden");
@@ -134,7 +136,7 @@ function initInagentsList(): void {
     }
     const baseUrl = buildServerUrl();
     const grid = new Grid({
-      columns: ["№ п/п", "Полное наименование / ФИО", "Статус инагента", "Тип", "Действия"],
+      columns: ["№ п/п", "Полное наименование / ФИО", "Статус инагента", "Тип", "Фразы", "Действия"],
       pagination: {
         limit: 100,
         server: {
@@ -153,6 +155,7 @@ function initInagentsList(): void {
             html(highlightSearch(row.full_name, q)),
             row.status_label,
             row.agent_type_label,
+            row.search_terms_count,
             html(editButtonHtml(row)),
           ]);
         },

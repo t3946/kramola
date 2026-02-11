@@ -1,4 +1,4 @@
-from sqlalchemy import inspect, Date
+from sqlalchemy import inspect, or_, Date
 
 from extensions import db
 from flask import Flask, flash, jsonify, redirect, render_template, request, Response, url_for
@@ -221,7 +221,10 @@ class InagentsListView(BaseView):
 
         query = Inagent.query
         if q:
-            query = query.filter(Inagent.full_name.ilike(f"%{q}%"))
+            q_filter = Inagent.full_name.ilike(f"%{q}%")
+            if q.isdigit():
+                q_filter = or_(q_filter, Inagent.registry_number == int(q))
+            query = query.filter(q_filter)
         if agent_type:
             query = query.filter(Inagent.agent_type == agent_type)
         if status_filter == "listed":
@@ -246,6 +249,7 @@ class InagentsListView(BaseView):
 
         def row(r: Inagent) -> dict:
             at = _agent_type_val(r.agent_type)
+            search_terms_count: int = len(r.search_terms) if isinstance(r.search_terms, list) else 0
             return {
                 "id": r.id,
                 "registry_number": r.registry_number,
@@ -253,6 +257,7 @@ class InagentsListView(BaseView):
                 "status_label": _inagent_status_label(r),
                 "agent_type": at,
                 "agent_type_label": AGENT_TYPE_LABELS.get(at, at),
+                "search_terms_count": search_terms_count,
                 "edit_form_url": f"{base_path}/{r.id}/form",
                 "edit_save_url": f"{base_path}/{r.id}/edit",
             }
