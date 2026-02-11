@@ -184,7 +184,13 @@ class WordsListView(BaseView):
         )
 
 
-AGENT_TYPE_LABELS = {"fiz": "ФЛ", "ur": "ЮЛ", "other": "Иное"}
+AGENT_TYPE_LABELS = {
+    "fiz": "ФЛ",
+    "ur": "ЮЛ",
+    "other": "Иное",
+    "illegal_public_associations": "Пуб. орг.",
+    "foreign_illegal_organizations": "Иностр. орг.",
+}
 
 
 class InagentsListView(BaseView):

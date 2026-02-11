@@ -14,8 +14,6 @@ down_revision = "3c4d_lists_phrases"
 branch_labels = None
 depends_on = None
 
-AGENT_TYPE_ENUM = sa.Enum("fiz", "ur", "other", name="inagent_agent_type")
-
 
 def upgrade() -> None:
     op.create_table(
@@ -25,7 +23,7 @@ def upgrade() -> None:
         sa.Column("registry_number", sa.Integer(), nullable=True),
         sa.Column("full_name", sa.Text(), nullable=True),
         sa.Column("include_reason", sa.Text(), nullable=True),
-        sa.Column("agent_type", AGENT_TYPE_ENUM, nullable=True),
+        sa.Column("agent_type", sa.String(100), nullable=True),
         sa.Column("reg_num", sa.String(100), nullable=True),
         sa.Column("inn", sa.String(100), nullable=True),
         sa.Column("ogrn", sa.String(100), nullable=True),

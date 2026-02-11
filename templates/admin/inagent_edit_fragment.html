@@ -2,16 +2,19 @@
     {% if csrf_token is defined and csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>{%
     endif %}
     <div>
-        <label for="inagent-fragment-agent_type" class="block text-sm font-medium text-gray-700 mb-1">Тип иностранного
-            агента</label>
-        <select id="inagent-fragment-agent_type" name="agent_type"
-                class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-            <option value="fiz" {% if form_data and form_data.agent_type==
-            'fiz' %} selected{% endif %}>Физ. лицо</option>
-            <option value="ur" {% if form_data and form_data.agent_type==
-            'ur' %} selected{% endif %}>Юр. лицо</option>
-            <option value="other" {% if form_data and form_data.agent_type==
-            'other' %} selected{% endif %}>Иное</option>
+        <label for="inagent-fragment-agent_type" class="block text-sm font-medium text-gray-700 mb-1">
+            Тип иностранного агента
+        </label>
+
+        <select
+            id="inagent-fragment-agent_type"
+            name="agent_type"
+            class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+            <option value="fiz" {% if form_data and form_data.agent_type=='fiz' %} selected{% endif %}>Физ. лицо
+            </option>
+            <option value="ur" {% if form_data and form_data.agent_type=='ur' %} selected{% endif %}>Юр. лицо</option>
+            <option value="other" {% if form_data and form_data.agent_type=='other' %} selected{% endif %}>Иное</option>
         </select>
     </div>
 

@@ -23,12 +23,11 @@ DATE_COLUMNS = frozenset({
 })
 
 AGENT_TYPE_MAP = {
-    "физ": "fiz",
-    "физическое лицо": "fiz",
-    "физические лица": "fiz",
-    "юр": "ur",
-    "юридическое лицо": "ur",
-    "юридические лица": "ur",
+    "fiz": "физические лица",
+    "ur": "юридические лица",
+    "other": "иные объединения лиц",
+    "illegal_public_associations": "общественные объединения, действующие без образования юридического лица",
+    "foreign_illegal_organizations": "иностранные структуры без образования юридического лица",
 }
 
 HEADER_MAP: dict[str, str] = {
@@ -74,16 +73,15 @@ def _parse_date(value: Any) -> dt.date | None:
     return None
 
 
-def _normalize_agent_type(value: Any) -> str | None:
-    if value is None or (isinstance(value, str) and not value.strip()):
-        return None
-    s = str(value).strip().lower()
-    if s in ("fiz", "ur", "other"):
-        return s
-    for key, out in AGENT_TYPE_MAP.items():
-        if key in s:
-            return out
-    return "other"
+def _normalize_agent_type(raw_agent_type: str = "") -> str | None:
+    raw_agent_type = str(raw_agent_type).strip()
+
+    for key, raw_value in AGENT_TYPE_MAP.items():
+        if raw_value.lower() == raw_agent_type.lower():
+            print(key)
+            return key
+
+    return None
 
 
 def _normalize_value(col: str, value: Any) -> Any:

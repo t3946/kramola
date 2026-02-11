@@ -2,9 +2,6 @@ from datetime import datetime
 
 from extensions import db
 
-AGENT_TYPE_ENUM = db.Enum("fiz", "ur", "other", name="inagent_agent_type")
-
-
 class Inagent(db.Model):
     __tablename__ = "inagents"
 
@@ -13,7 +10,7 @@ class Inagent(db.Model):
     registry_number = db.Column(db.Integer, nullable=True)
     full_name = db.Column(db.Text, nullable=True)
     include_reason = db.Column(db.Text, nullable=True)
-    agent_type = db.Column(AGENT_TYPE_ENUM, nullable=True)
+    agent_type = db.Column(db.String(100), nullable=True)
     reg_num = db.Column(db.String(100), nullable=True)
     inn = db.Column(db.String(100), nullable=True)
     ogrn = db.Column(db.String(100), nullable=True)
