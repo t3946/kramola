@@ -9,6 +9,7 @@ from flask_login import current_user
 from wtforms import PasswordField
 
 from models import Inagent, User, Role
+from models.inagents import AGENT_TYPE_MAP
 from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
 
@@ -281,6 +282,7 @@ class InagentsListView(BaseView):
             form_data=form_data,
             inagent_id=id,
             edit_save_url=edit_save_url,
+            agent_type_map=AGENT_TYPE_MAP
         )
 
     @expose("/<int:id>/edit", methods=["POST"])

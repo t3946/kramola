@@ -6,6 +6,8 @@ from datetime import datetime as dt
 from pathlib import Path
 from typing import Any
 
+from models.inagents import AGENT_TYPE_MAP
+
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", UserWarning)
     from openpyxl import load_workbook
@@ -21,14 +23,6 @@ DATE_COLUMNS = frozenset({
     "birth_date", "include_minjust_date", "exclude_minjust_date",
     "publish_date", "account_open_date", "contract_date",
 })
-
-AGENT_TYPE_MAP = {
-    "fiz": "физические лица",
-    "ur": "юридические лица",
-    "other": "иные объединения лиц",
-    "illegal_public_associations": "общественные объединения, действующие без образования юридического лица",
-    "foreign_illegal_organizations": "иностранные структуры без образования юридического лица",
-}
 
 HEADER_MAP: dict[str, str] = {
     "№ п/п": "registry_number",

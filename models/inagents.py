@@ -2,6 +2,14 @@ from datetime import datetime
 
 from extensions import db
 
+AGENT_TYPE_MAP = {
+    "fiz": "физические лица",
+    "ur": "юридические лица",
+    "other": "иные объединения лиц",
+    "illegal_public_associations": "общественные объединения, действующие без образования юридического лица",
+    "foreign_illegal_organizations": "иностранные структуры без образования юридического лица",
+}
+
 class Inagent(db.Model):
     __tablename__ = "inagents"
 
