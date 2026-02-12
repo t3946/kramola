@@ -15,7 +15,7 @@ def _load_run():
     return mod.run
 
 
-@click.command("load-inagents")
+@click.command("inagents:load")
 def load_inagents_cmd() -> None:
     run = _load_run()
     out = run()

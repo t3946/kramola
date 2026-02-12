@@ -14,7 +14,7 @@ def _get_parser_module():
     return mod
 
 
-@click.command("parse-inagents")
+@click.command("inagents:parse")
 @click.option("--path", "file_path", type=click.Path(path_type=Path), default=None, help="Path to export.xlsx or export.csv (default: commands/load-inagents/temp/export.csv or export.xlsx)")
 def parse_inagents_cmd(file_path: Path | None) -> None:
     mod = _get_parser_module()
