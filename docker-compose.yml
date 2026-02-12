@@ -19,6 +19,8 @@ services:
       MYSQL_PASSWORD: kramola
     volumes:
       - mysql_data:/var/lib/mysql
+    tmpfs:
+      - /tmp:size=512M,mode=1777
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -27,6 +29,9 @@ services:
   selenium:
     image: selenium/standalone-chrome:latest
     container_name: selenium
+    shm_size: 2gb
+    volumes:
+      - /tmp:/tmp
     ports:
       - "4444:4444"
       - "5900:5900"
@@ -53,6 +58,7 @@ services:
       MYSQL_USER: kramola
       MYSQL_PASSWORD: kramola
       MYSQL_DATABASE: kramola
+      SELENIUM_URL: http://selenium:4444/wd/hub
     command: flask run --host=0.0.0.0
 
 volumes:
