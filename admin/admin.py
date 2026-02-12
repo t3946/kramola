@@ -1,4 +1,4 @@
-from sqlalchemy import inspect, or_, Date
+from sqlalchemy import Date, func, inspect, or_
 
 from extensions import db
 from flask import Flask, flash, jsonify, redirect, render_template, request, Response, url_for
@@ -221,6 +221,9 @@ class InagentsListView(BaseView):
         status_filter = request.args.get("status", "").strip() or None
         if status_filter and status_filter not in ("listed", "removed"):
             status_filter = None
+        phrases_filter = request.args.get("phrases", "").strip() or None
+        if phrases_filter and phrases_filter not in ("yes", "no"):
+            phrases_filter = None
         limit = request.args.get("limit", 100, type=int)
         offset = request.args.get("offset", 0, type=int)
         limit = min(max(1, limit), 500)
@@ -244,6 +247,18 @@ class InagentsListView(BaseView):
                 Inagent.include_minjust_date.isnot(None),
                 Inagent.exclude_minjust_date.isnot(None),
                 Inagent.include_minjust_date <= Inagent.exclude_minjust_date,
+            )
+        if phrases_filter == "yes":
+            query = query.filter(
+                Inagent.search_terms.isnot(None),
+                func.json_length(Inagent.search_terms) > 0,
+            )
+        elif phrases_filter == "no":
+            query = query.filter(
+                or_(
+                    Inagent.search_terms.is_(None),
+                    func.json_length(Inagent.search_terms) == 0,
+                )
             )
         total = query.count()
         rows = query.order_by(Inagent.registry_number, Inagent.id).offset(offset).limit(limit).all()

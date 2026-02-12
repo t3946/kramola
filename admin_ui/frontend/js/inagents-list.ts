@@ -52,6 +52,7 @@ function initInagentsList(): void {
   const searchEl = document.getElementById("inagent-search") as HTMLInputElement | null;
   const typeFilterEl = document.getElementById("inagent-type-filter") as HTMLSelectElement | null;
   const statusFilterEl = document.getElementById("inagent-status-filter") as HTMLSelectElement | null;
+  const phrasesFilterEl = document.getElementById("inagent-phrases-filter") as HTMLSelectElement | null;
   const dataUrl = searchEl?.getAttribute("data-data-url") ?? null;
   if (!dataUrl || !wrapper) return;
 
@@ -121,10 +122,12 @@ function initInagentsList(): void {
     const q = searchEl?.value.trim() ?? "";
     const agentType = typeFilterEl?.value ?? "";
     const status = statusFilterEl?.value ?? "";
+    const phrases = phrasesFilterEl?.value ?? "";
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (agentType) params.set("agent_type", agentType);
     if (status) params.set("status", status);
+    if (phrases) params.set("phrases", phrases);
     const sep = dataUrlStr.indexOf("?") >= 0 ? "&" : "?";
     return dataUrlStr + (params.toString() ? sep + params.toString() : "");
   }
@@ -177,6 +180,9 @@ function initInagentsList(): void {
   }
   if (statusFilterEl) {
     statusFilterEl.addEventListener("change", renderGrid);
+  }
+  if (phrasesFilterEl) {
+    phrasesFilterEl.addEventListener("change", renderGrid);
   }
   renderGrid();
 }
