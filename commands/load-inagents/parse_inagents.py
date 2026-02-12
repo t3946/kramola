@@ -5,7 +5,7 @@ import warnings
 import re
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 from models.inagents import AGENT_TYPE_MAP
 
@@ -196,7 +196,7 @@ class InagentsXlsxParser:
                 continue
 
             inagent: Inagent = Inagent.query.filter_by(registry_number=registry_number).first()
-            payload = {k: v for k, v in row.items() if k in DB_COLUMNS_FROM_FILE}
+            payload: dict[str, Union[str, list[str]]] = {k: v for k, v in row.items() if k in DB_COLUMNS_FROM_FILE}
 
             if inagent:
                 for key, value in payload.items():
@@ -207,6 +207,7 @@ class InagentsXlsxParser:
 
                 updated += 1
             else:
+                payload["search_terms"] = self._parse_search_terms(payload["full_name"])
                 db.session.add(Inagent(**payload))
                 inserted += 1
 
@@ -245,7 +246,7 @@ class InagentsXlsxParser:
 
     @staticmethod
     def _parse_organisation_name(full_name: str):
-        pattern = r'(?:[А-яЁё]+\s)+?«(.*?)»'
+        pattern = r'(?:[А-я]+\s)+?[«\"](.*?)[»\"]'
         match = re.match(pattern, full_name.strip())
         search_phrases = []
 
