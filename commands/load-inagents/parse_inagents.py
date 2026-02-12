@@ -5,7 +5,7 @@ import warnings
 import re
 from datetime import datetime as dt
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from models.inagents import AGENT_TYPE_MAP
 
@@ -52,7 +52,7 @@ HEADER_MAP: dict[str, str] = {
 DB_COLUMNS_FROM_FILE = set(HEADER_MAP.values())
 
 
-def _parse_date(value: Any) -> dt.date | None:
+def _parse_date(value: Any) -> Optional[dt.date]:
     if value is None:
         return None
     if hasattr(value, "date"):
@@ -68,7 +68,7 @@ def _parse_date(value: Any) -> dt.date | None:
     return None
 
 
-def _normalize_agent_type(raw_agent_type: str = "") -> str | None:
+def _normalize_agent_type(raw_agent_type: str = "") -> Optional[str]:
     raw_agent_type = str(raw_agent_type).strip()
 
     for key, raw_value in AGENT_TYPE_MAP.items():
@@ -182,7 +182,7 @@ class InagentsXlsxParser:
         """Raw rows transformed to dicts with DB column names."""
         return [self._map_row(r) for r in self.load_raw_rows()]
 
-    def sync_to_db(self, rows: list[dict[str, Any]] | None = None) -> tuple[int, int]:
+    def sync_to_db(self, rows: Optional[list[dict[str, Any]]] = None) -> tuple[int, int]:
         """Upsert rows: by registry_number update existing or insert. Returns (inserted, updated). Requires Flask app context."""
         if rows is None:
             rows = self.load_mapped_rows()
