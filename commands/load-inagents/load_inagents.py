@@ -7,6 +7,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from urllib.parse import urlparse, parse_qs, urlunparse
 
 from services.loader_selenium import LoaderSelenium
 
@@ -21,9 +22,27 @@ def _read_get_link_script() -> str:
 def _get_export_link(driver: WebDriver) -> str | None:
     script = _read_get_link_script()
     result = driver.execute_script(script)
+
     if result is None or not result.strip():
         return None
-    return result.strip()
+
+    url = result.strip()
+
+    # rebuild into valid url
+    try:
+        parsed = urlparse(url)
+        clean_query = parse_qs(parsed.query)
+        clean_url = urlunparse((
+            parsed.scheme or '',
+            parsed.netloc or '',
+            parsed.path,
+            '',
+            '&'.join(f"{k}={v[0]}" for k, v in clean_query.items()),
+            ''
+        ))
+        return clean_url
+    except:
+        return None
 
 
 def _download_xlsx(export_url: str, driver: WebDriver, save_dir: Path) -> Path:
