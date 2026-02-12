@@ -40,7 +40,6 @@ def _download_xlsx(export_url: str, driver: WebDriver, save_dir: Path) -> Path:
         name = disposition.split("filename=")[-1].strip('"\'')
     else:
         name = "reestr-inostrannykh-agentov.xlsx"
-    save_dir.mkdir(parents=True, exist_ok=True)
     out_path = save_dir / name
     out_path.write_bytes(content)
     return out_path
