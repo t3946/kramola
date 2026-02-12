@@ -221,7 +221,7 @@ class InagentsXlsxParser:
         и возвращает список строк в нужных форматах.
         """
         # Шаблон: ФИО + опциональные псевдонимы в кавычках
-        pattern = r'((?:[А-Я]{1}[а-я]{3,}\s?){3})(?:\"(.+?)\")?'
+        pattern = r'((?:[А-ЯЁ]{1}[а-яё]{1,}\s?){3})(?:\"(.+?)\")?'
         match = re.match(pattern, full_name.strip())
 
         search_phrases = []
@@ -245,7 +245,7 @@ class InagentsXlsxParser:
 
     @staticmethod
     def _parse_organisation_name(full_name: str):
-        pattern = r'(?:[А-я]+\s)+?«(.*?)»'
+        pattern = r'(?:[А-яЁё]+\s)+?«(.*?)»'
         match = re.match(pattern, full_name.strip())
         search_phrases = []
 
