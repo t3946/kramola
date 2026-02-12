@@ -2,6 +2,7 @@
 
 import csv
 import warnings
+import re
 from datetime import datetime as dt
 from pathlib import Path
 from typing import Any
@@ -72,7 +73,6 @@ def _normalize_agent_type(raw_agent_type: str = "") -> str | None:
 
     for key, raw_value in AGENT_TYPE_MAP.items():
         if raw_value.lower() == raw_agent_type.lower():
-            print(key)
             return key
 
     return None
@@ -137,7 +137,7 @@ class InagentsXlsxParser:
             return []
         headers = [h.strip() for h in lines[HEADER_ROW - 1]]
         rows: list[dict[str, Any]] = []
-        for row_cells in lines[DATA_START_ROW - 1 :]:
+        for row_cells in lines[DATA_START_ROW - 1:]:
             if len(row_cells) < len(headers):
                 row_cells = row_cells + [""] * (len(headers) - len(row_cells))
             values = [c.strip() or None for c in row_cells[: len(headers)]]
@@ -152,10 +152,10 @@ class InagentsXlsxParser:
         headers = self._read_headers_xlsx(ws)
         rows: list[dict[str, Any]] = []
         for row_tuple in ws.iter_rows(
-            min_row=DATA_START_ROW,
-            min_col=1,
-            max_col=len(headers),
-            values_only=True,
+                min_row=DATA_START_ROW,
+                min_col=1,
+                max_col=len(headers),
+                values_only=True,
         ):
             row_list = list(row_tuple)
             if len(row_list) < len(headers):
@@ -188,22 +188,84 @@ class InagentsXlsxParser:
             rows = self.load_mapped_rows()
         inserted = 0
         updated = 0
+
         for row in rows:
             registry_number = row.get("registry_number")
+
             if registry_number is None:
                 continue
-            existing = Inagent.query.filter_by(registry_number=registry_number).first()
+
+            inagent: Inagent = Inagent.query.filter_by(registry_number=registry_number).first()
             payload = {k: v for k, v in row.items() if k in DB_COLUMNS_FROM_FILE}
-            if existing:
+
+            if inagent:
                 for key, value in payload.items():
-                    setattr(existing, key, value)
+                    setattr(inagent, key, value)
+
+                if inagent.search_terms is None or len(inagent.search_terms) == 0:
+                    inagent.search_terms = self._parse_search_terms(inagent.full_name)
+
                 updated += 1
             else:
                 db.session.add(Inagent(**payload))
                 inserted += 1
+
         db.session.commit()
+
         return (inserted, updated)
 
+    @staticmethod
+    def _parse_fio_with_nicknames(full_name: str) -> list:
+        """
+        Парсит строку "Фамилия Имя Отчество \"псевдоним1, псевдоним2\""
+        и возвращает список строк в нужных форматах.
+        """
+        # Шаблон: ФИО + опциональные псевдонимы в кавычках
+        pattern = r'((?:[А-Я]{1}[а-я]{3,}\s?){3})(?:\"(.+?)\")?'
+        match = re.match(pattern, full_name.strip())
+
+        search_phrases = []
+
+        if not match:
+            return search_phrases
+
+        full_name, nicknames = match.groups()
+
+        # [start] parse name
+        surname, first_name, patronymic = [name for name in full_name.strip().split(" ")]
+        search_phrases.append(f"{surname} {first_name} {patronymic}")
+        search_phrases.append(f"{surname} {first_name[0]}. {patronymic[0]}.")
+        # [end]
+
+        # pase nick
+        if nicknames is not None:
+            search_phrases.extend([nick.strip() for nick in nicknames.split(',')])
+
+        return search_phrases
+
+    @staticmethod
+    def _parse_organisation_name(full_name: str):
+        pattern = r'(?:[А-я]+\s)+?«(.*?)»'
+        match = re.match(pattern, full_name.strip())
+        search_phrases = []
+
+        if match is None:
+            return search_phrases
+
+        org_title = match.groups()[0]
+
+        if org_title:
+            search_phrases.append(org_title)
+
+        return search_phrases
+
+    @staticmethod
+    def _parse_search_terms(full_name: str):
+        terms = []
+        terms.extend(InagentsXlsxParser._parse_fio_with_nicknames(full_name))
+        terms.extend(InagentsXlsxParser._parse_organisation_name(full_name))
+
+        return list(set(terms))
 
 def main() -> None:
     script_dir = Path(__file__).resolve().parent

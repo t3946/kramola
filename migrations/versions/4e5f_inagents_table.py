@@ -35,6 +35,7 @@ def upgrade() -> None:
         sa.Column("bank_name_location", sa.Text(), nullable=True),
         sa.Column("bank_bik", sa.String(100), nullable=True),
         sa.Column("bank_corr_account", sa.Text(), nullable=True),
+        sa.Column("search_terms", sa.JSON(), nullable=True),
         sa.Column("birth_date", sa.Date(), nullable=True),
         sa.Column("include_minjust_date", sa.Date(), nullable=True),
         sa.Column("exclude_minjust_date", sa.Date(), nullable=True),
@@ -43,7 +44,6 @@ def upgrade() -> None:
         sa.Column("contract_date", sa.Date(), nullable=True),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), onupdate=sa.text("CURRENT_TIMESTAMP"), nullable=False),
-        sa.Column("search_terms", sa.JSON(), nullable=True),
         sa.PrimaryKeyConstraint("id"),
     )
 
