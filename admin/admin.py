@@ -9,7 +9,7 @@ from flask_login import current_user
 from wtforms import PasswordField
 
 from models import Inagent, User, Role
-from models.inagents import AGENT_TYPE_MAP
+from models.inagents import AGENT_TYPE_MAP, AGENT_TYPE_SHORT_LABELS
 from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
 
@@ -185,13 +185,7 @@ class WordsListView(BaseView):
         )
 
 
-AGENT_TYPE_LABELS = {
-    "fiz": "ФЛ",
-    "ur": "ЮЛ",
-    "other": "Иное",
-    "illegal_public_associations": "Пуб. орг.",
-    "foreign_illegal_organizations": "Иностр. орг.",
-}
+VALID_AGENT_TYPES: tuple[str, ...] = tuple(AGENT_TYPE_SHORT_LABELS.keys())
 
 
 class InagentsListView(BaseView):
@@ -207,16 +201,18 @@ class InagentsListView(BaseView):
     @expose("/")
     def index(self):
         total_count: int = db.session.query(Inagent).count()
+        agent_type_choices: list[tuple[str, str]] = list(AGENT_TYPE_SHORT_LABELS.items())
         return self.render(
             "admin/inagents_list.html",
             total_count=total_count,
+            agent_type_choices=agent_type_choices,
         )
 
     @expose("/data")
     def data_route(self):
         q = request.args.get("q", "").strip() or None
         agent_type = request.args.get("agent_type", "").strip() or None
-        if agent_type and agent_type not in ("fiz", "ur", "other"):
+        if agent_type and agent_type not in VALID_AGENT_TYPES:
             agent_type = None
         status_filter = request.args.get("status", "").strip() or None
         if status_filter and status_filter not in ("listed", "removed"):
@@ -278,7 +274,7 @@ class InagentsListView(BaseView):
                 "full_name": r.full_name or "",
                 "status_label": _inagent_status_label(r),
                 "agent_type": at,
-                "agent_type_label": AGENT_TYPE_LABELS.get(at, at),
+                "agent_type_label": AGENT_TYPE_SHORT_LABELS.get(at, at),
                 "search_terms_count": search_terms_count,
                 "edit_form_url": f"{base_path}/{r.id}/form",
                 "edit_save_url": f"{base_path}/{r.id}/edit",
@@ -353,7 +349,7 @@ def form_to_inagent(form, inagent: Inagent) -> None:
     from extensions import db
 
     val = form.get("agent_type")
-    if val in ("fiz", "ur", "other"):
+    if val in VALID_AGENT_TYPES:
         inagent.agent_type = val
     num = form.get("number", "").strip()
     inagent.registry_number = int(num) if num.isdigit() else None

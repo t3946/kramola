@@ -1,13 +1,31 @@
 from datetime import datetime
+from enum import Enum
 
 from extensions import db
 
-AGENT_TYPE_MAP = {
-    "fiz": "физические лица",
-    "ur": "юридические лица",
-    "other": "иные объединения лиц",
-    "illegal_public_associations": "общественные объединения, действующие без образования юридического лица",
-    "foreign_illegal_organizations": "иностранные структуры без образования юридического лица",
+
+class AgentType(str, Enum):
+    FIZ = "fiz"
+    UR = "ur"
+    OTHER = "other"
+    ILLEGAL_PUBLIC_ASSOCIATIONS = "illegal_public_associations"
+    FOREIGN_ILLEGAL_ORGANIZATIONS = "foreign_illegal_organizations"
+
+
+AGENT_TYPE_SHORT_LABELS: dict[str, str] = {
+    AgentType.FIZ.value: "ФЛ",
+    AgentType.UR.value: "ЮЛ",
+    AgentType.OTHER.value: "Иное",
+    AgentType.ILLEGAL_PUBLIC_ASSOCIATIONS.value: "ООД без ЮЛ",
+    AgentType.FOREIGN_ILLEGAL_ORGANIZATIONS.value: "Иностр. структуры",
+}
+
+AGENT_TYPE_MAP: dict[str, str] = {
+    AgentType.FIZ.value: "физические лица",
+    AgentType.UR.value: "юридические лица",
+    AgentType.OTHER.value: "иные объединения лиц",
+    AgentType.ILLEGAL_PUBLIC_ASSOCIATIONS.value: "общественные объединения, действующие без образования юридического лица",
+    AgentType.FOREIGN_ILLEGAL_ORGANIZATIONS.value: "иностранные структуры без образования юридического лица",
 }
 
 class Inagent(db.Model):
