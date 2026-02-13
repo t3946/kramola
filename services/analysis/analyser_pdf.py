@@ -4,6 +4,7 @@ import pymupdf
 from typing import List, Optional, Tuple
 from services.analysis.analyser import Analyser
 from services.analysis.stats import StatsPDF
+from services.fulltext_search.phrase import Phrase
 from services.fulltext_search.token import Token
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.utils.timeit import timeit
@@ -69,8 +70,8 @@ class AnalyserPdf(Analyser):
 
         all_tokens: List[Token] = FulltextSearch.tokenize_text(whole_document_text)
         phrases_list = list(self.analyse_data.phrases.values())
-        search_phrases_for_search: List[Tuple[str, List[Token]]] = [
-            (phrase.phrase, phrase.tokens) for phrase in phrases_list
+        search_phrases_for_search: List[Tuple[Phrase, List[Token]]] = [
+            (phrase, phrase.tokens) for phrase in phrases_list
         ]
         fulltext_search = FulltextSearch(all_tokens)
         regex_patterns_dict = None

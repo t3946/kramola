@@ -24,6 +24,7 @@ class Stats(ABC):
         stats_list = []
 
         for search_item, stat_item in self.stats.items():
+            # todo: конверт. статов в словарь
             stat_dict = asdict(stat_item)
             stat_dict['search'] = asdict(search_item)
             stat_dict['search']['kind'] = search_item.kind.value

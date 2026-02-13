@@ -2,6 +2,8 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple, Union, Dict
+
+from services.fulltext_search.phrase import Phrase
 from services.pymorphy_service import CYRILLIC_PATTERN, ensure_models_loaded
 from services import pymorphy_service
 from services.utils.regex_pattern import RegexPattern
@@ -120,36 +122,34 @@ class FulltextSearch:
 
     def search_all(
         self,
-        search_phrases: List[Tuple[str, Union[str, List[Token]]]],
+        search_phrases: List[Tuple[Phrase, Union[str, List[Token]]]],
         strategy: Optional[SearchStrategy] = None,
         regex_patterns: Optional[Dict[str, RegexPattern]] = None
-    ) -> List[Tuple[str, List[FTSMatch]]]:
+    ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
         """
         Search all phrases in one pass.
-        
+
         Args:
-            search_phrases: List of (phrase_text, text_or_tokens) tuples
+            search_phrases: List of (phrase, text_or_tokens) tuples
             strategy: Search strategy to use (default: FUZZY_WORDS)
             regex_patterns: Optional dictionary of {pattern_name: RegexPattern} for regex-based search
-            
+
         Returns:
-            List of (phrase_text, matches) tuples where matches is list of FTSMatch objects
+            List of (phrase or str, matches) tuples where matches is list of FTSMatch objects
         """
         strategy_instance = FulltextSearch._get_strategy(strategy)
-        
-        # [start] Optimized path: use dictionary-based search_all_phrases if available
-        # This approach uses TokenDictionary to find candidate positions (O(1) lookup)
-        # instead of scanning entire text for each phrase, significantly faster for multiple phrases
-        if hasattr(strategy_instance, 'search_all_phrases'):
-            search_phrases_tokens = []
 
-            for phrase_text, text_or_tokens in search_phrases:
+        # [start] Optimized path: use dictionary-based search_all_phrases if available
+        if hasattr(strategy_instance, 'search_all_phrases'):
+            search_phrases_tokens: List[Tuple[Phrase, List[Token]]] = []
+
+            for phrase, text_or_tokens in search_phrases:
                 if isinstance(text_or_tokens, str):
                     search_tokens = FulltextSearch.tokenize_text(text_or_tokens)
                 else:
                     search_tokens = text_or_tokens
 
-                search_phrases_tokens.append((phrase_text, search_tokens))
+                search_phrases_tokens.append((phrase, search_tokens))
 
             return strategy_instance.search_all_phrases(
                 self.source_tokens,
@@ -160,11 +160,8 @@ class FulltextSearch:
         # [end]
 
         # [start] Fallback: search each phrase separately with full text scan
-        # This is slower as it calls search() for each phrase, which does full text traversal
-        # Used when strategy doesn't implement optimized search_all_phrases method
-        results = []
+        results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
 
-        # Get regex matches if strategy supports them
         regex_matches_map: Dict[Tuple[int, int], RegexPattern] = {}
         if hasattr(strategy_instance, 'search_regex_matches') and regex_patterns:
             regex_matches = strategy_instance.search_regex_matches(
@@ -176,9 +173,9 @@ class FulltextSearch:
                 key = (regex_match.start_token_idx, regex_match.end_token_idx)
                 regex_matches_map[key] = regex_match.regex_info
 
-        for phrase_text, text_or_tokens in search_phrases:
+        for phrase, text_or_tokens in search_phrases:
             matches_indices = self.search(text_or_tokens, strategy)
-            matches = []
+            matches: List[FTSMatch] = []
 
             for start, end in matches_indices:
                 key = (start, end)
@@ -196,10 +193,10 @@ class FulltextSearch:
                         tokens=self.source_tokens[start:end + 1],
                         start_token_idx=start,
                         end_token_idx=end,
-                        search_text=phrase_text
+                        search_phrase=phrase
                     ))
 
-            results.append((phrase_text, matches))
+            results.append((phrase, matches))
 
         return results
         # [end]

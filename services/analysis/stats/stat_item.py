@@ -6,6 +6,7 @@ from services.analysis.stats.stat_form import StatForm
 
 @dataclass(frozen=True)
 class StatItemSearch:
+    #todo: вместо text надо phrase, потому что она содержит информацию об источнике
     text: str
     kind: AnalysisMatchKind
 

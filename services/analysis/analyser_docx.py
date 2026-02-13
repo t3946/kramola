@@ -186,8 +186,8 @@ class AnalyserDocx(Analyser):
     ) -> List[AnalysisMatch]:
         """Search all phrases using optimized strategy with dictionary."""
         fulltext_search = FulltextSearch(source_tokens)
-        search_phrases_for_search: List[Tuple[str, List[Token]]] = [
-            (phrase.phrase, phrase.tokens) for phrase in search_phrases
+        search_phrases_for_search: List[Tuple[Phrase, List[Token]]] = [
+            (phrase, phrase.tokens) for phrase in search_phrases
         ]
         regex_patterns_dict = None
 

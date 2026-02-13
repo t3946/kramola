@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
-from services.utils.regex_pattern import RegexPattern
+
+from services.fulltext_search.phrase import Phrase
 from services.fulltext_search.token import Token
+from services.utils.regex_pattern import RegexPattern
 
 
 @dataclass
@@ -20,10 +22,10 @@ class FTSMatch(ABC):
 @dataclass
 class FTSTextMatch(FTSMatch):
     """Result of a text-based fulltext search match."""
-    search_text: str
+    search_phrase: Phrase
 
     def get_search_str(self) -> str:
-        return self.search_text
+        return self.search_phrase.phrase
 
 
 @dataclass

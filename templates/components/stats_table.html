@@ -4,6 +4,7 @@
 {% set stats_empty_message = stats_empty_message | default('Данные не найдены.') %}
 {% set stats_first_column_title = stats_first_column_title | default('Строка') %}
 
+{{ stats_data|tojson }}
 <div class="card">
     <h3>{{ stats_title }}</h3>
 

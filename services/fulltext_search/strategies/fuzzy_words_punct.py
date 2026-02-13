@@ -1,13 +1,10 @@
-from typing import List, Tuple, TYPE_CHECKING, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Union
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 from services.fulltext_search.dictionary import TokenDictionary
+from services.fulltext_search.phrase import Phrase
 from services.fulltext_search.search_match import FTSTextMatch, FTSRegexMatch, FTSMatch
+from services.fulltext_search.token import Token, TokenType
 from services.utils.regex_pattern import RegexPattern
-
-if TYPE_CHECKING:
-    from services.fulltext_search.token import Token, TokenType
-else:
-    from services.fulltext_search.token import Token, TokenType
 
 
 class FuzzyWordsPunctStrategy(BaseSearchStrategy):
@@ -136,17 +133,17 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         source_tokens: 'List[Token]',
         search_words: 'List[Token]',
         start_token_idx: int,
-        phrase_text: str
+        phrase: Phrase,
     ) -> Optional[FTSTextMatch]:
         """
         Verify if phrase matches starting from start_token_idx.
-        
+
         Args:
             source_tokens: Source tokens
             search_words: Search words (only words, no punctuation)
             start_token_idx: Starting token index
-            phrase_text: Text of the phrase being searched
-            
+            phrase: Phrase being searched
+
         Returns:
             FTSMatch if match found, None otherwise
         """
@@ -192,28 +189,28 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                 tokens=matched_tokens,
                 start_token_idx=start_token_idx,
                 end_token_idx=end_token_idx,
-                search_text=phrase_text
+                search_phrase=phrase
             )
         return None
 
     def search_all_phrases(
         self,
         source_tokens: 'List[Token]',
-        search_phrases: List[Tuple[str, 'List[Token]']],
+        search_phrases: List[Tuple[Phrase, List[Token]]],
         dictionary: Optional[TokenDictionary] = None,
         regex_patterns: Optional[Dict[str, RegexPattern]] = None
-    ) -> List[Tuple[str, List[FTSMatch]]]:
+    ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
         """
         Search all phrases in one pass using dictionary optimization.
-        
+
         Args:
             source_tokens: Source tokens
-            search_phrases: List of (phrase_text, tokens) tuples
+            search_phrases: List of (phrase, tokens) tuples
             dictionary: Optional dictionary for faster lookup
             regex_patterns: Optional dictionary of {pattern_name: RegexPattern} for regex-based search
-            
+
         Returns:
-            List of (phrase_text, matches) tuples where matches is list of FTSMatch objects
+            List of (phrase or str, matches) tuples where matches is list of FTSMatch objects
         """
         if not source_tokens or not (search_phrases or regex_patterns):
             return []
@@ -221,7 +218,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         if dictionary is None:
             dictionary = TokenDictionary(source_tokens)
 
-        result_matches: List[Tuple[str, List[FTSMatch]]] = []
+        result_matches: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
 
         # [start] search regex matches if patterns provided
         regex_matches_map: Dict[Tuple[int, int], FTSRegexMatch] = {}
@@ -237,11 +234,11 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         # [start] search text matches
         text_matches_map: Dict[Tuple[int, int], FTSTextMatch] = {}
 
-        for phrase_text, search_tokens in search_phrases:
+        for phrase, search_tokens in search_phrases:
             search_words = [t for t in search_tokens if t.type == TokenType.WORD]
 
             if len(search_words) == 0:
-                result_matches.append((phrase_text, []))
+                result_matches.append((phrase, []))
                 continue
 
             first_word = search_words[0]
@@ -249,12 +246,12 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             matches: List[FTSTextMatch] = []
 
             for start_idx in candidate_starts:
-                text_match = self._verify_phrase_match(source_tokens, search_words, start_idx, phrase_text)
+                text_match = self._verify_phrase_match(source_tokens, search_words, start_idx, phrase)
 
                 if text_match:
                     matches.append(text_match)
 
-            result_matches.append((phrase_text, matches))
+            result_matches.append((phrase, matches))
 
         # [start] merge text and regex matches
         for start, end in regex_matches_map.keys():
