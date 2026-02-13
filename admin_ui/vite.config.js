@@ -3,6 +3,7 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { mkdirSync, copyFileSync } from "fs";
 import cssInjectedByJsPlugin from "vite-plugin-css-injected-by-js";
+import sassGlobImports from "vite-plugin-sass-glob-import";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -24,7 +25,12 @@ function copyToProjectStaticPlugin() {
 
 export default defineConfig({
   root: __dirname,
-  plugins: [cssInjectedByJsPlugin(), copyToProjectStaticPlugin()],
+  plugins: [sassGlobImports(), cssInjectedByJsPlugin(), copyToProjectStaticPlugin()],
+  css: {
+    preprocessorOptions: {
+      scss: {},
+    },
+  },
   build: {
     outDir: distAdminDir,
     emptyOutDir: true,
