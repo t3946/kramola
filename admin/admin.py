@@ -334,7 +334,7 @@ def _inagent_to_form_data(inagent: Inagent) -> dict:
         "date_included": inagent.include_minjust_date.strftime("%Y-%m-%d") if inagent.include_minjust_date else "",
         "date_excluded": inagent.exclude_minjust_date.strftime("%Y-%m-%d") if inagent.exclude_minjust_date else "",
         "domain": _domain_to_text(inagent.domain_name),
-        "search_terms": _domain_to_text(inagent.search_terms),
+        "search_terms": _search_terms_to_list(inagent.search_terms),
         "activity": "",
     }
 
@@ -343,6 +343,11 @@ def _domain_to_text(domain_name: list | None) -> str:
     if not domain_name:
         return ""
     return "\n".join(domain_name) if isinstance(domain_name, list) else str(domain_name)
+
+
+def _search_terms_to_list(search_terms: list | None) -> list[str]:
+    terms = list(search_terms)[:6] if isinstance(search_terms, list) else []
+    return terms + [""] * (6 - len(terms))
 
 
 def form_to_inagent(form, inagent: Inagent) -> None:
@@ -359,8 +364,8 @@ def form_to_inagent(form, inagent: Inagent) -> None:
     domain_raw = form.get("domain", "").strip()
     inagent.domain_name = [s.strip() for s in domain_raw.split() if s.strip()] if domain_raw else None
 
-    search_terms_raw = form.get("search_terms", "").strip()
-    inagent.search_terms = [s.strip() for s in search_terms_raw.split() if s.strip()] if search_terms_raw else None
+    search_terms_list = form.getlist("search_terms")[:6]
+    inagent.search_terms = [s.strip() for s in search_terms_list if s.strip()] or None
 
 
 def _parse_date(s: str | None):
