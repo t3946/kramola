@@ -11,15 +11,15 @@
 <div>
   <div class="my-3 flex flex-wrap gap-2">
     {% if import_url %}
-    <button type="button" class="px-4 py-2 rounded bg-blue-600 text-white text-sm hover:bg-blue-700" data-modal-open="import-modal"><i class="fa fa-upload"></i> Импорт</button>
+    <button type="button" class="btn btn__primary text-sm" data-modal-open="import-modal"><i class="fa fa-upload"></i> Импорт</button>
     {% endif %}
     {% if export_url %}
-    <a href="{{ export_url }}" class="px-4 py-2 rounded border border-gray-300 bg-white text-sm hover:bg-gray-50" download><i class="fa fa-download"></i> Экспорт</a>
+    <a href="{{ export_url }}" class="btn btn__secondary text-sm" download><i class="fa fa-download"></i> Экспорт</a>
     {% else %}
     <button type="button" class="px-4 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed" disabled><i class="fa fa-download"></i> Экспорт</button>
     {% endif %}
     {% if import_url %}
-    <button type="button" class="px-4 py-2 rounded border border-gray-300 bg-white text-sm hover:bg-gray-50" data-modal-open="minusate-modal"><i class="fa fa-minus-circle"></i> Минусация</button>
+    <button type="button" class="btn btn__secondary text-sm" data-modal-open="minusate-modal"><i class="fa fa-minus-circle"></i> Минусация</button>
     {% else %}
     <button type="button" class="px-4 py-2 rounded border border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed" disabled><i class="fa fa-minus-circle"></i> Минусация</button>
     {% endif %}
@@ -36,7 +36,7 @@
     <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
       <i class="fa fa-search" aria-hidden="true"></i>
     </div>
-    <input type="text" id="word-search" name="q" placeholder="Введите слово для поиска" class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10  pr-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"{% if data_url %} data-data-url="{{ data_url }}"{% endif %}>
+    <input type="text" id="word-search" name="q" placeholder="Введите слово для поиска" class="inputField inputField__default inputField__withIcon"{% if data_url %} data-data-url="{{ data_url }}"{% endif %}>
   </div>
 
   <div id="words-grid-wrapper" class="my-3"></div>

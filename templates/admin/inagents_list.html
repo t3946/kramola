@@ -11,19 +11,19 @@
 <div>
   <div class="my-3 flex flex-wrap gap-4 items-end">
     <div class="flex-1 min-w-[200px]">
-      <label for="inagent-search" class="block text-sm font-medium text-gray-700 mb-1">Поиск</label>
+      <label for="inagent-search" class="formLabel">Поиск</label>
       <div class="relative">
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
           <i class="fa fa-search" aria-hidden="true"></i>
         </div>
         <input type="text" id="inagent-search" name="q" placeholder="Наименование или номер"
-               class="block w-full rounded-lg border border-gray-300 bg-white py-2 pl-10 pr-3 text-sm placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+               class="inputField inputField__default inputField__withIcon"
                data-data-url="{{ request.path.rstrip('/') }}/data">
       </div>
     </div>
     <div class="w-48">
-      <label for="inagent-type-filter" class="block text-sm font-medium text-gray-700 mb-1">Тип</label>
-      <select id="inagent-type-filter" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+      <label for="inagent-type-filter" class="formLabel">Тип</label>
+      <select id="inagent-type-filter" class="inputField inputField__default">
         <option value="">Все</option>
         {% for value, label in agent_type_choices %}
         <option value="{{ value }}">{{ label }}</option>
@@ -31,16 +31,16 @@
       </select>
     </div>
     <div class="w-48">
-      <label for="inagent-status-filter" class="block text-sm font-medium text-gray-700 mb-1">Статус</label>
-      <select id="inagent-status-filter" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+      <label for="inagent-status-filter" class="formLabel">Статус</label>
+      <select id="inagent-status-filter" class="inputField inputField__default">
         <option value="">Все</option>
         <option value="listed">Числится</option>
         <option value="removed">Снят</option>
       </select>
     </div>
     <div class="w-48">
-      <label for="inagent-phrases-filter" class="block text-sm font-medium text-gray-700 mb-1">Фразы</label>
-      <select id="inagent-phrases-filter" class="block w-full rounded-lg border border-gray-300 bg-white py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+      <label for="inagent-phrases-filter" class="formLabel">Фразы</label>
+      <select id="inagent-phrases-filter" class="inputField inputField__default">
         <option value="">Все</option>
         <option value="yes">Есть</option>
         <option value="no">Нет</option>
