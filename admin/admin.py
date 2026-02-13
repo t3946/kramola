@@ -190,7 +190,7 @@ VALID_AGENT_TYPES: tuple[str, ...] = tuple(AGENT_TYPE_SHORT_LABELS.keys())
 
 def _form_apply_search_terms_only(form, inagent: Inagent) -> None:
     search_terms_list = form.getlist("search_terms")[:6]
-    inagent.search_terms = [s.strip() for s in search_terms_list if s.strip()] or None
+    inagent.search_terms = [s.strip() for s in search_terms_list if s.strip()] or []
 
 
 class InagentsListView(BaseView):
@@ -251,13 +251,11 @@ class InagentsListView(BaseView):
             )
         if phrases_filter == "yes":
             query = query.filter(
-                Inagent.search_terms.isnot(None),
                 func.json_length(Inagent.search_terms) > 0,
             )
         elif phrases_filter == "no":
             query = query.filter(
                 or_(
-                    Inagent.search_terms.is_(None),
                     func.json_length(Inagent.search_terms) == 0,
                 )
             )
@@ -370,7 +368,7 @@ def form_to_inagent(form, inagent: Inagent) -> None:
     inagent.domain_name = [s.strip() for s in domain_raw.split() if s.strip()] if domain_raw else None
 
     search_terms_list = form.getlist("search_terms")[:6]
-    inagent.search_terms = [s.strip() for s in search_terms_list if s.strip()] or None
+    inagent.search_terms = [s.strip() for s in search_terms_list if s.strip()] or []
 
 
 def _parse_date(s: str | None):

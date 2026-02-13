@@ -35,7 +35,7 @@ def upgrade() -> None:
         sa.Column("bank_name_location", sa.Text(), nullable=True),
         sa.Column("bank_bik", sa.String(100), nullable=True),
         sa.Column("bank_corr_account", sa.Text(), nullable=True),
-        sa.Column("search_terms", sa.JSON(), nullable=False, default=[]),
+        sa.Column("search_terms", sa.JSON(), nullable=True),
         sa.Column("birth_date", sa.Date(), nullable=True),
         sa.Column("include_minjust_date", sa.Date(), nullable=True),
         sa.Column("exclude_minjust_date", sa.Date(), nullable=True),
