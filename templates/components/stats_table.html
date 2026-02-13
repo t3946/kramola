@@ -6,12 +6,15 @@
 
 <div class="card">
     <h3>{{ stats_title }}</h3>
+
     <div class="stats-table">
         {% if stats_data %}
             {% set ns = namespace(total_sum=0) %}
+
             {% for stat_item in stats_data %}
                 {% set ns.total_sum = ns.total_sum + stat_item['total'] %}
             {% endfor %}
+
             <table class="word-stats">
                 <thead>
                     <tr>

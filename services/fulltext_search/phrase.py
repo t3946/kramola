@@ -1,14 +1,24 @@
-from typing import List, Dict, Any
+from pathlib import Path
+from typing import List, Dict, Any, Union, Type
 import json
 from .token import Token
 from .fulltext_search import FulltextSearch
+from ..words_list import WordsList
+from ..words_list.list_inagents import ListInagents
 
 
 class Phrase:
     phrase: str
+    # origin: list class (WordsList/ListInagents), file path (Path), free text (str), or None
+    source: Union[Type[WordsList], Type[ListInagents], Path, str, None]
     tokens: List[Token]
 
-    def __init__(self, phrase: str) -> None:
+    def __init__(
+            self,
+            phrase: str,
+            source: Union[Type[WordsList], Type[ListInagents], Path, str, None] = None,
+    ) -> None:
+        self.source = source
         self.phrase = phrase
         self.tokens = FulltextSearch.tokenize_text(phrase)
 

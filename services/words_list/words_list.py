@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List
@@ -19,7 +19,7 @@ class PredefinedListKey(str, Enum):
     EXTREMISTS_TERRORISTS = "extremists_terrorists"
 
 
-class WordsList:
+class WordsList(ABC):
     @property
     @abstractmethod
     def list_key(self) -> str:
@@ -81,13 +81,15 @@ class WordsList:
 
     def load(self) -> List[Phrase]:
         list_record = self._get_list_record()
-        links = (
+        rows = (
             ListPhrase.query.filter_by(list_id=list_record.id)
             .join(PhraseRecord, ListPhrase.phrase_id == PhraseRecord.id)
             .with_entities(PhraseRecord.phrase)
             .all()
         )
-        return [Phrase(phrase) for (phrase,) in links]
+        source = self.__class__
+
+        return [Phrase(phrase, source) for (phrase,) in rows]
 
     def clear(self) -> None:
         list_record = self._get_list_record()
