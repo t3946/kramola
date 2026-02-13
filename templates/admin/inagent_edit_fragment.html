@@ -1,6 +1,12 @@
-<form method="post" action="{{ edit_save_url }}" class="inagent-edit-form space-y-4">
-    {% if csrf_token is defined and csrf_token %}<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>{%
-    endif %}
+<form
+    method="post"
+    action="{{ edit_save_url }}"
+    class="inagent-edit-form space-y-4"
+>
+    {% if csrf_token is defined and csrf_token %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+    {% endif %}
+
     <div>
         <label for="inagent-fragment-agent_type" class="formLabel">
             Тип иностранного агента
@@ -18,15 +24,23 @@
     <div class="grid gap-3 grid-cols-3 grid-cols-[auto,1fr,auto]">
         <div>
             <label for="inagent-fragment-number" class="formLabel">Номер</label>
-            <input type="text" id="inagent-fragment-number" name="number" value="{{ form_data.number or '' }}"
-                   disabled
-                   class="inputField inputField__disabled"
-                   placeholder="Номер в реестре">
+
+            <input
+                type="text"
+                id="inagent-fragment-number"
+                name="number"
+                value="{{ form_data.number or '' }}"
+                disabled
+                class="inputField inputField__disabled"
+                placeholder="Номер в реестре"
+            >
         </div>
+
         <div>
             <label for="inagent-fragment-full_name" class="formLabel">
                 Полное наименование / ФИО
             </label>
+
             <input
                 type="text"
                 id="inagent-fragment-full_name"
@@ -37,11 +51,17 @@
                 disabled
             >
         </div>
+
         <div>
             <label for="inagent-fragment-status" class="formLabel">Статус</label>
-            <input type="text" id="inagent-fragment-status" value="{{ form_data.status_label or '—' }}"
-                   disabled
-                   class="inputField inputField__disabled">
+
+            <input
+                type="text"
+                id="inagent-fragment-status"
+                value="{{ form_data.status_label or '—' }}"
+                disabled
+                class="inputField inputField__disabled"
+            >
         </div>
     </div>
 
@@ -50,6 +70,7 @@
             <label for="inagent-fragment-date_included" class="formLabel">
                 Дата включения в реестр
             </label>
+
             <input
                 type="date"
                 id="inagent-fragment-date_included"
@@ -59,10 +80,12 @@
                 disabled
             >
         </div>
+
         <div>
             <label for="inagent-fragment-date_excluded" class="formLabel">
                 Дата исключения из реестра
             </label>
+
             <input
                 type="date"
                 id="inagent-fragment-date_excluded"
@@ -106,7 +129,13 @@
         <button type="submit" class="btn btn__primary">
             <i class="fa fa-check"></i> Сохранить
         </button>
-        <button type="button" class="btn btn__secondary" data-modal-close="inagent-edit-modal">Отмена
+
+        <button
+            type="button"
+            class="btn btn__secondary"
+            data-modal-close="inagent-edit-modal"
+        >
+            Отмена
         </button>
     </div>
 </form>
