@@ -1,22 +1,16 @@
-import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple, Union, Dict
 
 from services.fulltext_search.phrase import Phrase
-from services.pymorphy_service import CYRILLIC_PATTERN, ensure_models_loaded
-from services import pymorphy_service
+from services.pymorphy_service import CYRILLIC_PATTERN
+from services.tokenization import Token, TokenType, TokenDictionary, tokenize_text as tokenize_text_fn
 from services.utils.regex_pattern import RegexPattern
 from services.fulltext_search.search_match import FTSMatch, FTSTextMatch, FTSRegexMatch
 from services.fulltext_search.strategies import (
     FuzzyWordsStrategy,
     FuzzyWordsPunctStrategy
 )
-from services.fulltext_search.dictionary import TokenDictionary
-from services.fulltext_search.token import Token, TokenType
-
-TOKENIZE_PATTERN_UNIVERSAL = re.compile(r"(\w+)|([^\w\s]+)|(\s+)", re.UNICODE)
-PYMORPHY_AVAILABLE = True
 
 USE_STEM_FALLBACK = True
 STOP_WORDS_RU = {
@@ -74,7 +68,7 @@ class FulltextSearch:
             source: Source text (str) or list of tokens to search in
         """
         if isinstance(source, str):
-            self.source_tokens: List[Token] = FulltextSearch.tokenize_text(source)
+            self.source_tokens: List[Token] = tokenize_text_fn(source)
         else:
             self.source_tokens: List[Token] = source
 
@@ -109,7 +103,7 @@ class FulltextSearch:
             List of tuples (start, end) where start and end are source tokens indices.
         """
         if isinstance(text, str):
-            search_tokens: List[Token] = FulltextSearch.tokenize_text(text)
+            search_tokens: List[Token] = tokenize_text_fn(text)
         else:
             search_tokens: List[Token] = text
 
@@ -145,7 +139,7 @@ class FulltextSearch:
 
             for phrase, text_or_tokens in search_phrases:
                 if isinstance(text_or_tokens, str):
-                    search_tokens = FulltextSearch.tokenize_text(text_or_tokens)
+                    search_tokens = tokenize_text_fn(text_or_tokens)
                 else:
                     search_tokens = text_or_tokens
 
@@ -203,81 +197,8 @@ class FulltextSearch:
 
     @staticmethod
     def tokenize_text(text: str) -> List[Token]:
-        """
-        Universal text tokenization for fulltext search.
-
-        Returns list of dictionaries, each containing:
-            - 'text': str - token text
-            - 'start': int - start position
-            - 'end': int - end position
-            - 'type': str - token type ('word', 'punct', 'space')
-            - 'lemma': str | None - lemma (only for type='word')
-            - 'stem': str | None - stem (only for type='word')
-        """
-        ensure_models_loaded()
-
-        tokens = []
-        full_text = text
-
-        if not full_text:
-            return tokens
-
-        current_pos = 0
-
-        for match in TOKENIZE_PATTERN_UNIVERSAL.finditer(full_text):
-            start, end = match.span()
-            text_token = match.group(0)
-
-            if start > current_pos:
-                missed_text = full_text[current_pos:start]
-                tokens.append(Token(
-                    text=missed_text,
-                    start=current_pos,
-                    end=start,
-                    type=TokenType.PUNCTUATION,
-                    lemma=None,
-                    stem=None
-                ))
-
-            token_type = TokenType.PUNCTUATION
-            lemma = None
-            stem = None
-
-            if match.group(1):
-                token_type = TokenType.WORD
-                word_lower = text_token.lower()
-
-                if PYMORPHY_AVAILABLE:
-                    lemma = pymorphy_service._get_lemma(word_lower)
-                    stem = pymorphy_service._get_stem(word_lower)
-                else:
-                    lemma = pymorphy_service._get_lemma(word_lower)
-                    stem = pymorphy_service._get_stem(word_lower)
-            elif match.group(3):
-                token_type = TokenType.SPACE
-
-            tokens.append(Token(
-                text=text_token,
-                start=start,
-                end=end,
-                type=token_type,
-                lemma=lemma,
-                stem=stem
-            ))
-            current_pos = end
-
-        if current_pos < len(full_text):
-            remaining_text = full_text[current_pos:]
-            tokens.append(Token(
-                text=remaining_text,
-                start=current_pos,
-                end=len(full_text),
-                type=TokenType.PUNCTUATION,
-                lemma=None,
-                stem=None
-            ))
-
-        return tokens
+        """Re-export for backward compatibility."""
+        return tokenize_text_fn(text)
 
     @staticmethod
     def _is_stop_word(lemma: str) -> bool:

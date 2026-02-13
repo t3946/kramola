@@ -1,11 +1,7 @@
-from typing import List, Tuple, TYPE_CHECKING, Optional, Dict
+from typing import List, Tuple, Optional, Dict
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 
-if TYPE_CHECKING:
-    from services.fulltext_search.token import Token, TokenType
-    from services.fulltext_search.dictionary import TokenDictionary
-else:
-    from services.fulltext_search.token import Token, TokenType
+from services.tokenization import Token, TokenType, TokenDictionary
 
 
 class FuzzyWordsStrategy(BaseSearchStrategy):

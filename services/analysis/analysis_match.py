@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import TypedDict, Tuple, Dict, Union, List, Optional
-from services.fulltext_search.token import Token
+from services.tokenization import Token
 from services.fulltext_search.search_match import FTSTextMatch, FTSRegexMatch
 
 

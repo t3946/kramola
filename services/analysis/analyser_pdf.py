@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple
 from services.analysis.analyser import Analyser
 from services.analysis.stats import StatsPDF
 from services.fulltext_search.phrase import Phrase
-from services.fulltext_search.token import Token
+from services.tokenization import Token
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.utils.timeit import timeit
 from services.analysis.pdf.pua_map import PuaMap, logger

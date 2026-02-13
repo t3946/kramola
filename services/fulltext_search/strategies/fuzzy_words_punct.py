@@ -1,9 +1,8 @@
 from typing import List, Tuple, Optional, Dict, Union
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
-from services.fulltext_search.dictionary import TokenDictionary
 from services.fulltext_search.phrase import Phrase
 from services.fulltext_search.search_match import FTSTextMatch, FTSRegexMatch, FTSMatch
-from services.fulltext_search.token import Token, TokenType
+from services.tokenization import Token, TokenType, TokenDictionary
 from services.utils.regex_pattern import RegexPattern
 
 

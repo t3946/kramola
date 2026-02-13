@@ -19,8 +19,7 @@ from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 from services.analysis.analyser import Analyser
 from services.analysis.analysis_match import AnalysisMatch
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
-from services.fulltext_search.token import Token, TokenType
-from services.fulltext_search.dictionary import TokenDictionary
+from services.tokenization import Token, TokenType, TokenDictionary
 from services.fulltext_search.phrase import Phrase
 from services.utils.timeit import timeit
 from copy import deepcopy

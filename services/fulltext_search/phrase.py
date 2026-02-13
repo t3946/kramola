@@ -1,10 +1,9 @@
 from pathlib import Path
 from typing import List, Dict, Any, Union, Type
 import json
-from .token import Token
-from .fulltext_search import FulltextSearch
-from ..words_list import WordsList
-from ..words_list.list_inagents import ListInagents
+from services.tokenization import Token, tokenize_text
+from services.words_list import WordsList
+from services.words_list.list_inagents import ListInagents
 
 
 class Phrase:
@@ -20,7 +19,7 @@ class Phrase:
     ) -> None:
         self.source = source
         self.phrase = phrase
-        self.tokens = FulltextSearch.tokenize_text(phrase)
+        self.tokens = tokenize_text(phrase)
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize Phrase to dictionary."""

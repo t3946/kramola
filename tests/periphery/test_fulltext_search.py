@@ -1,5 +1,5 @@
 from services.fulltext_search.fulltext_search import FulltextSearch
-from services.fulltext_search.token import TokenType
+from services.tokenization import TokenType
 
 
 class TestFulltextSearch:

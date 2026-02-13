@@ -1,26 +1,16 @@
-from typing import List, Dict, Set, TYPE_CHECKING
 from collections import defaultdict
+from typing import List, Dict, Set
 
-if TYPE_CHECKING:
-    from services.fulltext_search.token import Token, TokenType
-else:
-    from services.fulltext_search.token import Token, TokenType
+from services.tokenization.token import Token, TokenType
 
 
 class TokenDictionary:
     """
     Dictionary for fast token lookup by lemma, stem, and text.
-    
     Provides O(1) lookup for token positions by different attributes.
     """
 
-    def __init__(self, source_tokens: 'List[Token]'):
-        """
-        Build dictionary from source tokens.
-        
-        Args:
-            source_tokens: List of tokens to index
-        """
+    def __init__(self, source_tokens: List[Token]) -> None:
         self.lemma_index: Dict[str, List[int]] = defaultdict(list)
         self.stem_index: Dict[str, List[int]] = defaultdict(list)
         self.text_index: Dict[str, List[int]] = defaultdict(list)
@@ -36,18 +26,8 @@ class TokenDictionary:
                 self.text_index[token.text].append(i)
                 self.text_lower_index[token.text.lower()].append(i)
 
-    def find_candidate_positions(self, token: 'Token') -> Set[int]:
-        """
-        Find all positions where token can match.
-        
-        Args:
-            token: Token to search for
-            
-        Returns:
-            Set of token indices where this token might match
-        """
-        candidates = set()
-
+    def find_candidate_positions(self, token: Token) -> Set[int]:
+        candidates: Set[int] = set()
         if token.lemma:
             candidates.update(self.lemma_index.get(token.lemma, []))
         if token.stem:
@@ -55,32 +35,17 @@ class TokenDictionary:
         if token.text:
             candidates.update(self.text_index.get(token.text, []))
             candidates.update(self.text_lower_index.get(token.text.lower(), []))
-
         return candidates
 
-    def has_token(self, token: 'Token') -> bool:
-        """
-        Check if token exists in dictionary.
-        
-        Args:
-            token: Token to check
-            
-        Returns:
-            True if token can be found in dictionary, False otherwise
-        """
-        # search by lemma
+    def has_token(self, token: Token) -> bool:
         if token.lemma and token.lemma in self.lemma_index:
             for idx in self.lemma_index[token.lemma]:
                 if token.is_equal(self.source_tokens[idx]):
                     return True
-
-        # search by stem
         if token.stem and token.stem in self.stem_index:
             for idx in self.stem_index[token.stem]:
                 if token.is_equal(self.source_tokens[idx]):
                     return True
-
-        # search by text
         if token.text:
             if token.text in self.text_index:
                 return True
@@ -88,14 +53,5 @@ class TokenDictionary:
                 return True
         return False
 
-    def filter_tokens(self, tokens: 'List[Token]') -> 'List[Token]':
-        """
-        Filter tokens list, keeping only tokens that exist in dictionary.
-        
-        Args:
-            tokens: List of tokens to filter
-            
-        Returns:
-            List of tokens that exist in dictionary
-        """
-        return [token for token in tokens if self.has_token(token)]
+    def filter_tokens(self, tokens: List[Token]) -> List[Token]:
+        return [t for t in tokens if self.has_token(t)]

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import List
 
 from services.fulltext_search.phrase import Phrase
-from services.fulltext_search.token import Token
+from services.tokenization import Token
 from services.utils.regex_pattern import RegexPattern
 
 

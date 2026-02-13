@@ -1,14 +1,10 @@
 import re
 from abc import ABC, abstractmethod
-from typing import List, Tuple, TYPE_CHECKING, Optional, Dict
+from typing import List, Tuple, Optional, Dict
 from services.utils.regex_pattern import RegexPattern
 from services.fulltext_search.search_match import FTSRegexMatch
 
-if TYPE_CHECKING:
-    from services.fulltext_search.token import Token
-    from services.fulltext_search.dictionary import TokenDictionary
-else:
-    from services.fulltext_search.token import Token
+from services.tokenization import Token, TokenDictionary
 
 
 class BaseSearchStrategy(ABC):
