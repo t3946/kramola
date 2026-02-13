@@ -1,8 +1,8 @@
 from typing import List, Optional, Dict
 from services.document_service import extract_lines_from_docx
 from services.fulltext_search.phrase import Phrase
-from services.words_list.list_persons import ListPersons
-from services.words_list.list_companies import ListCompanies
+from services.words_list.list_inagents_fiz import ListInagentsFIZ
+from services.words_list.list_inagents_ur import ListInagentsUR
 from services.words_list.list_profanity import ListProfanity
 from services.words_list.list_prohibited_substances import ListProhibitedSubstances
 from services.words_list.list_swear_words import ListSwearWords
@@ -45,8 +45,8 @@ class AnalysisData:
     def load_predefined_lists(self, list_keys: List[str]) -> None:
         """Load ready-made Phrase objects from predefined lists (MySQL) by their keys."""
         list_mapping = {
-            PredefinedListKey.FOREIGN_AGENTS_PERSONS: ListPersons,
-            PredefinedListKey.FOREIGN_AGENTS_COMPANIES: ListCompanies,
+            PredefinedListKey.FOREIGN_AGENTS_PERSONS: ListInagentsFIZ,
+            PredefinedListKey.FOREIGN_AGENTS_COMPANIES: ListInagentsUR,
             PredefinedListKey.PROFANITY: ListProfanity,
             PredefinedListKey.PROHIBITED_SUBSTANCES: ListProhibitedSubstances,
             PredefinedListKey.SWEAR_WORDS: ListSwearWords,
