@@ -13,15 +13,20 @@
         </label>
 
         <div class="flex gap-2 items-stretch">
+            <div class="inputField inputField__disabled flex-1 min-w-0 flex items-center">
+                {{ form_data.full_name or '' }}
+            </div>
+
             <input
                 type="text"
                 id="inagent-fragment-full_name"
                 name="full_name"
                 value="{{ form_data.full_name or '' }}"
-                class="inputField inputField__disabled flex-1 min-w-0"
+                class="hidden"
                 placeholder="Наименование или ФИО"
                 disabled
             >
+
             <button
                 type="button"
                 class="btn btn__secondary"
