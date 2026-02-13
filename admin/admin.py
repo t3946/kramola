@@ -188,6 +188,11 @@ class WordsListView(BaseView):
 VALID_AGENT_TYPES: tuple[str, ...] = tuple(AGENT_TYPE_SHORT_LABELS.keys())
 
 
+def _form_apply_search_terms_only(form, inagent: Inagent) -> None:
+    search_terms_list = form.getlist("search_terms")[:6]
+    inagent.search_terms = [s.strip() for s in search_terms_list if s.strip()] or None
+
+
 class InagentsListView(BaseView):
     def is_visible(self) -> bool:
         return False
@@ -299,7 +304,7 @@ class InagentsListView(BaseView):
     @expose("/<int:id>/edit", methods=["POST"])
     def edit_save(self, id: int):
         inagent = Inagent.query.get_or_404(id)
-        form_to_inagent(request.form, inagent)
+        _form_apply_search_terms_only(request.form, inagent)
         db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify(success=True)
