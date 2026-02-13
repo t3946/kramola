@@ -20,21 +20,10 @@ class PredefinedListKey(str, Enum):
 
 
 class WordsList:
-    KEY_PREFIX = "words_list_"
-
     @property
     @abstractmethod
     def list_key(self) -> str:
         pass
-
-    def get_list_key(self) -> str:
-        return self.KEY_PREFIX + self.list_key
-
-    def get_log_key(self, sub_key: str = "") -> str:
-        key = self.get_list_key() + ":logs"
-        if sub_key:
-            key += ":" + sub_key
-        return key
 
     def _get_list_record(self) -> ListRecord:
         record = ListRecord.query.filter_by(name=self.list_key).first()
