@@ -1,21 +1,19 @@
 from pathlib import Path
-from typing import List, Dict, Any, Union, Type
+from typing import List, Dict, Any, Union
 import json
-from services.tokenization import Token, tokenize_text
-from services.words_list import WordsList
-from services.words_list.list_inagents import ListInagents
 
+from services.tokenization import Token, tokenize_text
 
 class Phrase:
     phrase: str
     # origin: list class (WordsList/ListInagents), file path (Path), free text (str), or None
-    source: Union[Type[WordsList], Type[ListInagents], Path, str, None]
+    source: Union[object, Path, str, None]
     tokens: List[Token]
 
     def __init__(
             self,
             phrase: str,
-            source: Union[Type[WordsList], Type[ListInagents], Path, str, None] = None,
+            source: Union[object, Path, str, None] = None,
     ) -> None:
         self.source = source
         self.phrase = phrase
