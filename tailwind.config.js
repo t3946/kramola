@@ -6,7 +6,12 @@ module.exports = {
     './frontend/**/*.{js,jsx,ts,tsx}',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        link: '#4caf50',
+        'link-hover': '#45a049',
+      },
+    },
   },
   plugins: [],
 };

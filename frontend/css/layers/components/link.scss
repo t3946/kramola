@@ -1,11 +1,11 @@
 @layer components {
   .base-link {
-    color: #4caf50;
+    color: theme('colors.link');
     text-decoration: underline;
     cursor: pointer;
 
     &:hover {
-      color: #45a049;
+      color: theme('colors.link-hover');
     }
   }
 }
