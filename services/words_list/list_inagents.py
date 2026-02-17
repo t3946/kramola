@@ -4,6 +4,7 @@ from sqlalchemy import or_
 
 from models import Inagent
 from models.inagents import AgentType
+from services.enum.predefined_list import SearchSourceType
 from services.fulltext_search.phrase import Phrase
 
 
@@ -37,4 +38,4 @@ class ListInagents:
             if isinstance(terms, list):
                 merged.extend(s.strip() for s in terms if s and str(s).strip())
 
-        return [Phrase(text) for text in merged]
+        return [Phrase(text, SearchSourceType.LIST_INAGENTS) for text in merged]

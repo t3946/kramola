@@ -1,22 +1,12 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from enum import Enum
 from typing import Any, Dict, List
-
 from sqlalchemy import func, or_
-
 from extensions import db
+
 from models import ListLog, ListPhrase, ListRecord, PhraseRecord
+from services.enum.predefined_list import SearchSourceType
 from services.fulltext_search.phrase import Phrase
-
-
-class PredefinedListKey(str, Enum):
-    FOREIGN_AGENTS_PERSONS = "foreign_agents_persons"
-    FOREIGN_AGENTS_COMPANIES = "foreign_agents_companies"
-    PROFANITY = "profanity"
-    PROHIBITED_SUBSTANCES = "prohibited_substances"
-    SWEAR_WORDS = "swear_words"
-    EXTREMISTS_TERRORISTS = "extremists_terrorists"
 
 
 class WordsList(ABC):
@@ -87,9 +77,7 @@ class WordsList(ABC):
             .with_entities(PhraseRecord.phrase)
             .all()
         )
-        source = self.__class__
-
-        return [Phrase(phrase, source) for (phrase,) in rows]
+        return [Phrase(phrase, SearchSourceType.LIST) for (phrase,) in rows]
 
     def clear(self) -> None:
         list_record = self._get_list_record()

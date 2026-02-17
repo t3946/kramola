@@ -27,7 +27,7 @@
                 <tbody>
                     {% for stat_item in stats_data %}
                         <tr>
-                            <td>{{ stat_item['search']['text'] }}</td>
+                            <td>{{ stat_item['search']['phrase']['phrase'] }}</td>
                             <td>{{ stat_item['total'] }}</td>
                             <td>
                                 {% for form_key, form_item in stat_item['forms'].items() %}

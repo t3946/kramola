@@ -8,6 +8,7 @@ from services.words_list.list_prohibited_substances import ListProhibitedSubstan
 from services.words_list.list_swear_words import ListSwearWords
 from services.words_list.list_extremists_terrorists import ListExtremistsTerrorists
 from services.enum import PredefinedListKey
+from services.enum.predefined_list import SearchSourceType
 from services.utils.regex_pattern import RegexPattern
 from services.patterns.profanity_words import PROFANITY_WORDS_PATTERNS
 
@@ -29,7 +30,7 @@ class AnalysisData:
                 text = term.strip()
 
                 if text not in self.phrases:
-                    self.phrases[text] = Phrase(text)
+                    self.phrases[text] = Phrase(text, SearchSourceType.TEXT)
 
     def read_regex_patterns(self, patterns: Dict[str, str]) -> None:
         """Load regex patterns for search.

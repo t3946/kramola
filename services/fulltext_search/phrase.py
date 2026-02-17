@@ -1,29 +1,33 @@
-from pathlib import Path
-from typing import List, Dict, Any, Union
+from typing import List, Dict, Any, Optional
 import json
 
+from services.enum.predefined_list import SearchSourceType
 from services.tokenization import Token, tokenize_text
+
 
 class Phrase:
     phrase: str
-    # origin: list class (WordsList/ListInagents), file path (Path), free text (str), or None
-    source: Union[object, Path, str, None]
+    source: Optional[SearchSourceType]
     tokens: List[Token]
 
     def __init__(
             self,
             phrase: str,
-            source: Union[object, Path, str, None] = None,
+            source: Optional[SearchSourceType] = None,
     ) -> None:
         self.source = source
         self.phrase = phrase
         self.tokens = tokenize_text(phrase)
 
+    def _source_to_serializable(self) -> Optional[str]:
+        return self.source.value if self.source is not None else None
+
     def to_dict(self) -> Dict[str, Any]:
         """Serialize Phrase to dictionary."""
         return {
             'phrase': self.phrase,
-            'tokens': [token.to_dict() for token in self.tokens]
+            'tokens': [token.to_dict() for token in self.tokens],
+            'source': self.source.value if self.source is not None else None,
         }
 
     def to_json(self) -> str:
@@ -36,6 +40,8 @@ class Phrase:
         phrase = Phrase.__new__(Phrase)
         phrase.phrase = data['phrase']
         phrase.tokens = [Token.from_dict(token_data) for token_data in data['tokens']]
+        raw = data.get('source')
+        phrase.source = SearchSourceType(raw) if raw is not None else None
         return phrase
 
     @staticmethod
