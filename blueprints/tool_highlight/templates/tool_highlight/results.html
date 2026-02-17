@@ -4,7 +4,7 @@
 {% block page_title %}Результаты выделения{% endblock %}
 
 {% block content %}
-<div class="container">
+<div class="pageContentWrapper">
     <div class="header">
         <i class="fas fa-file-alt"></i>
         Результаты выделения
@@ -16,7 +16,7 @@
         {% if result_filename and not result_file_missing %}
             <div class="results" style="display: block;">
                 <p>Обработка успешно завершена за {{ processing_time | default('?') }} сек.</p>
-                <a href="{{ url_for('highlight.download_result', filename=result_filename) }}" class="button download-btn">
+                <a href="{{ url_for('highlight.download_result', filename=result_filename) }}" class="button download-btn w-full">
                     <i class="fas fa-download"></i> Скачать обработанный документ ({{ result_filename }})
                 </a>
             </div>

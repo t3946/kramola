@@ -3,6 +3,7 @@ import { resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { copyFile, mkdir } from 'fs/promises';
 import { dirname } from 'path';
+import sassGlobImports from 'vite-plugin-sass-glob-import';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
@@ -41,7 +42,7 @@ const copyToStaticPlugin = () => {
 
 export default defineConfig({
   root: resolve(__dirname, 'frontend'),
-  plugins: [copyToStaticPlugin()],
+  plugins: [sassGlobImports(), copyToStaticPlugin()],
   css: {
     preprocessorOptions: {
       scss: {},
@@ -64,7 +65,12 @@ export default defineConfig({
       },
     },
     watch: {
-      include: ['frontend/src/**', 'frontend/css/**'],
+      include: [
+        'frontend/src/**',
+        'frontend/css/**',
+        'templates/**/*.html',
+        'blueprints/**/templates/**/*.html',
+      ],
     },
   },
 });
