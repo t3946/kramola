@@ -6,45 +6,65 @@ import { dirname } from 'path';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
-// Плагин для копирования bundle.js в static/js после сборки
-const copyBundlePlugin = () => {
+const copyToStaticPlugin = () => {
+  const copyIfExists = (
+    source: string,
+    target: string
+  ): Promise<void> =>
+    mkdir(dirname(target), { recursive: true })
+      .then(() => copyFile(source, target))
+      .catch((err: NodeJS.ErrnoException) => {
+        if (err.code !== 'ENOENT') {
+          console.error('Copy to static failed:', err);
+        }
+      });
   return {
-    name: 'copy-bundle',
-    writeBundle() {
-      const distFile = resolve(__dirname, 'dist', 'bundle.js');
-      const targetFile = resolve(__dirname, 'static', 'js', 'bundle.js');
-      const targetDir = dirname(targetFile);
-      
-      return mkdir(targetDir, { recursive: true })
-        .then(() => copyFile(distFile, targetFile))
-        .then(() => console.log(`✓ Скопирован bundle.js в static/js`))
-        .catch(err => {
-          if (err.code !== 'ENOENT') {
-            console.error('Ошибка при копировании bundle.js:', err);
-          }
-        });
-    }
+    name: 'copy-to-static',
+    writeBundle(_options: unknown, bundle: Record<string, { type?: string; fileName?: string }>) {
+      const distDir = resolve(__dirname, 'dist');
+      const promises: Promise<void>[] = [];
+      const jsSource = resolve(distDir, 'bundle.js');
+      promises.push(copyIfExists(jsSource, resolve(__dirname, 'static', 'js', 'bundle.js')));
+      const cssEntry = Object.keys(bundle).find(
+        (key) => bundle[key].type === 'asset' && key.endsWith('.css')
+      );
+      if (cssEntry) {
+        const cssSource = resolve(distDir, bundle[cssEntry].fileName ?? cssEntry);
+        promises.push(
+          copyIfExists(cssSource, resolve(__dirname, 'static', 'css', 'bundle.css'))
+        );
+      }
+      return Promise.all(promises);
+    },
   };
 };
 
 export default defineConfig({
   root: resolve(__dirname, 'frontend'),
-  plugins: [copyBundlePlugin()],
+  plugins: [copyToStaticPlugin()],
+  css: {
+    preprocessorOptions: {
+      scss: {},
+    },
+  },
   build: {
     outDir: resolve(__dirname, 'dist'),
-    emptyOutDir: true, // Очищаем директорию dist при сборке
-    minify: false, // Отключаем минификацию в режиме разработки для более быстрой сборки
+    emptyOutDir: true,
+    minify: false,
     rollupOptions: {
       input: resolve(__dirname, 'frontend/src/Main.js'),
       output: {
         entryFileNames: 'bundle.js',
+        assetFileNames: (assetInfo) => {
+          const name = assetInfo.name ?? '';
+          return name.endsWith('.css') ? 'css/bundle[extname]' : 'assets/[name]-[hash][extname]';
+        },
         format: 'iife',
-        name: 'App'
-      }
+        name: 'App',
+      },
     },
     watch: {
-      // Настройки для watch режима
-      include: ['frontend/src/**']
-    }
-  }
+      include: ['frontend/src/**', 'frontend/css/**'],
+    },
+  },
 });

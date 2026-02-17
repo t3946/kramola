@@ -1,5 +1,5 @@
 // Точка входа для Vite сборки
-// Импортируем все JS модули, которые должны быть доступны на всех страницах
+import '../css/main.scss';
 
 import './MainApp.js';
 import './ErrorPopup.js';
