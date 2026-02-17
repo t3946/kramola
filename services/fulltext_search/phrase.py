@@ -7,16 +7,20 @@ from services.tokenization import Token, tokenize_text
 
 class Phrase:
     phrase: str
+    phrase_original: Optional[str]
     source: Optional[SearchSourceType]
     tokens: List[Token]
+    # full text imagination of search object
 
     def __init__(
             self,
             phrase: str,
+            phrase_original: Optional[str] = None,
             source: Optional[SearchSourceType] = None,
     ) -> None:
         self.source = source
         self.phrase = phrase
+        self.phrase_original = phrase_original
         self.tokens = tokenize_text(phrase)
 
     def _source_to_serializable(self) -> Optional[str]:
@@ -26,6 +30,7 @@ class Phrase:
         """Serialize Phrase to dictionary."""
         return {
             'phrase': self.phrase,
+            'phrase_original': self.phrase_original,
             'tokens': [token.to_dict() for token in self.tokens],
             'source': self.source.value if self.source is not None else None,
         }

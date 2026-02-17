@@ -14,7 +14,10 @@ class ListInagents:
     agent_types: ClassVar[List[AgentType]] = []
 
     def load(self) -> list[Phrase]:
-        query = Inagent.query.with_entities(Inagent.search_terms)
+        query = Inagent.query.with_entities(
+            Inagent.full_name,
+            Inagent.search_terms
+        )
 
         if self.agent_types:
             query = query.filter(Inagent.agent_type.in_(self.agent_types))
@@ -32,10 +35,19 @@ class ListInagents:
         # [end]
 
         rows = query.all()
-        merged: list[str] = []
+        phrases = []
 
-        for (terms,) in rows:
-            if isinstance(terms, list):
-                merged.extend(s.strip() for s in terms if s and str(s).strip())
+        for (full_name, terms) in rows:
+            if not isinstance(terms, list):
+                terms = []
 
-        return [Phrase(text, SearchSourceType.LIST_INAGENTS) for text in merged]
+            for text in terms:
+                phrase = Phrase(
+                    phrase=text,
+                    source=SearchSourceType.LIST_INAGENTS,
+                    phrase_original=full_name
+                )
+
+                phrases.append(phrase)
+
+        return phrases
