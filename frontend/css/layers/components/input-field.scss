@@ -1,0 +1,17 @@
+@layer components {
+  .inputField {
+    @apply block w-full rounded-lg border border-gray-300 py-2 px-3 text-sm;
+
+    &__default {
+      @apply bg-white placeholder-gray-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500;
+    }
+
+    &__withIcon {
+      @apply pl-10 pr-3;
+    }
+
+    &__disabled {
+      @apply bg-gray-100 text-gray-700 cursor-not-allowed;
+    }
+  }
+}

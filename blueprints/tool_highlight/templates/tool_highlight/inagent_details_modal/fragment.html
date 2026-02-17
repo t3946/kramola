@@ -1,0 +1,105 @@
+<div class="space-y-4">
+    <div>
+        <label for="inagent-fragment-full_name" class="formLabel">
+            Полное наименование / ФИО
+        </label>
+
+        <div class="flex gap-2 items-stretch">
+            <div class="inputField inputField__disabled flex-1 min-w-0 flex items-center">
+                {{ form_data.full_name or '' }}
+            </div>
+
+            <input
+                type="text"
+                id="inagent-fragment-full_name"
+                name="full_name"
+                value="{{ form_data.full_name or '' }}"
+                class="hidden"
+                placeholder="Наименование или ФИО"
+                disabled
+            >
+
+            <button
+                type="button"
+                class="btn btn__secondary"
+                onclick="navigator.clipboard.writeText(document.getElementById('inagent-fragment-full_name').value)"
+            >
+                Копировать
+            </button>
+        </div>
+    </div>
+
+    <div class="grid gap-3 grid-cols-3 grid-cols-[auto,1fr,auto]">
+        <div>
+            <label for="inagent-fragment-number" class="formLabel">Номер</label>
+
+            <input
+                type="text"
+                id="inagent-fragment-number"
+                name="number"
+                value="{{ form_data.number or '' }}"
+                disabled
+                class="inputField inputField__disabled"
+                placeholder="Номер в реестре"
+            >
+        </div>
+
+        <div>
+            <label for="inagent-fragment-agent_type" class="formLabel">
+                Тип иностранного агента
+            </label>
+
+            <input
+                id="inagent-fragment-agent_type"
+                type="text"
+                value="{{ agent_type_map[form_data.agent_type]|capitalize or '—' }}"
+                disabled
+                class="inputField inputField__disabled"
+            >
+        </div>
+
+        <div>
+            <label for="inagent-fragment-status" class="formLabel">Статус</label>
+
+            <input
+                type="text"
+                id="inagent-fragment-status"
+                value="{{ form_data.status_label or '—' }}"
+                disabled
+                class="inputField inputField__disabled"
+            >
+        </div>
+    </div>
+
+    <div class="grid gap-3 grid-cols-2">
+        <div>
+            <label for="inagent-fragment-date_included" class="formLabel">
+                Дата включения в реестр
+            </label>
+
+            <input
+                type="date"
+                id="inagent-fragment-date_included"
+                name="date_included"
+                value="{{ form_data.date_included or '' }}"
+                class="inputField inputField__disabled"
+                disabled
+            >
+        </div>
+
+        <div>
+            <label for="inagent-fragment-date_excluded" class="formLabel">
+                Дата исключения из реестра
+            </label>
+
+            <input
+                type="date"
+                id="inagent-fragment-date_excluded"
+                name="date_excluded"
+                value="{{ form_data.date_excluded or '' }}"
+                class="inputField inputField__disabled"
+                disabled
+            >
+        </div>
+    </div>
+</div>

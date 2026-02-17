@@ -25,6 +25,9 @@ from services.pymorphy_service import (
 )
 from services.analysis.analyser_pdf import AnalyserPdf
 
+from models import Inagent
+from models.inagents import AGENT_TYPE_MAP
+
 
 highlight_bp = Blueprint('highlight', __name__, template_folder='templates')
 
@@ -463,6 +466,70 @@ def results():
         stats=stats,
         search_source_type=SearchSourceType,
         **template_data
+    )
+
+
+def _inagent_details_status_label(inagent: Inagent) -> str:
+    i_d = inagent.include_minjust_date
+    e_d = inagent.exclude_minjust_date
+    if i_d and not e_d or i_d and e_d and i_d > e_d:
+        return "Числится"
+    if i_d and e_d and i_d <= e_d:
+        return "Снят"
+    return "—"
+
+
+def _inagent_details_to_form_data(inagent: Inagent) -> dict:
+    def _agent_type_str(agent_type_attr) -> str:
+        if agent_type_attr is None:
+            return ""
+        return getattr(agent_type_attr, "value", None) or str(agent_type_attr) or ""
+
+    def _domain_to_text(domain_name: list | None) -> str:
+        if not domain_name:
+            return ""
+        return "\n".join(domain_name) if isinstance(domain_name, list) else str(domain_name)
+
+    return {
+        "agent_type": _agent_type_str(inagent.agent_type),
+        "number": str(inagent.registry_number) if inagent.registry_number is not None else "",
+        "full_name": inagent.full_name or "",
+        "status_label": _inagent_details_status_label(inagent),
+        "date_included": inagent.include_minjust_date.strftime("%Y-%m-%d") if inagent.include_minjust_date else "",
+        "date_excluded": inagent.exclude_minjust_date.strftime("%Y-%m-%d") if inagent.exclude_minjust_date else "",
+        "domain": _domain_to_text(inagent.domain_name),
+        "search_terms": list(inagent.search_terms)[:6] if isinstance(inagent.search_terms, list) else [],
+    }
+
+
+@highlight_bp.route('/inagent-details')
+def inagent_details_fragment():
+    phrase = request.args.get("phrase", "").strip()
+    if not phrase:
+        return render_template(
+            "tool_highlight/inagent_details_modal/fragment.html",
+            form_data={
+                "full_name": "", "number": "", "agent_type": "", "status_label": "—",
+                "date_included": "", "date_excluded": "", "domain": "", "search_terms": [],
+            },
+            agent_type_map=AGENT_TYPE_MAP,
+        )
+    inagents = Inagent.query.filter(Inagent.search_terms.isnot(None)).all()
+    inagent = next((i for i in inagents if phrase in (i.search_terms or [])), None)
+    if not inagent:
+        return render_template(
+            "tool_highlight/inagent_details_modal/fragment.html",
+            form_data={
+                "full_name": "", "number": "", "agent_type": "", "status_label": "—",
+                "date_included": "", "date_excluded": "", "domain": "", "search_terms": [],
+            },
+            agent_type_map=AGENT_TYPE_MAP,
+        )
+    form_data = _inagent_details_to_form_data(inagent)
+    return render_template(
+        "tool_highlight/inagent_details_modal/fragment.html",
+        form_data=form_data,
+        agent_type_map=AGENT_TYPE_MAP,
     )
 
 

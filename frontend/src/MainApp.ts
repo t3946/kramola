@@ -3,7 +3,7 @@ import BaseComponent from './components/BaseComponent.js';
 import {onDocumentReady} from './utils/onDocumentReady.js';
 
 import {Highlight} from './pages/Highlight.js';
-import {HighlightResult} from './pages/HighlightResult.js';
+import {HighlightResult} from './pages/highlight-result/HighlightResult.js';
 
 /**
  * @returns {void}

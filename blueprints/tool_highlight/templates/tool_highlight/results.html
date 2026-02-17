@@ -4,7 +4,7 @@
 {% block page_title %}Результаты выделения{% endblock %}
 
 {% block content %}
-<div class="pageContentWrapper highlightResultPage">
+<div class="pageContentWrapper highlightResultPage" data-inagent-details-url="{{ url_for('highlight.inagent_details_fragment') }}">
     <div class="header">
         <i class="fas fa-file-alt"></i>
         Результаты выделения
@@ -79,6 +79,8 @@
     <a href="{{ url_for('highlight.index') }}" class="back-link">
         <i class="fas fa-arrow-left"></i> Вернуться на главную
     </a>
+
+    {% include 'tool_highlight/inagent_details_modal/modal.html' %}
 </div>
 {% endblock %}
 
