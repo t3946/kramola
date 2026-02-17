@@ -1,9 +1,12 @@
 from typing import List, Dict
-from abc import ABC, abstractmethod
+from abc import ABC
+from dataclasses import asdict
+
 from services.analysis.analysis_match import AnalysisMatch, AnalysisMatchKind
 from services.analysis.stats.stat_item import StatItem, StatItemSearch
-from dataclasses import asdict
 from services.analysis.stats.stat_form import StatForm
+from services.fulltext_search.phrase import Phrase
+from services.fulltext_search.search_match import FTSTextMatch, FTSRegexMatch
 
 
 class Stats(ABC):
@@ -24,19 +27,22 @@ class Stats(ABC):
         stats_list = []
 
         for search_item, stat_item in self.stats.items():
-            # todo: конверт. статов в словарь
             stat_dict = asdict(stat_item)
-            stat_dict['search'] = asdict(search_item)
-            stat_dict['search']['kind'] = search_item.kind.value
+            stat_dict['search'] = {
+                'phrase': search_item.phrase.to_dict(),
+                'kind': search_item.kind.value,
+            }
             stats_list.append(stat_dict)
 
         return stats_list
 
-    def add(self, match: AnalysisMatch):
-        search_item = StatItemSearch(
-            text=match.search_match.get_search_str(),
-            kind=match.kind
-        )
+    def add(self, match: AnalysisMatch) -> None:
+        if isinstance(match.search_match, FTSTextMatch):
+            phrase = match.search_match.search_phrase
+        elif isinstance(match.search_match, FTSRegexMatch):
+            phrase = Phrase(phrase=match.search_match.get_search_str(), source=None)
+
+        search_item = StatItemSearch(phrase=phrase, kind=match.kind)
         stat_item = self.stats.get(search_item)
 
         if not stat_item:
