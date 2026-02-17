@@ -7,3 +7,9 @@ class PredefinedListKey(str, Enum):
     PROHIBITED_SUBSTANCES = "prohibited_substances"
     SWEAR_WORDS = "swear_words"
     EXTREMISTS_TERRORISTS = "extremists_terrorists"
+
+class SearchSourceType(str, Enum):
+    FILE = "file"
+    TEXT = "text"
+    LIST = "list"
+    LIST_INAGENTS = "list_inagents"
