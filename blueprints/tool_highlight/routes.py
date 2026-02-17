@@ -7,6 +7,7 @@ import json  # Для сериализации/десериализации да
 from typing import List
 
 from services.analysis import AnalysisData, AnalyserDocx, AnalysisMatchKind
+from services.enum.predefined_list import SearchSourceType
 from services.task import TaskStatus
 
 
@@ -389,11 +390,12 @@ def results():
             'tool_highlight/results.html',
             error=last_result_data.get('error'),
             task_id=task_id_for_template,
-            word_stats=[],  # Передаем пустые списки при ошибке
+            word_stats=[],
             phrase_stats=[],
             pattern_stats=[],
             stats=[],
-            result_file_missing=False,  # Файла точно нет, если ошибка
+            result_file_missing=False,
+            search_source_type=SearchSourceType,
             **template_data
         )
 
@@ -459,7 +461,8 @@ def results():
         pattern_stats=pattern_stats,
         result_file_missing=result_file_missing,
         stats=stats,
-        **template_data  # Передаем остальные данные (filename, time, etc.)
+        search_source_type=SearchSourceType,
+        **template_data
     )
 
 
