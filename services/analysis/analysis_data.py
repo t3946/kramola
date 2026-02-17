@@ -7,7 +7,7 @@ from services.words_list.list_profanity import ListProfanity
 from services.words_list.list_prohibited_substances import ListProhibitedSubstances
 from services.words_list.list_swear_words import ListSwearWords
 from services.words_list.list_extremists_terrorists import ListExtremistsTerrorists
-from services.words_list import PredefinedListKey
+from services.enum import PredefinedListKey
 from services.utils.regex_pattern import RegexPattern
 from services.patterns.profanity_words import PROFANITY_WORDS_PATTERNS
 

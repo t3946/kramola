@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List
 
-from services.words_list import PredefinedListKey
+from services.enum import PredefinedListKey
 from tests.pdf.base_pdf_long_lists_test import BasePdfLongListsTest
 
 

@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional, List
 
 from services.document_service import extract_lines_from_docx
-from services.words_list import PredefinedListKey
+from services.enum import PredefinedListKey
 from tests.mixins.analysis_setup_mixin import AnalysisSetupMixin
 from tests.mixins.file_loader_mixin import FileLoaderMixin
 from tests.mixins.results_validation_mixin import ResultsValidationMixin

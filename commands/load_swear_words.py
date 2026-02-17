@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from services.words_list.list_swear_words import ListSwearWords
-from services.words_list import PredefinedListKey
+from services.enum import PredefinedListKey
 from services.utils.load_lines_from_txt import load_lines_from_txt
 
 # Configure logging

@@ -30,7 +30,7 @@ from models.phrase_list.list_phrase import ListPhrase
 from models.phrase_list.list_record import ListRecord
 from services.pymorphy_service import load_pymorphy, load_nltk_lemmatizer
 from services.redis.connection import get_redis_connection, get_redis_host
-from services.words_list import PredefinedListKey
+from services.enum import PredefinedListKey
 
 load_dotenv()
 

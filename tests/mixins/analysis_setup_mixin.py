@@ -3,7 +3,7 @@ from typing import Dict, Optional, List
 
 from services.analysis.analyser_pdf import AnalyserPdf
 from services.analysis.analysis_data import AnalysisData
-from services.words_list import PredefinedListKey
+from services.enum import PredefinedListKey
 
 
 class AnalysisSetupMixin:

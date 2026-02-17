@@ -1,4 +1,5 @@
-from services.words_list import WordsList, PredefinedListKey
+from services.enum import PredefinedListKey
+from services.words_list import WordsList
 
 
 class ListPersons(WordsList):
