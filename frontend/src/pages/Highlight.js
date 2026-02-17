@@ -6,7 +6,7 @@ import {Page} from './Page.js';
 import socketIOService from '../services/SocketIOService.js';
 import u from 'umbrellajs';
 
-class Highlight extends Page {
+export class Highlight extends Page {
     constructor() {
         super();
 
@@ -206,5 +206,3 @@ class Highlight extends Page {
         }
     }
 }
-
-new Highlight();

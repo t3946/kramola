@@ -1,16 +1,27 @@
 import socketIOService from './services/SocketioService.js';
 import BaseComponent from './components/BaseComponent.js';
+import {onDocumentReady} from './utils/onDocumentReady.js';
+
+import {Highlight} from './pages/Highlight.js';
+import {HighlightResult} from './pages/HighlightResult.js';
 
 /**
  * @returns {void}
  */
-function initMainApp() {
+
+onDocumentReady(() => {
+    if (window.app) {
+        return
+    }
+
+    const app = {
+        pages: {
+            highlight: new Highlight(),
+            highlightResult: new HighlightResult(),
+        }
+    }
+
     socketIOService.connect().then(() => undefined, () => undefined);
     BaseComponent.initComponents();
-}
-
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initMainApp);
-} else {
-    initMainApp();
-}
+    window.app = app
+});
