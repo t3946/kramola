@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from services.progress.docx.combined_progress import CombinedProgress
 
 from docx.text.paragraph import Paragraph
+from docx.text.run import Run
 from docx.text.hyperlink import Hyperlink
 from docx.table import Table
 from docx.oxml.ns import qn
@@ -18,6 +19,7 @@ from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analysis.analyser import Analyser
 from services.analysis.analysis_match import AnalysisMatch
+from services.analysis.annot_content import get_annot_title_content
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.tokenization import Token, TokenType, TokenDictionary
 from services.fulltext_search.phrase import Phrase
@@ -102,8 +104,7 @@ class AnalyserDocx(Analyser):
             phrase_start_index: int,
             phrase_end_index: int,
             highlight_val: str
-    ) -> List[CT_R]:
-        # normalize index
+    ) -> Tuple[List[CT_R], Optional[CT_R]]:
         phrase_end_index -= 1
 
         # [start] build map
@@ -139,7 +140,8 @@ class AnalyserDocx(Analyser):
         # [end]
 
         # [start] get run with phrase
-        new_batch = []
+        new_batch: List[CT_R] = []
+        run_match_el: Optional[CT_R] = None
 
         for map_item in run_map:
             if map_item.search_intersection is None:
@@ -173,10 +175,11 @@ class AnalyserDocx(Analyser):
             new_batch.append(run_before_match)
             new_batch.append(run_match)
             new_batch.append(run_after_match)
+            run_match_el = run_match
             # [end]
         # [end]
 
-        return new_batch
+        return (new_batch, run_match_el)
 
     def __search_all_phrases(
             self,
@@ -220,7 +223,7 @@ class AnalyserDocx(Analyser):
 
         return matches
 
-    def __process_batch(self, batch: List[CT_R]) -> None:
+    def __process_batch(self, batch: List[CT_R], paragraph: Paragraph) -> None:
         # [start] find matches in concatenated batch text
         text = ''.join([run.text for run in batch])
         start_time = time.time()
@@ -235,15 +238,41 @@ class AnalyserDocx(Analyser):
 
         highlight_val: str = self.get_highlight_color_docx_val()
 
+        # [start] highlight match in document
+        match_run_els_list: List[Tuple[AnalysisMatch, List[CT_R]]] = []
+
         for match in matches:
             self.stats.add(match)
             search_match = match.search_match
             start_token_idx = search_match.start_token_idx
             end_token_idx = search_match.end_token_idx
 
+            match_run_els: List[CT_R] = []
+
             for i in range(start_token_idx, end_token_idx + 1):
                 token = source_tokens[i]
-                batch = self.__isolate_new_run_xml(batch, token.start, token.end, highlight_val)
+                batch, run_match_el = self.__isolate_new_run_xml(batch, token.start, token.end, highlight_val)
+
+                if run_match_el is not None:
+                    match_run_els.append(run_match_el)
+
+            match_run_els_list.append((match, match_run_els))
+        # [end]
+
+        # [start] add annotation to highlight text in document
+        for match, match_run_els in match_run_els_list:
+            if not match_run_els:
+                continue
+
+            title, content = get_annot_title_content(match)
+            comment_runs: List[Run] = [Run(r_el, paragraph) for r_el in match_run_els]
+            self.document.add_comment(
+                runs=comment_runs,
+                text=content,
+                author=title,
+                initials="",
+            )
+        # [end]
 
     @staticmethod
     def __split_on_batches(element: Union[CT_P, CT_Hyperlink]) -> List[List[CT_R]]:
@@ -262,18 +291,18 @@ class AnalyserDocx(Analyser):
         batches = AnalyserDocx.__split_on_batches(paragraph._element)
 
         for batch in batches:
-            self.__process_batch(batch)
+            self.__process_batch(batch, paragraph)
 
         hyperlinks: List[Hyperlink] = paragraph.hyperlinks
 
         for link in hyperlinks:
-            self.__analyze_link(link._element)
+            self.__analyze_link(link._element, paragraph)
 
-    def __analyze_link(self, link: CT_Hyperlink) -> None:
+    def __analyze_link(self, link: CT_Hyperlink, paragraph: Paragraph) -> None:
         batches = AnalyserDocx.__split_on_batches(link)
 
         for batch in batches:
-            self.__process_batch(batch)
+            self.__process_batch(batch, paragraph)
 
     def __build_global_dictionary(self) -> TokenDictionary:
         """Build dictionary from entire document text."""
