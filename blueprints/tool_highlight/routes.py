@@ -7,7 +7,7 @@ import json  # Для сериализации/десериализации да
 from typing import List
 
 from services.analysis import AnalysisData, AnalyserDocx, AnalysisMatchKind
-from services.enum.predefined_list import SearchSourceType
+from services.enum.predefined_list import ESearchSource
 from services.task import TaskStatus
 
 
@@ -398,7 +398,7 @@ def results():
             pattern_stats=[],
             stats=[],
             result_file_missing=False,
-            search_source_type=SearchSourceType,
+            search_source_type=ESearchSource,
             **template_data
         )
 
@@ -464,7 +464,7 @@ def results():
         pattern_stats=pattern_stats,
         result_file_missing=result_file_missing,
         stats=stats,
-        search_source_type=SearchSourceType,
+        search_source_type=ESearchSource,
         **template_data
     )
 

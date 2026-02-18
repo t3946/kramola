@@ -4,7 +4,7 @@ from sqlalchemy import or_
 
 from models import Inagent
 from models.inagents import AgentType
-from services.enum.predefined_list import SearchSourceType
+from services.enum.predefined_list import ESearchSource
 from services.fulltext_search.phrase import Phrase
 
 
@@ -44,7 +44,7 @@ class ListInagents:
             for text in terms:
                 phrase = Phrase(
                     phrase=text,
-                    source=SearchSourceType.LIST_INAGENTS,
+                    source=ESearchSource.LIST_INAGENTS,
                     phrase_original=full_name
                 )
 

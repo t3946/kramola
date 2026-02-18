@@ -1,14 +1,14 @@
 from typing import List, Dict, Any, Optional
 import json
 
-from services.enum.predefined_list import SearchSourceType
+from services.enum.predefined_list import ESearchSource
 from services.tokenization import Token, tokenize_text
 
 
 class Phrase:
     phrase: str
     phrase_original: Optional[str]
-    source: Optional[SearchSourceType]
+    source: Optional[ESearchSource]
     tokens: List[Token]
     # full text imagination of search object
 
@@ -16,7 +16,7 @@ class Phrase:
             self,
             phrase: str,
             phrase_original: Optional[str] = None,
-            source: Optional[SearchSourceType] = None,
+            source: Optional[ESearchSource] = None,
     ) -> None:
         self.source = source
         self.phrase = phrase
@@ -46,7 +46,7 @@ class Phrase:
         phrase.phrase = data['phrase']
         phrase.tokens = [Token.from_dict(token_data) for token_data in data['tokens']]
         raw = data.get('source')
-        phrase.source = SearchSourceType(raw) if raw is not None else None
+        phrase.source = ESearchSource(raw) if raw is not None else None
         return phrase
 
     @staticmethod

@@ -5,7 +5,7 @@ from sqlalchemy import func, or_
 from extensions import db
 
 from models import ListLog, ListPhrase, ListRecord, PhraseRecord
-from services.enum.predefined_list import SearchSourceType
+from services.enum.predefined_list import PredefinedListKey, PREDEFINED_LIST_SOURCE
 from services.fulltext_search.phrase import Phrase
 
 
@@ -77,7 +77,9 @@ class WordsList(ABC):
             .with_entities(PhraseRecord.phrase)
             .all()
         )
-        return [Phrase(phrase, SearchSourceType.LIST) for (phrase,) in rows]
+        source = PREDEFINED_LIST_SOURCE.get(PredefinedListKey(self.list_key))
+
+        return [Phrase(phrase=phrase, source=source) for (phrase,) in rows]
 
     def clear(self) -> None:
         list_record = self._get_list_record()

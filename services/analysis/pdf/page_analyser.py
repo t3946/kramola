@@ -3,12 +3,16 @@ from typing import List, Optional, Tuple, TYPE_CHECKING
 
 import pymupdf
 
+from models.inagents import AgentType
 from services.analysis import AnalysisMatch
+from services.enum.predefined_list import ESearchSourceAnnotTitle
 from services.fulltext_search import Phrase
+from services.fulltext_search.search_match import FTSTextMatch, FTSRegexMatch
 
 if TYPE_CHECKING:
     pass
 
+from models import Inagent
 from services.analysis.pdf.char import Char
 from services.analysis.pdf.pua_map import PuaMap
 
@@ -173,13 +177,49 @@ class PageAnalyser:
         annot.set_colors(stroke=self.highlight_color)
 
         #[start] annot content
-        phrase: Phrase = match.search_match.search_phrase
-        content = phrase.phrase_original if phrase.phrase_original else phrase.phrase
+        if isinstance(match.search_match, FTSTextMatch):
+            phrase: Phrase = match.search_match.search_phrase
+            content = phrase.phrase_original if phrase.phrase_original else phrase.phrase
+            title = getattr(ESearchSourceAnnotTitle, phrase.source.name).value
 
-        annot.set_info({
-            "title": phrase.source,
-            "content": content,
-        })
+            if phrase.source.name == ESearchSourceAnnotTitle.LIST_INAGENTS.name:
+                content = ''
+                inagents: list[Inagent] = Inagent.get_by_term(phrase.phrase)
+
+                if inagents[0]:
+                    inagent = inagents[0]
+
+                    if inagent.agent_type == AgentType.FIZ.value:
+                        content = "\n".join([
+                            "Иноагент",
+                            f"{inagent.full_name}",
+                            f"Дата рождения: {inagent.birth_date}",
+                            "",
+                            "Деятельность: нет",
+                            f"В реестре с: {inagent.include_minjust_date}",
+                            "",
+                            f"Основание: {inagent.include_reason}"
+                        ])
+                    else:
+                        content = "\n".join([
+                            "Иноагент",
+                            f"{inagent.full_name}",
+                            "",
+                            "Деятельность: нет",
+                            f"В реестре с: {inagent.include_minjust_date}",
+                            "",
+                            f"Основание: {inagent.include_reason}"
+                        ])
+
+            annot.set_info({
+                "title": title,
+                "content": content,
+            })
+        elif isinstance(match.search_match, FTSRegexMatch):
+            annot.set_info({
+                "title": "Шаблон",
+                "content": f"«{match.search_match.regex_info.pattern_name}»",
+            })
         #[end]
 
         annot.update()

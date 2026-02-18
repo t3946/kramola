@@ -1,5 +1,6 @@
 from datetime import datetime
 from enum import Enum
+from typing import List
 
 from extensions import db
 
@@ -57,3 +58,9 @@ class Inagent(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     search_terms = db.Column(db.JSON, nullable=True)
+
+    @classmethod
+    def get_by_term(cls, term: str) -> List["Inagent"]:
+        """Return inagents whose search_terms list contains the given term."""
+        rows = cls.query.filter(cls.search_terms.isnot(None)).all()
+        return [r for r in rows if term in (r.search_terms or [])]
