@@ -3,6 +3,9 @@ from typing import List, Optional, Tuple, TYPE_CHECKING
 
 import pymupdf
 
+from services.analysis import AnalysisMatch
+from services.fulltext_search import Phrase
+
 if TYPE_CHECKING:
     pass
 
@@ -115,13 +118,14 @@ class PageAnalyser:
     def normalize(self) -> str:
         return self.to_text()
 
-    def highlight_range(self, start: int, end: int) -> None:
+    def highlight_range(self, start: int, end: int, match: Optional[AnalysisMatch] = None) -> None:
         """
         Выделяет текст на странице PDF для заданного диапазона символов.
 
         Args:
             start: Начальный индекс символа (включительно)
             end: Конечный индекс символа (включительно)
+            match: match details
         """
         if not self._chars:
             return
@@ -138,8 +142,8 @@ class PageAnalyser:
         wrap_index = next((i for i in self._wrap_indices if start <= i < end), None)
 
         if wrap_index is not None:
-            self.highlight_range(start, wrap_index)
-            self.highlight_range(wrap_index + 1, end)
+            self.highlight_range(start, wrap_index, match)
+            self.highlight_range(wrap_index + 1, end, None)
 
             return
         # [end]
@@ -167,4 +171,15 @@ class PageAnalyser:
         rect = pymupdf.Rect(x0, y0, x1, y1)
         annot: pymupdf.Annot = self.page.add_highlight_annot(rect)
         annot.set_colors(stroke=self.highlight_color)
+
+        #[start] annot content
+        phrase: Phrase = match.search_match.search_phrase
+        content = phrase.phrase_original if phrase.phrase_original else phrase.phrase
+
+        annot.set_info({
+            "title": phrase.source,
+            "content": content,
+        })
+        #[end]
+
         annot.update()

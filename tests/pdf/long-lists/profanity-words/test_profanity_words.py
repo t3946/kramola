@@ -10,12 +10,13 @@ class TestProfanityWords(BasePdfLongListsTest):
         PredefinedListKey.PROFANITY,
         PredefinedListKey.SWEAR_WORDS
     ]
-    
-    @staticmethod
-    def test_find_words_in_pdf() -> None:
-        TestProfanityWords.run_test(Path(__file__))
+
+    @classmethod
+    def test_find_words_in_pdf(cls) -> None:
+        instance = cls()
+        with instance.init_app().app_context():
+            cls.run_test(Path(__file__))
 
 
 if __name__ == '__main__':
     TestProfanityWords.test_find_words_in_pdf()
-

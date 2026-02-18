@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Optional, List
 
+from analysis.test_base import BaseTest
 from services.document_service import extract_lines_from_docx
 from services.enum import PredefinedListKey
 from tests.mixins.analysis_setup_mixin import AnalysisSetupMixin
@@ -15,7 +16,8 @@ class BasePdfLongListsTest(
     AnalysisSetupMixin,
     ResultsValidationMixin,
     SaveOutputMixin,
-    TestOutputMixin
+    TestOutputMixin,
+    BaseTest
 ):
     """Base class for PDF long-lists tests."""
     

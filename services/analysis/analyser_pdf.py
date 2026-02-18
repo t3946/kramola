@@ -147,7 +147,7 @@ class AnalyserPdf(Analyser):
                 local_start: int = match_start_in_page - page_start_offset
                 local_end: int = match_end_in_page - page_start_offset
 
-                page_analyser.highlight_range(local_start, local_end - 1)
+                page_analyser.highlight_range(local_start, local_end - 1, match)
             # [end]
         # [end]
         # [end]
