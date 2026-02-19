@@ -19,6 +19,7 @@
     "vite-plugin-sass-glob-import": "^6.0.0"
   },
   "dependencies": {
+    "@jaames/iro": "^5.5.2",
     "gridjs": "^6.2.0"
   }
 }

@@ -17,14 +17,27 @@
                 <tr class="border-b border-gray-100 align-middle">
                     <td class="py-3 pr-4 text-gray-700">{{ item.title }}</td>
                     <td class="py-3 pr-4">
-                        <input
-                            type="color"
-                            id="color_{{ item.slug }}"
-                            name="color_{{ item.slug }}"
-                            value="{{ item.color or '#6b7280' }}"
-                            class="h-10 w-14 cursor-pointer rounded border border-gray-300"
+                        <div
+                            class="color-swatch-wrap relative inline-block"
                             data-preview-for="preview_{{ item.slug }}"
-                        />
+                            data-initial-color="{{ item.color or '#6b7280' }}"
+                        >
+                            <input
+                                type="hidden"
+                                name="color_{{ item.slug }}"
+                                value="{{ item.color or '#6b7280' }}"
+                            />
+                            <button
+                                type="button"
+                                class="color-swatch h-10 w-14 rounded border border-gray-300 cursor-pointer"
+                                style="background-color: {{ item.color or '#6b7280' }}"
+                                aria-label="Выбрать цвет"
+                            ></button>
+                            <div class="color-swatch-popover absolute left-0 top-full mt-1 z-50 hidden rounded-lg border border-gray-200 bg-white p-3 shadow-lg" style="min-width: 280px;">
+                                <div class="color-palette"></div>
+                                <div class="color-swatch-picker" style="width: 160px; flex-shrink: 0;"></div>
+                            </div>
+                        </div>
                     </td>
                     <td class="py-3">
                         <span
@@ -50,13 +63,8 @@
         </div>
     </form>
 </div>
+{% endblock %}
 
-<script>
-document.querySelectorAll('input[type="color"][data-preview-for]').forEach(function (input) {
-    input.addEventListener('input', function () {
-        var el = document.getElementById(this.getAttribute('data-preview-for'));
-        if (el) el.style.backgroundColor = this.value;
-    });
-});
-</script>
+{% block tail %}
+{{ super() }}
 {% endblock %}
