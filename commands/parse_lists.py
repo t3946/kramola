@@ -12,8 +12,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
 from services.parser.parser_feds_fm import ParserFedsFM
-from services.words_list.list_companies import ListCompanies
-from services.words_list.list_persons import ListPersons
 
 # Configure logging
 log_dir = BASE_DIR / "log"
@@ -41,24 +39,10 @@ def main():
         logger.info("Initializing parser...")
         parser = ParserFedsFM()
 
-        # Load data
+        # Load data (FL/UL lists are now managed via inagents pipeline)
         logger.info("Loading data from website...")
         data = parser.load()
         logger.info(f"Records received: FL - {len(data.get('namesFL', []))}, LE - {len(data.get('namesUL', []))}")
-
-        # Save individuals list
-        logger.info("Saving individuals list...")
-        lp = ListPersons()
-        lp.clear()
-        lp.save(data['namesFL'], logging=True)
-        logger.info(f"Saved {len(data['namesFL'])} individuals records")
-
-        # Save legal entities list
-        logger.info("Saving legal entities list...")
-        lc = ListCompanies()
-        lc.clear()
-        lc.save(data['namesUL'], logging=True)
-        logger.info(f"Saved {len(data['namesUL'])} legal entities records")
 
         logger.info("=" * 60)
         logger.info("Parsing completed successfully")
