@@ -381,6 +381,65 @@ def _parse_date(s: str | None):
         return None
 
 
+SEARCH_LISTS: list[tuple[str, str, str]] = [
+    ("foreign_agents_persons", "foreign-agents-persons", "Иностранные агенты"),
+    ("profanity", "profanity", "Матные слова"),
+    ("prohibited_substances", "prohibited_substances", "Запрещенные вещества"),
+    ("swear_words", "swear-words", "Ругательства"),
+    ("extremists_terrorists", "extremists-terrorists", "Экстремисты и террористы"),
+]
+
+
+def _hex_color(s: str | None) -> str | None:
+    if not s or not s.strip():
+        return None
+    s = s.strip().lstrip("#")
+    if len(s) == 6 and all(c in "0123456789abcdefABCDEF" for c in s):
+        return f"#{s.lower()}"
+    return None
+
+
+class SearchSettingsView(BaseView):
+    """Settings page: search lists with color picker."""
+
+    def is_accessible(self) -> bool:
+        return current_user.is_authenticated and current_user.has_role("admin")
+
+    def inaccessible_callback(self, name: str, **kwargs) -> redirect:
+        return redirect(url_for("admin_auth.login", next=request.url))
+
+    def _list_items(self) -> list[dict]:
+        slugs = [slug for _, slug, _ in SEARCH_LISTS]
+        records = {r.slug: r for r in ListRecord.query.filter(ListRecord.slug.in_(slugs)).all()}
+        return [
+            {
+                "name": name,
+                "slug": slug,
+                "title": title,
+                "color": records[slug].color if slug in records else None,
+            }
+            for name, slug, title in SEARCH_LISTS
+        ]
+
+    @expose("/", methods=["GET", "POST"])
+    def index(self):
+        if request.method == "POST":
+            for _name, slug, _title in SEARCH_LISTS:
+                key = f"color_{slug}"
+                color = _hex_color(request.form.get(key))
+                record = ListRecord.query.filter_by(slug=slug).first()
+                if record:
+                    record.color = color
+                else:
+                    record = ListRecord(name=_name, slug=slug, title=_title, color=color)
+                    db.session.add(record)
+            db.session.commit()
+            flash("Цвета сохранены.")
+            return redirect(url_for(".index"))
+        items = self._list_items()
+        return self.render("admin/search_settings.html", items=items)
+
+
 class AutoloadView(BaseView):
     """Admin page for autoload lists logs."""
 
@@ -447,6 +506,14 @@ def init_admin(app: Flask, db) -> Admin:
             url="inagents-list",
             endpoint="inagents_list",
             category="Готовые списки",
+        )
+    )
+    admin.add_view(
+        SearchSettingsView(
+            name="Поиск",
+            url="settings/search",
+            endpoint="search_settings",
+            category="Настройки",
         )
     )
     admin.add_view(AutoloadView(name="Автозагрузка", url="autoload", endpoint="autoload"))

@@ -1,0 +1,62 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+<div class="rounded-lg border border-gray-200 bg-white p-6">
+    <form method="post" action="">
+        <table class="w-full border-collapse">
+            <thead>
+                <tr class="border-b border-gray-200">
+                    <th class="pb-3 pr-4 text-left font-medium text-gray-700">Название списка</th>
+                    <th class="pb-3 pr-4 text-left font-medium text-gray-700">Цвет</th>
+                    <th class="pb-3 text-left font-medium text-gray-700">Пример текста</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for item in items %}
+                <tr class="border-b border-gray-100 align-middle">
+                    <td class="py-3 pr-4 text-gray-700">{{ item.title }}</td>
+                    <td class="py-3 pr-4">
+                        <input
+                            type="color"
+                            id="color_{{ item.slug }}"
+                            name="color_{{ item.slug }}"
+                            value="{{ item.color or '#6b7280' }}"
+                            class="h-10 w-14 cursor-pointer rounded border border-gray-300"
+                            data-preview-for="preview_{{ item.slug }}"
+                        />
+                    </td>
+                    <td class="py-3">
+                        <span
+                            id="preview_{{ item.slug }}"
+                            class="inline-block rounded-md px-2 py-1 text-gray-900"
+                            style="background-color: {{ item.color or '#6b7280' }}"
+                        >
+                            Пример текста
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="mt-6">
+            <button
+                type="submit"
+                class="rounded bg-gray-800 px-4 py-2 text-white hover:bg-gray-700"
+            >
+                Сохранить
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.querySelectorAll('input[type="color"][data-preview-for]').forEach(function (input) {
+    input.addEventListener('input', function () {
+        var el = document.getElementById(this.getAttribute('data-preview-for'));
+        if (el) el.style.backgroundColor = this.value;
+    });
+});
+</script>
+{% endblock %}
