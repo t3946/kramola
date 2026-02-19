@@ -36,14 +36,14 @@
     {% set stats_data = word_stats %}
     {% set stats_form_class = 'word-form' %}
     {% set stats_empty_message = 'Одиночные слова из списка не найдены в документе.' %}
-    {% include 'components/stats_table.html' with context %}
+    {% include 'components/stats_table.j2' with context %}
 
     <!-- Блок статистики фраз -->
     {% set stats_title = 'Найденные фразы и их вхождения:' %}
     {% set stats_data = phrase_stats %}
     {% set stats_form_class = 'phrase-form' %}
     {% set stats_empty_message = 'Фразы из списка не найдены в документе.' %}
-    {% include 'components/stats_table.html' with context %}
+    {% include 'components/stats_table.j2' with context %}
 
     <!-- Блок статистики паттернов -->
     {% set stats_title = 'Найденные шаблоны и их вхождения:' %}
@@ -51,7 +51,7 @@
     {% set stats_form_class = 'pattern-form' %}
     {% set stats_empty_message = 'Паттерны из списка не найдены в документе.' %}
     {% set stats_first_column_title = 'Шаблон' %}
-    {% include 'components/stats_table.html' with context %}
+    {% include 'components/stats_table.j2' with context %}
 
     <!-- Блок использованных списков -->
     {% if used_predefined_lists %}
