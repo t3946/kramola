@@ -8,7 +8,7 @@ class ListRecord(db.Model):
     name = db.Column(db.String(100), unique=True, nullable=False)
     slug = db.Column(db.String(100), unique=True, nullable=False)
     title = db.Column(db.String(200), nullable=True)
-    color = db.Column(db.String(7), nullable=True)
+    color = db.Column(db.String(7), nullable=False, default="#aaaaaa")
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp(), nullable=True)
 
     phrases = db.relationship(

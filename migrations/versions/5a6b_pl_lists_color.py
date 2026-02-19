@@ -16,7 +16,13 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("pl_lists", sa.Column("color", sa.String(length=7), nullable=True))
+    color_column_def = sa.Column(
+        "color",
+        sa.String(length=7),
+        nullable=False,
+        default="#aaaaaa",
+    )
+    op.add_column("pl_lists", color_column_def)
 
 
 def downgrade() -> None:
