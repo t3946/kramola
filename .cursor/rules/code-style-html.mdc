@@ -1,0 +1,67 @@
+---
+description: "Common code style rules"
+alwaysApply: true
+appliesTo: ["**/*.html"]
+priority: 1
+---
+
+- place empty line between sibling block-elements
+- for long strings start every attribute from new line (or if >= 3 attributes)
+- only short element definition could be one-line
+- script, styles, link etc. group in blocks without empty lines  
+
+```html
+
+<body>
+<div
+    class="very-long-class-name-1 very-long-class-name-2"
+    data-attribute-param="param-1"
+    data-attribute-param="param-2"
+>
+    <p>Next li-elements is short</p>
+
+    <ul>
+        <li>Block first</li>
+
+        <li>Block second</li>
+    </ul>
+
+    <p>
+        <strong>Paragraph with long text couldn't be one line</strong>
+
+        <br/>
+
+        <span>Span elements is always one-line:</span>
+
+        <span>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Asperiores labore sunt veritatis. A ad architecto assumenda, cupiditate debitis deserunt dicta fugiat id illo incidunt, iste nemo nobis quas quasi saepe.</span>
+
+        <a href="#">
+            <i class="icon"></i>
+
+            <span>link content</span>
+        </a>
+        
+        <img
+            class="class"
+            src="http://..."
+            alt="alt"
+            title="title"
+        />
+    </p>
+</div>
+
+<!--groups in blocks without empty lines-->
+
+<!--[start] scripts block-->
+<script src="main.js"></script>
+<script src="jquery.js"></script>
+<script src="bootstrap.js"></script>
+<script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+<!--[end] scripts block-->
+
+<!--[start] styles block-->
+<script src="main.css"></script>
+<script src="bootstrap.css"></script>
+<!--[end] scripts block-->
+</body>
+```
