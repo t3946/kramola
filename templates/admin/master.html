@@ -24,13 +24,25 @@
     {% endfor %}
   </div>
 </div>
-<a class="px-3 py-2 rounded hover:bg-gray-700 text-gray-200" target="_blank" href="{{ url_for('highlight.index') }}">Сервис</a>
+
 {% endif %}
 {% endblock %}
 
 {% block access_control %}
 {% if current_user.is_authenticated %}
-<a class="px-3 py-2 rounded hover:bg-gray-700 text-gray-200" href="{{ url_for('admin_auth.logout') }}"><i class="fa fa-sign-out"></i> Выход</a>
+<a
+    class="px-3 py-2 rounded hover:bg-gray-700 text-gray-200"
+    target="_blank"
+    href="{{ url_for('highlight.index') }}">
+    Сервис
+</a>
+
+<a
+    class="px-3 py-2 rounded hover:bg-gray-700 text-gray-200"
+    href="{{ url_for('admin_auth.logout') }}"
+>
+    <i class="fa fa-sign-out"></i> Выход
+</a>
 {% endif %}
 {% endblock %}
 
