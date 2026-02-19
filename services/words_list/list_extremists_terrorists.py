@@ -1,10 +1,5 @@
-from services.enum import PredefinedListKey
-from services.words_list import WordsList
+from services.words_list.list_extremists_base import ListExtremistsTerroristsBase
 
 
-class ListExtremistsTerrorists(WordsList):
-    key = PredefinedListKey.EXTREMISTS_TERRORISTS.value
-
-    @property
-    def list_key(self) -> str:
-        return self.key
+class ListExtremistsTerrorists(ListExtremistsTerroristsBase):
+    """Loads all extremists/terrorists (all areas and statuses)."""

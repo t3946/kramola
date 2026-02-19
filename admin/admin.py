@@ -386,7 +386,6 @@ SEARCH_LISTS: list[tuple[str, str, str]] = [
     ("profanity", "profanity", "Матные слова"),
     ("prohibited_substances", "prohibited_substances", "Запрещенные вещества"),
     ("swear_words", "swear-words", "Ругательства"),
-    ("extremists_terrorists", "extremists-terrorists", "Экстремисты и террористы"),
 ]
 
 
@@ -503,7 +502,7 @@ def init_admin(app: Flask, db) -> Admin:
     admin.add_view(
         InagentsListView(
             name="Инагенты",
-            url="inagents-list",
+            url="words-list/inagents",
             endpoint="inagents_list",
             category="Готовые списки",
         )
@@ -525,6 +524,8 @@ def init_admin(app: Flask, db) -> Admin:
             else []
         )
     for list_record in list_records:
+        if list_record.slug == "inagents":
+            continue
         endpoint = f"words_list_{list_record.slug.replace('-', '_')}"
         admin.add_view(
             WordsListView(

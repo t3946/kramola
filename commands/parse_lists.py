@@ -39,10 +39,14 @@ def main():
         logger.info("Initializing parser...")
         parser = ParserFedsFM()
 
-        # Load data (FL/UL lists are now managed via inagents pipeline)
+        # Load data (extremists: use flask extremists:sync; FL/UL: inagents pipeline)
         logger.info("Loading data from website...")
         data = parser.load()
-        logger.info(f"Records received: FL - {len(data.get('namesFL', []))}, LE - {len(data.get('namesUL', []))}")
+        for area_key in ("international", "russian"):
+            block = data.get(area_key) or {}
+            logger.info(
+                f"Records {area_key}: FL - {len(block.get('namesFL') or [])}, UL - {len(block.get('namesUL') or [])}"
+            )
 
         logger.info("=" * 60)
         logger.info("Parsing completed successfully")

@@ -147,10 +147,14 @@ except Exception as e_general:
 app.config['PREDEFINED_LISTS'] = {
     PredefinedListKey.PROFANITY.value: "Матные слова",
     PredefinedListKey.PROHIBITED_SUBSTANCES.value: "Запрещенные вещества",
-    PredefinedListKey.SWEAR_WORDS.value: "Ругательства",
+    PredefinedListKey.SWEAR_WORDS.value: "Опасные слова",
     PredefinedListKey.FOREIGN_AGENTS_PERSONS.value: "Инагенты (ФИО)",
     PredefinedListKey.FOREIGN_AGENTS_COMPANIES.value: "Инагенты (Организации)",
-    PredefinedListKey.EXTREMISTS_TERRORISTS.value: "Экстремисты и террористы"
+    PredefinedListKey.EXTREMISTS_TERRORISTS.value: "Экстремисты и террористы",
+    PredefinedListKey.EXTREMISTS_INTERNATIONAL_FIZ.value: "Экстремисты и террористы (Международные): ФЛ",
+    PredefinedListKey.EXTREMISTS_INTERNATIONAL_UR.value: "Экстремисты и террористы (Международные): ЮЛ",
+    PredefinedListKey.EXTREMISTS_RUSSIAN_FIZ.value: "Экстремисты и террористы (Российские): ФЛ",
+    PredefinedListKey.EXTREMISTS_RUSSIAN_UR.value: "Экстремисты и террористы (Российские): ЮЛ",
 }
 
 # --- Создание директорий при старте ---
@@ -197,6 +201,7 @@ def inject_admin_words_lists():
                 "count": count_by_list_id.get(r.id, 0),
             }
             for r in records
+            if r.slug != "inagents"
         ]
         result.append({
             "endpoint": "inagents_list",

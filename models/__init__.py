@@ -8,6 +8,7 @@ from models.phrase_list.list_phrase import ListPhrase
 from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
 from models.inagents import Inagent
+from models.extremists_terrorists import ExtremistTerrorist
 
 
 class Role(db.Model):

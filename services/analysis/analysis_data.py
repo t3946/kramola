@@ -7,6 +7,10 @@ from services.words_list.list_profanity import ListProfanity
 from services.words_list.list_prohibited_substances import ListProhibitedSubstances
 from services.words_list.list_swear_words import ListSwearWords
 from services.words_list.list_extremists_terrorists import ListExtremistsTerrorists
+from services.words_list.list_extremists_international_fiz import ListExtremistsInternationalFIZ
+from services.words_list.list_extremists_international_ur import ListExtremistsInternationalUR
+from services.words_list.list_extremists_russian_fiz import ListExtremistsRussianFIZ
+from services.words_list.list_extremists_russian_ur import ListExtremistsRussianUR
 from services.enum import PredefinedListKey
 from services.enum.predefined_list import ESearchSource
 from services.utils.regex_pattern import RegexPattern
@@ -51,7 +55,11 @@ class AnalysisData:
             PredefinedListKey.PROFANITY: ListProfanity,
             PredefinedListKey.PROHIBITED_SUBSTANCES: ListProhibitedSubstances,
             PredefinedListKey.SWEAR_WORDS: ListSwearWords,
-            PredefinedListKey.EXTREMISTS_TERRORISTS: ListExtremistsTerrorists
+            PredefinedListKey.EXTREMISTS_TERRORISTS: ListExtremistsTerrorists,
+            PredefinedListKey.EXTREMISTS_INTERNATIONAL_FIZ: ListExtremistsInternationalFIZ,
+            PredefinedListKey.EXTREMISTS_INTERNATIONAL_UR: ListExtremistsInternationalUR,
+            PredefinedListKey.EXTREMISTS_RUSSIAN_FIZ: ListExtremistsRussianFIZ,
+            PredefinedListKey.EXTREMISTS_RUSSIAN_UR: ListExtremistsRussianUR,
         }
 
         for key in list_keys:
