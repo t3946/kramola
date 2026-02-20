@@ -114,7 +114,13 @@ class PageAnalyser:
     def normalize(self) -> str:
         return self.to_text()
 
-    def highlight_range(self, start: int, end: int, match: Optional[AnalysisMatch] = None) -> None:
+    def highlight_range(
+        self,
+        start: int,
+        end: int,
+        match: Optional[AnalysisMatch] = None,
+        color: Optional[Tuple[float, float, float]] = None,
+    ) -> None:
         """
         Выделяет текст на странице PDF для заданного диапазона символов.
 
@@ -122,9 +128,12 @@ class PageAnalyser:
             start: Начальный индекс символа (включительно)
             end: Конечный индекс символа (включительно)
             match: match details
+            color: RGB (0..1) for this highlight; if None use instance default
         """
         if not self._chars:
             return
+
+        stroke_color: Tuple[float, float, float] = color if color is not None else self.highlight_color
 
         # [start] validate and clamp range
         start = max(0, start)
@@ -138,8 +147,8 @@ class PageAnalyser:
         wrap_index = next((i for i in self._wrap_indices if start <= i < end), None)
 
         if wrap_index is not None:
-            self.highlight_range(start, wrap_index, match)
-            self.highlight_range(wrap_index + 1, end, None)
+            self.highlight_range(start, wrap_index, match, color)
+            self.highlight_range(wrap_index + 1, end, None, color)
 
             return
         # [end]
@@ -166,7 +175,7 @@ class PageAnalyser:
 
         rect = pymupdf.Rect(x0, y0, x1, y1)
         annot: pymupdf.Annot = self.page.add_highlight_annot(rect)
-        annot.set_colors(stroke=self.highlight_color)
+        annot.set_colors(stroke=stroke_color)
 
         title, content = get_annot_title_content(match)
         annot.set_info({"title": title, "content": content})

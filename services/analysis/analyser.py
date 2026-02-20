@@ -1,11 +1,21 @@
-from typing import List, Tuple, TYPE_CHECKING, Union
+from typing import Dict, List, Optional, Tuple, TYPE_CHECKING, Union
 
 from services.analysis.stats import Stats
 from services.analysis.analysis_match import AnalysisMatch, AnalysisMatchKind
 from services.fulltext_search.search_match import FTSRegexMatch, FTSTextMatch
+from services.enum.predefined_list import ESearchSource
 
 if TYPE_CHECKING:
     from services.analysis.analysis_data import AnalysisData
+
+DEFAULT_HEX_HIGHLIGHT: str = "#00ff00"
+ESOURCE_TO_SLUG: Dict[ESearchSource, str] = {
+    ESearchSource.LIST_INAGENTS: "inagents",
+    ESearchSource.LIST_EXTREMISTS_TERRORISTS: "extremists-terrorists",
+    ESearchSource.LIST_PROFANITY: "profanity",
+    ESearchSource.LIST_PROHIBITED_SUBSTANCES: "prohibited_substances",
+    ESearchSource.LIST_SWEAR_WORDS: "swear-words",
+}
 
 
 class Analyser:
@@ -15,15 +25,74 @@ class Analyser:
 
     def __init__(self) -> None:
         self.stats = None
+        self._highlight_color_cache: Dict[str, str] = {}
 
     def get_highlight_color_pdf(self) -> Tuple[float, float, float]:
         return self.HIGHLIGHT_COLOR
 
     def get_highlight_color_docx_val(self) -> str:
         if self.HIGHLIGHT_COLOR == (0.0, 1.0, 0.0):
-            return 'green'
+            return "green"
 
-        return 'yellow'
+        return "yellow"
+
+    def _get_list_slug_from_match(self, match: AnalysisMatch) -> Optional[str]:
+        if isinstance(match.search_match, FTSTextMatch):
+            source = match.search_match.search_phrase.source
+            if source is not None:
+                return ESOURCE_TO_SLUG.get(source)
+
+        return None
+
+    def _get_hex_color_for_slug(self, slug: Optional[str]) -> str:
+        if slug is None:
+            return DEFAULT_HEX_HIGHLIGHT
+
+        if slug in self._highlight_color_cache:
+            return self._highlight_color_cache[slug]
+
+        from services.words_list.list_colors import ListColor
+
+        record = ListColor(slug)
+        hex_color: str = record.get_color()
+        self._highlight_color_cache[slug] = hex_color
+
+        return hex_color
+
+    @staticmethod
+    def _hex_to_shd_fill(hex_str: str) -> str:
+        """RRGGBB for OOXML w:shd w:fill (no #)."""
+        s = hex_str.strip().lstrip("#").upper()
+
+        if len(s) == 6 and all(c in "0123456789ABCDEF" for c in s):
+            return s
+
+        return "00FF00"
+
+    @staticmethod
+    def _hex_to_pdf_rgb(hex_str: str) -> Tuple[float, float, float]:
+        s = hex_str.strip().lstrip("#")
+
+        if len(s) == 6:
+            r = int(s[0:2], 16) / 255.0
+            g = int(s[2:4], 16) / 255.0
+            b = int(s[4:6], 16) / 255.0
+            return (r, g, b)
+
+        return (0.0, 1.0, 0.0)
+
+    def get_highlight_color_docx_for_match(self, match: AnalysisMatch) -> str:
+        """Hex as RRGGBB (no #) for w:shd w:fill."""
+        slug = self._get_list_slug_from_match(match)
+        hex_color = self._get_hex_color_for_slug(slug)
+
+        return self._hex_to_shd_fill(hex_color)
+
+    def get_highlight_color_pdf_for_match(self, match: AnalysisMatch) -> Tuple[float, float, float]:
+        slug = self._get_list_slug_from_match(match)
+        hex_color = self._get_hex_color_for_slug(slug)
+
+        return self._hex_to_pdf_rgb(hex_color)
 
     def set_analyse_data(self, analyse_data: 'AnalysisData') -> None:
         self.analyse_data = analyse_data

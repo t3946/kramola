@@ -1,7 +1,7 @@
 import docx
 import time
 from dataclasses import dataclass
-from typing import List, Union, Optional, Tuple, Dict, NamedTuple, TYPE_CHECKING
+from typing import List, Union, Optional, Tuple, NamedTuple, TYPE_CHECKING
 from functools import cmp_to_key
 
 from services.analysis.stats import StatsDocx
@@ -84,7 +84,7 @@ class AnalyserDocx(Analyser):
         text_element.text = new_text
         text_element.set(qn('xml:space'), 'preserve')
 
-        # update highlight
+        # highlight text
         if highlight:
             rPr = new_run.find(qn('w:rPr'))
 
@@ -92,9 +92,11 @@ class AnalyserDocx(Analyser):
                 rPr = OxmlElement('w:rPr')
                 new_run.insert(0, rPr)
 
-            highlight = OxmlElement('w:highlight')
-            highlight.set(qn('w:val'), highlight_val)
-            rPr.append(highlight)
+            shd = OxmlElement('w:shd')
+            shd.set(qn('w:val'), 'clear')
+            shd.set(qn('w:fill'), highlight_val)
+            shd.set(qn('w:color'), 'auto')
+            rPr.append(shd)
 
         return new_run
 
@@ -236,13 +238,12 @@ class AnalyserDocx(Analyser):
         )
         # [end]
 
-        highlight_val: str = self.get_highlight_color_docx_val()
-
         # [start] highlight match in document
         match_run_els_list: List[Tuple[AnalysisMatch, List[CT_R]]] = []
 
         for match in matches:
             self.stats.add(match)
+            highlight_val: str = self.get_highlight_color_docx_for_match(match)
             search_match = match.search_match
             start_token_idx = search_match.start_token_idx
             end_token_idx = search_match.end_token_idx
