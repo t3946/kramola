@@ -77,7 +77,7 @@ def _extremists_terrorists_paginated(
         base = base.filter(ExtremistTerrorist.full_name.ilike(f"%{query}%"))
     if type_filter and type_filter in VALID_EXTREMIST_TYPES:
         base = base.filter(ExtremistTerrorist.type == type_filter)
-    if area_filter and area_filter in VALID_EXTREMIST_AREAS:
+    if area_filter:
         base = base.filter(ExtremistTerrorist.area == area_filter)
     if phrases_filter == "yes":
         base = base.filter(func.json_length(ExtremistTerrorist.search_terms) > 0)
@@ -281,6 +281,7 @@ class WordsListView(BaseView):
             if type_filter and type_filter not in VALID_EXTREMIST_TYPES:
                 type_filter = None
             area_filter = request.args.get("area", "").strip() or None
+
             phrases_filter = request.args.get("phrases", "").strip() or None
             if phrases_filter and phrases_filter not in ("yes", "no"):
                 phrases_filter = None

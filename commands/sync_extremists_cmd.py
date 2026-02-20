@@ -8,7 +8,7 @@ from models import ExtremistTerrorist
 from services.parser.parser_feds_fm import ParserFedsFM
 
 
-@click.command("extremists:sync")
+@click.command("extremists:parse")
 def sync_extremists_cmd() -> None:
     """Parse international and russian catalogs from fedsfm.ru and sync to DB."""
     from app import app
@@ -17,12 +17,12 @@ def sync_extremists_cmd() -> None:
         parser = ParserFedsFM()
         data = parser.load()
 
-        for area_key, area_enum in [("international", ExtremistArea.INTERNATIONAL), ("russian", ExtremistArea.RUSSIAN)]:
-            block = data.get(area_key, {})
+        for area in ExtremistArea:
+            block = data.get(area, {})
             names_fl = block.get("namesFL") or []
             names_ul = block.get("namesUL") or []
 
-            ExtremistTerrorist.query.filter_by(area=area_enum.value).delete(synchronize_session=False)
+            ExtremistTerrorist.query.filter_by(area=area.value).delete(synchronize_session=False)
 
             for name in names_fl:
                 if not name or not str(name).strip():
@@ -31,7 +31,7 @@ def sync_extremists_cmd() -> None:
                     full_name=name.strip(),
                     search_terms=[name.strip()],
                     type=ExtremistStatus.FIZ.value,
-                    area=area_enum.value,
+                    area=area.value,
                 )
                 db.session.add(row)
 
@@ -42,9 +42,9 @@ def sync_extremists_cmd() -> None:
                     full_name=name.strip(),
                     search_terms=[name.strip()],
                     type=ExtremistStatus.UR.value,
-                    area=area_enum.value,
+                    area=area.value,
                 )
                 db.session.add(row)
 
             db.session.commit()
-            click.echo(f"Synced {area_key}: FL={len(names_fl)}, UL={len(names_ul)}")
+            click.echo(f"Synced {area.value}: FL={len(names_fl)}, UL={len(names_ul)}")

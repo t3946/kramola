@@ -142,7 +142,7 @@ function initExtremistsList(): void {
     }
     const baseUrl = buildServerUrl();
     const grid = new Grid({
-      columns: ["№ п/п", "Полное наименование / ФИО", "Тип", "Область", "Фразы", "Действия"],
+      columns: ["Полное наименование / ФИО", "Тип", "Область", "Фразы", "Действия"],
       pagination: {
         limit: 100,
         server: {
@@ -157,7 +157,6 @@ function initExtremistsList(): void {
         then: (res: ExtremistsApiResponse) => {
           const q = searchEl?.value?.trim() ?? "";
           return (res.data ?? []).map((row: ExtremistsRow, idx: number) => [
-            row.id,
             html(highlightSearch(row.full_name, q)),
             row.type_label,
             row.area_label,
