@@ -12,12 +12,12 @@
   <button type="button" class="px-3 py-2 rounded hover:bg-gray-700 text-left flex items-center gap-1" @click="open = !open" @click.outside="open = false">
     Готовые списки <i class="fa fa-caret-down text-xs"></i>
   </button>
-  <div x-show="open" x-cloak class="absolute left-0 top-full mt-1 py-1 bg-gray-700 rounded shadow-lg z-50 min-w-[200px]"
+  <div x-show="open" x-cloak class="absolute left-0 top-full mt-1 py-1 bg-gray-700 rounded shadow-lg z-50 min-w-[300px]"
        x-transition:enter="transition ease-out duration-100"
        x-transition:enter-start="opacity-0"
        x-transition:enter-end="opacity-100">
     {% for item in admin_words_lists() %}
-    <a class="flex items-center justify-between gap-4 px-4 py-2 text-gray-200 hover:bg-gray-600 hover:text-white" href="{{ url_for(item.endpoint + '.index') }}">
+    <a class="flex items-center justify-between gap-2 px-4 py-2 text-gray-200 hover:bg-gray-600 hover:text-white" href="{{ url_for(item.endpoint + '.index') }}">
       <span>{{ item.title }}</span>
       <span class="rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-600 text-gray-200">{{ item.count }}</span>
     </a>

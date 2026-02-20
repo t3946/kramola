@@ -26,6 +26,7 @@ from sqlalchemy import func
 
 from extensions import db
 from models import Inagent
+from models.extremists_terrorists import ExtremistTerrorist
 from models.phrase_list.list_phrase import ListPhrase
 from models.phrase_list.list_record import ListRecord
 from services.pymorphy_service import load_pymorphy, load_nltk_lemmatizer
@@ -194,11 +195,19 @@ def inject_admin_words_lists():
             .all()
         )
         count_by_list_id = {row.list_id: row.cnt for row in count_rows}
+        slugs_extremists_terrorists = ("extremists-terrorists", "extremists_terrorists")
+        title_extremists_terrorists = "Экстремисты и террористы"
+
+        def _count_for_list(r: ListRecord) -> int:
+            if r.slug in slugs_extremists_terrorists or (r.title or "").strip() == title_extremists_terrorists:
+                return int(ExtremistTerrorist.query.count())
+            return count_by_list_id.get(r.id, 0)
+
         result = [
             {
                 "endpoint": f"words_list_{r.slug.replace('-', '_')}",
                 "title": r.title or r.slug,
-                "count": count_by_list_id.get(r.id, 0),
+                "count": _count_for_list(r),
             }
             for r in records
             if r.slug != "inagents"
