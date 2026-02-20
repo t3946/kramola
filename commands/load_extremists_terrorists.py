@@ -59,7 +59,7 @@ def main() -> int:
         row = ExtremistTerrorist(
             full_name=name,
             search_terms=[name],
-            status=ExtremistStatus.FIZ.value,
+            type=ExtremistStatus.FIZ.value,
             area=ExtremistArea.RUSSIAN.value,
         )
         db.session.add(row)

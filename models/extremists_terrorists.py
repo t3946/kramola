@@ -10,9 +10,20 @@ class ExtremistStatus(str, Enum):
     UR = "ur"
 
 
+EXTREMIST_TYPE_LABELS: dict[str, str] = {
+    ExtremistStatus.FIZ.value: "ФЛ",
+    ExtremistStatus.UR.value: "ЮЛ",
+}
+
 class ExtremistArea(str, Enum):
     INTERNATIONAL = "international"
     RUSSIAN = "russian"
+
+
+EXTREMIST_AREA_LABELS: dict[str, str] = {
+    ExtremistArea.INTERNATIONAL.value: "Международный",
+    ExtremistArea.RUSSIAN.value: "Российский",
+}
 
 
 class ExtremistTerrorist(db.Model):
@@ -21,7 +32,7 @@ class ExtremistTerrorist(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     full_name = db.Column(db.Text, nullable=True)
     search_terms = db.Column(db.JSON, nullable=True)
-    status = db.Column(db.String(20), nullable=False)
+    type = db.Column(db.String(20), nullable=False)
     area = db.Column(db.String(20), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

@@ -21,7 +21,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("full_name", sa.Text(), nullable=True),
         sa.Column("search_terms", sa.JSON(), nullable=True),
-        sa.Column("status", sa.String(20), nullable=False),
+        sa.Column("type", sa.String(20), nullable=False),
         sa.Column("area", sa.String(20), nullable=False),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), onupdate=sa.text("CURRENT_TIMESTAMP"), nullable=False),

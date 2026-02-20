@@ -1,0 +1,83 @@
+{% extends 'admin/master.html' %}
+
+{% block page_title %}
+<h1 class="text-xl font-semibold text-gray-800 mb-4">
+  {{ layout.menu_icon(admin_view.menu) }}
+  {{ list_title }} (<span id="words-count">{{ total_count }}</span>)
+</h1>
+{% endblock %}
+
+{% block body %}
+<div>
+  <div class="my-3 flex flex-wrap gap-4 items-end">
+    <div class="flex-1 min-w-[200px]">
+      <label for="extremist-search" class="formLabel">Поиск</label>
+      <div class="relative">
+        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+          <i class="fa fa-search" aria-hidden="true"></i>
+        </div>
+        <input
+          type="text"
+          id="extremist-search"
+          name="q"
+          placeholder="ФИО или наименование"
+          class="inputField inputField__default inputField__withIcon"
+          data-data-url="{{ data_url }}"
+        >
+      </div>
+    </div>
+    <div class="w-48">
+      <label for="extremist-type-filter" class="formLabel">Тип</label>
+      <select id="extremist-type-filter" class="inputField inputField__default">
+        <option value="">Все</option>
+        {% for value, label in type_choices %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="w-48">
+      <label for="extremist-area-filter" class="formLabel">Область</label>
+      <select id="extremist-area-filter" class="inputField inputField__default">
+        <option value="">Все</option>
+        {% for value, label in area_choices %}
+        <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="w-48">
+      <label for="extremist-phrases-filter" class="formLabel">Фразы</label>
+      <select id="extremist-phrases-filter" class="inputField inputField__default">
+        <option value="">Все</option>
+        <option value="yes">Есть</option>
+        <option value="no">Нет</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="extremists-grid-wrapper" class="my-3"></div>
+</div>
+
+<div id="extremist-edit-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
+  <div class="flex min-h-full items-center justify-center p-4">
+    <div class="fixed inset-0 bg-black/50" data-modal-close="extremist-edit-modal"></div>
+    <div class="relative rounded-lg bg-white shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+      <button type="button" class="absolute top-2 right-2 rounded text-gray-400 hover:text-gray-600" data-modal-close="extremist-edit-modal" aria-label="Закрыть"><i class="fa fa-times"></i></button>
+      <div id="extremist-edit-modal-body"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+#extremists-grid-wrapper .gridjs-wrapper { font-size: 0.8125rem; }
+#extremists-grid-wrapper .gridjs-table { width: 100%; table-layout: auto; }
+#extremists-grid-wrapper .gridjs-th,
+#extremists-grid-wrapper .gridjs-td { padding: 0.25rem 0.5rem; vertical-align: middle; }
+#extremists-grid-wrapper .gridjs-tbody .gridjs-tr:nth-child(even) .gridjs-td { background-color: #f9fafb; }
+#extremists-grid-wrapper .gridjs-btn {
+  margin-left: 0.2rem;
+  padding: 0.15rem 0.35rem;
+  font-size: 0.75rem;
+}
+.search-highlight { background-color: #93c5fd; }
+</style>
+{% endblock %}

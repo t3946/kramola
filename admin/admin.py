@@ -9,6 +9,13 @@ from flask_login import current_user
 from wtforms import PasswordField
 
 from models import Inagent, User, Role
+from models.extremists_terrorists import (
+    EXTREMIST_AREA_LABELS,
+    EXTREMIST_TYPE_LABELS,
+    ExtremistArea,
+    ExtremistStatus,
+    ExtremistTerrorist,
+)
 from models.inagents import AGENT_TYPE_MAP, AGENT_TYPE_SHORT_LABELS
 from models.phrase_list.list_record import ListRecord
 from models.phrase_list.phrase_record import PhraseRecord
@@ -28,6 +35,63 @@ from admin.words_list_controller import (
     update_phrase_in_list,
 )
 
+SLUG_EXTREMISTS_TERRORISTS: str = "extremists-terrorists"
+
+
+VALID_EXTREMIST_TYPES: tuple[str, ...] = (ExtremistStatus.FIZ.value, ExtremistStatus.UR.value)
+
+
+def _extremist_to_form_data(et: ExtremistTerrorist) -> dict:
+    terms = list(et.search_terms)[:6] if isinstance(et.search_terms, list) else []
+    terms = terms + [""] * (6 - len(terms))
+    return {
+        "full_name": et.full_name or "",
+        "type": et.type or "",
+        "search_terms": terms,
+    }
+
+
+def _form_apply_extremist(form, et: ExtremistTerrorist) -> None:
+    et.full_name = form.get("full_name", "").strip() or None
+    type_val = form.get("type", "").strip()
+    if type_val in VALID_EXTREMIST_TYPES:
+        et.type = type_val
+    search_terms_list = form.getlist("search_terms")[:6]
+    et.search_terms = [s.strip() for s in search_terms_list if s.strip()] or []
+
+
+def _extremists_terrorists_count() -> int:
+    return int(ExtremistTerrorist.query.count())
+
+
+def _extremists_terrorists_paginated(
+    limit: int,
+    offset: int,
+    query: str | None,
+    type_filter: str | None = None,
+    area_filter: str | None = None,
+    phrases_filter: str | None = None,
+) -> tuple[list[ExtremistTerrorist], int]:
+    base = ExtremistTerrorist.query
+    if query:
+        base = base.filter(ExtremistTerrorist.full_name.ilike(f"%{query}%"))
+    if type_filter and type_filter in VALID_EXTREMIST_TYPES:
+        base = base.filter(ExtremistTerrorist.type == type_filter)
+    if area_filter and area_filter in VALID_EXTREMIST_AREAS:
+        base = base.filter(ExtremistTerrorist.area == area_filter)
+    if phrases_filter == "yes":
+        base = base.filter(func.json_length(ExtremistTerrorist.search_terms) > 0)
+    elif phrases_filter == "no":
+        base = base.filter(
+            or_(
+                ExtremistTerrorist.search_terms.is_(None),
+                func.json_length(ExtremistTerrorist.search_terms) == 0,
+            )
+        )
+    total: int = base.count()
+    rows = base.order_by(ExtremistTerrorist.full_name.asc()).limit(limit).offset(offset).all()
+    return rows, total
+
 
 class WordsListView(BaseView):
     def __init__(self, list_slug: str, **kwargs):
@@ -46,23 +110,30 @@ class WordsListView(BaseView):
     @expose("/")
     def index(self):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
-        total_count: int = get_phrases_count(list_record) if list_record else 0
-        list_title = list_record.title if list_record else self.list_slug
-        import_url = url_for(".import_phrases") if list_record else None
-        export_url = url_for(".export_phrases") if list_record else None
-        minusate_url = url_for(".minusate_phrases") if list_record else None
+        if self.list_slug == SLUG_EXTREMISTS_TERRORISTS:
+            total_count = _extremists_terrorists_count()
+        else:
+            total_count = get_phrases_count(list_record) if list_record else 0
+        list_title = list_record.title if list_record else (self.list_slug if self.list_slug != SLUG_EXTREMISTS_TERRORISTS else "Экстремисты и террористы")
+        import_url = url_for(".import_phrases") if list_record and self.list_slug != SLUG_EXTREMISTS_TERRORISTS else None
+        export_url = url_for(".export_phrases") if list_record and self.list_slug != SLUG_EXTREMISTS_TERRORISTS else None
+        minusate_url = url_for(".minusate_phrases") if list_record and self.list_slug != SLUG_EXTREMISTS_TERRORISTS else None
         endpoint = self.endpoint
-        data_url = url_for(f"{endpoint}.data_route") if list_record else None
-        return self.render(
-            "admin/words_list.html",
-            list_title=list_title,
-            list_slug=self.list_slug,
-            total_count=total_count,
-            import_url=import_url,
-            export_url=export_url,
-            minusate_url=minusate_url,
-            data_url=data_url,
-        )
+        data_url = url_for(f"{endpoint}.data_route") if (list_record or self.list_slug == SLUG_EXTREMISTS_TERRORISTS) else None
+        template = "admin/words_list_extremists_terrorists.html" if self.list_slug == SLUG_EXTREMISTS_TERRORISTS else "admin/words_list.html"
+        kwargs: dict = {
+            "list_title": list_title,
+            "list_slug": self.list_slug,
+            "total_count": total_count,
+            "import_url": import_url,
+            "export_url": export_url,
+            "minusate_url": minusate_url,
+            "data_url": data_url,
+        }
+        if self.list_slug == SLUG_EXTREMISTS_TERRORISTS:
+            kwargs["type_choices"] = list(EXTREMIST_TYPE_LABELS.items())
+            kwargs["area_choices"] = list(EXTREMIST_AREA_LABELS.items())
+        return self.render(template, **kwargs)
 
     @expose("/import", methods=["POST"])
     def import_phrases(self):
@@ -122,6 +193,19 @@ class WordsListView(BaseView):
     def edit_phrase(self, phrase_id: int):
         if request.method != "POST":
             return redirect(url_for(".index"))
+        if self.list_slug == SLUG_EXTREMISTS_TERRORISTS:
+            et = ExtremistTerrorist.query.get(phrase_id)
+            if not et:
+                flash("Запись не найдена.")
+                return redirect(url_for(".index"))
+            new_text = request.form.get("phrase", "").strip()
+            if not new_text:
+                flash("ФИО не может быть пустым.")
+                return redirect(url_for(".index"))
+            et.full_name = new_text
+            db.session.commit()
+            flash("Запись сохранена.")
+            return redirect(url_for(".index"))
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
         if not list_record:
             return redirect(url_for(".index"))
@@ -137,6 +221,15 @@ class WordsListView(BaseView):
     def delete_phrase(self, phrase_id: int):
         if request.method != "POST":
             return redirect(url_for(".index"))
+        if self.list_slug == SLUG_EXTREMISTS_TERRORISTS:
+            et = ExtremistTerrorist.query.get(phrase_id)
+            if not et:
+                flash("Запись не найдена.")
+                return redirect(url_for(".index"))
+            db.session.delete(et)
+            db.session.commit()
+            flash("Запись удалена из списка.")
+            return redirect(url_for(".index"))
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
         if not list_record:
             return redirect(url_for(".index"))
@@ -146,18 +239,74 @@ class WordsListView(BaseView):
             flash("Фраза не найдена в списке.")
         return redirect(url_for(".index"))
 
+    @expose("/<int:id>/form")
+    def extremist_edit_form(self, id: int):
+        if self.list_slug != SLUG_EXTREMISTS_TERRORISTS:
+            return redirect(url_for(".index"))
+        et = ExtremistTerrorist.query.get_or_404(id)
+        form_data = _extremist_to_form_data(et)
+        edit_save_url = url_for(f"{self.endpoint}.extremist_edit_save", id=id)
+        return render_template(
+            "admin/extremist_edit_fragment.html",
+            form_data=form_data,
+            edit_save_url=edit_save_url,
+            type_choices=list(EXTREMIST_TYPE_LABELS.items()),
+        )
+
+    @expose("/<int:id>/edit", methods=["POST"])
+    def extremist_edit_save(self, id: int):
+        if self.list_slug != SLUG_EXTREMISTS_TERRORISTS:
+            return redirect(url_for(".index"))
+        et = ExtremistTerrorist.query.get_or_404(id)
+        _form_apply_extremist(request.form, et)
+        db.session.commit()
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify(success=True)
+        flash("Запись сохранена.")
+        return redirect(url_for(".index"))
+
     @expose("/data")
     def data_route(self):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
-        if not list_record:
+        if not list_record and self.list_slug != SLUG_EXTREMISTS_TERRORISTS:
             return jsonify(data=[], total=0)
         limit = request.args.get("limit", 100, type=int)
         offset = request.args.get("offset", 0, type=int)
         query = request.args.get("q", "").strip() or None
         limit = min(max(1, limit), 500)
         offset = max(0, offset)
-        words_list, total = get_phrases_paginated(list_record, limit=limit, offset=offset, query=query)
         endpoint = self.endpoint
+        if self.list_slug == SLUG_EXTREMISTS_TERRORISTS:
+            type_filter = request.args.get("type", "").strip() or None
+            if type_filter and type_filter not in VALID_EXTREMIST_TYPES:
+                type_filter = None
+            area_filter = request.args.get("area", "").strip() or None
+            phrases_filter = request.args.get("phrases", "").strip() or None
+            if phrases_filter and phrases_filter not in ("yes", "no"):
+                phrases_filter = None
+            rows, total = _extremists_terrorists_paginated(
+                limit, offset, query,
+                type_filter=type_filter,
+                area_filter=area_filter,
+                phrases_filter=phrases_filter,
+            )
+
+            def row_et(et: ExtremistTerrorist) -> dict:
+                st_count = len(et.search_terms) if isinstance(et.search_terms, list) else 0
+                return {
+                    "id": et.id,
+                    "full_name": et.full_name or "",
+                    "type": et.type or "",
+                    "type_label": EXTREMIST_TYPE_LABELS.get(et.type, et.type or ""),
+                    "area": et.area or "",
+                    "area_label": EXTREMIST_AREA_LABELS.get(et.area, et.area or ""),
+                    "search_terms_count": st_count,
+                    "edit_form_url": url_for(f"{endpoint}.extremist_edit_form", id=et.id),
+                    "edit_save_url": url_for(f"{endpoint}.extremist_edit_save", id=et.id),
+                }
+
+            return jsonify(data=[row_et(w) for w in rows], total=total)
+        words_list, total = get_phrases_paginated(list_record, limit=limit, offset=offset, query=query)
         created_at_str = lambda w: w.created_at.strftime("%d.%m.%Y") if w.created_at else ""
 
         def row(w: PhraseRecord) -> dict:
