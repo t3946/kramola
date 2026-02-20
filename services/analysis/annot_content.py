@@ -15,6 +15,10 @@ def get_annot_title_content(match: AnalysisMatch) -> Tuple[str, str]:
     if isinstance(match.search_match, FTSTextMatch):
         phrase: Phrase = match.search_match.search_phrase
         content: str = phrase.phrase_original if phrase.phrase_original else phrase.phrase
+
+        if phrase.source is None:
+            return "Список пользователя", content
+
         title: str = getattr(ESearchSourceAnnotTitle, phrase.source.name).value
 
         if phrase.source.name == ESearchSourceAnnotTitle.LIST_INAGENTS.name:
@@ -46,9 +50,9 @@ def get_annot_title_content(match: AnalysisMatch) -> Tuple[str, str]:
                         f"Основание: {inagent.include_reason}"
                     ])
 
-        return (title, content)
+        return title, content
 
     if isinstance(match.search_match, FTSRegexMatch):
-        return ("Шаблон", f"«{match.search_match.regex_info.pattern_name}»")
+        return "Шаблон", f"«{match.search_match.regex_info.pattern_name}»"
 
-    return ("", "")
+    return "", ""
