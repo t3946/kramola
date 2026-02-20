@@ -21,20 +21,14 @@ ESOURCE_TO_SLUG: Dict[ESearchSource, str] = {
 class Analyser:
     analyse_data: 'AnalysisData'
     stats: Stats
-    HIGHLIGHT_COLOR: Tuple[float, float, float] = (0.0, 1.0, 0.0)
+    DEFAULT_HIGHLIGHT_COLOR: Tuple[float, float, float] = (0.0, 1.0, 0.0)
 
     def __init__(self) -> None:
         self.stats = None
         self._highlight_color_cache: Dict[str, str] = {}
 
     def get_highlight_color_pdf(self) -> Tuple[float, float, float]:
-        return self.HIGHLIGHT_COLOR
-
-    def get_highlight_color_docx_val(self) -> str:
-        if self.HIGHLIGHT_COLOR == (0.0, 1.0, 0.0):
-            return "green"
-
-        return "yellow"
+        return self.DEFAULT_HIGHLIGHT_COLOR
 
     def _get_list_slug_from_match(self, match: AnalysisMatch) -> Optional[str]:
         if isinstance(match.search_match, FTSTextMatch):
