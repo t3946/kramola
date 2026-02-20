@@ -532,7 +532,8 @@ def _parse_date(s: str | None):
 
 
 SEARCH_LISTS: list[tuple[str, str, str]] = [
-    ("foreign_agents_persons", "foreign-agents-persons", "Иностранные агенты"),
+    ("inagents", "inagents", "Иностранные агенты"),
+    ("extremists_terrorists", SLUG_EXTREMISTS_TERRORISTS, "Экстремисты и террористы"),
     ("profanity", "profanity", "Матные слова"),
     ("prohibited_substances", "prohibited_substances", "Запрещенные вещества"),
     ("swear_words", "swear-words", "Ругательства"),

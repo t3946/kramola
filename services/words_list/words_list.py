@@ -7,9 +7,10 @@ from extensions import db
 from models import ListLog, ListPhrase, ListRecord, PhraseRecord
 from services.enum.predefined_list import PredefinedListKey, PREDEFINED_LIST_SOURCE
 from services.fulltext_search.phrase import Phrase
+from services.words_list.list_colors import ListColor
 
 
-class WordsList(ABC):
+class WordsList(ABC, ListColor):
     @property
     @abstractmethod
     def list_key(self) -> str:

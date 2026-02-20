@@ -203,20 +203,34 @@ def inject_admin_words_lists():
                 return int(ExtremistTerrorist.query.count())
             return count_by_list_id.get(r.id, 0)
 
-        result = [
-            {
-                "endpoint": f"words_list_{r.slug.replace('-', '_')}",
-                "title": r.title or r.slug,
-                "count": _count_for_list(r),
-            }
-            for r in records
-            if r.slug != "inagents"
-        ]
-        result.append({
-            "endpoint": "inagents_list",
-            "title": "Инагенты",
-            "count": Inagent.query.count(),
-        })
+        inagents_endpoint = "inagents_list"
+        inagents_title = "Инагенты"
+        inagents_count = Inagent.query.count()
+        slugs_inagents: tuple[str, ...] = ("inagents", "foreign-agents-persons")
+
+        result: list[dict] = []
+        inagents_added = False
+        for r in records:
+            if r.slug in slugs_inagents:
+                if not inagents_added:
+                    result.append({
+                        "endpoint": inagents_endpoint,
+                        "title": inagents_title,
+                        "count": inagents_count,
+                    })
+                    inagents_added = True
+            else:
+                result.append({
+                    "endpoint": f"words_list_{r.slug.replace('-', '_')}",
+                    "title": r.title or r.slug,
+                    "count": _count_for_list(r),
+                })
+        if not inagents_added:
+            result.append({
+                "endpoint": inagents_endpoint,
+                "title": inagents_title,
+                "count": inagents_count,
+            })
         return result
     return {"admin_words_lists": _items}
 
