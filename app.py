@@ -148,7 +148,7 @@ except Exception as e_general:
 app.config['PREDEFINED_LISTS'] = {
     PredefinedListKey.PROFANITY.value: "Матные слова",
     PredefinedListKey.PROHIBITED_SUBSTANCES.value: "Запрещенные вещества",
-    PredefinedListKey.SWEAR_WORDS.value: "Опасные слова",
+    PredefinedListKey.DANGEROUS_WORDS.value: "Опасные слова",
     PredefinedListKey.FOREIGN_AGENTS_PERSONS.value: "Инагенты (ФИО)",
     PredefinedListKey.FOREIGN_AGENTS_COMPANIES.value: "Инагенты (Организации)",
     PredefinedListKey.EXTREMISTS_INTERNATIONAL_FIZ.value: "Экстремисты и террористы (Международные): ФЛ",

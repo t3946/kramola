@@ -14,7 +14,7 @@ ESOURCE_TO_SLUG: Dict[ESearchSource, str] = {
     ESearchSource.LIST_EXTREMISTS_TERRORISTS: "extremists-terrorists",
     ESearchSource.LIST_PROFANITY: "profanity",
     ESearchSource.LIST_PROHIBITED_SUBSTANCES: "prohibited_substances",
-    ESearchSource.LIST_SWEAR_WORDS: "swear-words",
+    ESearchSource.LIST_DANGEROUS_WORDS: "dangerous-words",
 }
 
 

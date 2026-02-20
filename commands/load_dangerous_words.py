@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Loads swear words list from file to MySQL.
+Loads dangerous words list from file to MySQL.
 """
 
 import sys
@@ -12,7 +12,7 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE_DIR))
 
-from services.words_list.list_swear_words import ListSwearWords
+from services.words_list.list_dangerous_words import ListDangerousWords
 from services.enum import PredefinedListKey
 from services.utils.load_lines_from_txt import load_lines_from_txt
 
@@ -20,7 +20,7 @@ from services.utils.load_lines_from_txt import load_lines_from_txt
 log_dir = BASE_DIR / "log"
 log_dir.mkdir(exist_ok=True)
 
-log_file = log_dir / "load_swear_words.log"
+log_file = log_dir / "load_dangerous_words.log"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -35,15 +35,15 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    """Main function for loading swear words list."""
+    """Main function for loading dangerous words list."""
     try:
         logger.info("=" * 60)
-        logger.info("Starting loading swear words list from file")
+        logger.info("Starting loading dangerous words list from file")
         logger.info("=" * 60)
 
         # File path
-        file_path = BASE_DIR / "predefined_lists" / f"{PredefinedListKey.SWEAR_WORDS.value}.txt"
-        
+        file_path = BASE_DIR / "predefined_lists" / f"{PredefinedListKey.DANGEROUS_WORDS.value}.txt"
+
         if not file_path.exists():
             logger.error(f"File not found: {file_path}")
             return 1
@@ -74,7 +74,7 @@ def main():
 
         # Save to MySQL
         logger.info("Saving to MySQL...")
-        lp = ListSwearWords()
+        lp = ListDangerousWords()
         lp.clear()
         lp.save(words_list, logging=True)
         logger.info(f"Saved {len(words_list)} words to MySQL")
@@ -98,4 +98,3 @@ if __name__ == '__main__':
     with app.app_context():
         exit_code = main()
     sys.exit(exit_code)
-

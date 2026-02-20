@@ -8,7 +8,7 @@ from tests.pdf.base_pdf_long_lists_test import BasePdfLongListsTest
 class TestProfanityWords(BasePdfLongListsTest):
     predefined_lists: List[PredefinedListKey] = [
         PredefinedListKey.PROFANITY,
-        PredefinedListKey.SWEAR_WORDS
+        PredefinedListKey.DANGEROUS_WORDS
     ]
 
     @classmethod
