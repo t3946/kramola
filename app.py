@@ -151,7 +151,6 @@ app.config['PREDEFINED_LISTS'] = {
     PredefinedListKey.SWEAR_WORDS.value: "Опасные слова",
     PredefinedListKey.FOREIGN_AGENTS_PERSONS.value: "Инагенты (ФИО)",
     PredefinedListKey.FOREIGN_AGENTS_COMPANIES.value: "Инагенты (Организации)",
-    PredefinedListKey.EXTREMISTS_TERRORISTS.value: "Экстремисты и террористы",
     PredefinedListKey.EXTREMISTS_INTERNATIONAL_FIZ.value: "Экстремисты и террористы (Международные): ФЛ",
     PredefinedListKey.EXTREMISTS_INTERNATIONAL_UR.value: "Экстремисты и террористы (Международные): ЮЛ",
     PredefinedListKey.EXTREMISTS_RUSSIAN_FIZ.value: "Экстремисты и террористы (Российские): ФЛ",

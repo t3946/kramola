@@ -42,7 +42,7 @@ class ESearchSourceAnnotTitle(str, Enum):
     LIST_INAGENTS = "Инагенты"
     LIST_PROFANITY = "Матные слова"
     LIST_PROHIBITED_SUBSTANCES = "Запрещенные вещества"
-    LIST_SWEAR_WORDS = "Ругательства"
+    LIST_SWEAR_WORDS = "Опасные слова"
     LIST_EXTREMISTS_TERRORISTS = "Экстремисты и террористы"
 
 

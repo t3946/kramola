@@ -16,6 +16,9 @@ class WordsList(ABC, ListColor):
     def list_key(self) -> str:
         pass
 
+    def __init__(self) -> None:
+        super().__init__()
+
     def _get_list_record(self) -> ListRecord:
         record = ListRecord.query.filter_by(name=self.list_key).first()
         if record is None:

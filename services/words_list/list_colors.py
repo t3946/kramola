@@ -2,9 +2,6 @@ from models.phrase_list.list_record import ListRecord
 
 
 class ListColor:
-    def __init__(self, key: str) -> None:
-        self.key = key
-
     def get_color(self) -> str:
         return (
             ListRecord
@@ -13,3 +10,8 @@ class ListColor:
             .first()
             .color
         )
+
+    @staticmethod
+    def get_color_by_slug(slug: str) -> str:
+        record = ListRecord.query.filter_by(slug=slug).first()
+        return record.color if record else ""

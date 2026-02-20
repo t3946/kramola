@@ -16,7 +16,7 @@ class ListExtremistsTerroristsBase(ABC, ListColor):
     status: ClassVar[Optional[ExtremistStatus]] = None
 
     def __init__(self) -> None:
-        super().__init__(self.key)
+        super().__init__()
 
     def load(self) -> list[Phrase]:
         query = ExtremistTerrorist.query.with_entities(

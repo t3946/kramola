@@ -53,8 +53,7 @@ class Analyser:
 
         from services.words_list.list_colors import ListColor
 
-        record = ListColor(slug)
-        hex_color: str = record.get_color()
+        hex_color: str = ListColor.get_color_by_slug(slug)
         self._highlight_color_cache[slug] = hex_color
 
         return hex_color
