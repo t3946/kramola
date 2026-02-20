@@ -30,7 +30,7 @@ def sync_extremists_cmd() -> None:
                 row = ExtremistTerrorist(
                     full_name=name.strip(),
                     search_terms=[name.strip()],
-                    status=ExtremistStatus.FIZ.value,
+                    type=ExtremistStatus.FIZ.value,
                     area=area_enum.value,
                 )
                 db.session.add(row)
@@ -41,7 +41,7 @@ def sync_extremists_cmd() -> None:
                 row = ExtremistTerrorist(
                     full_name=name.strip(),
                     search_terms=[name.strip()],
-                    status=ExtremistStatus.UR.value,
+                    type=ExtremistStatus.UR.value,
                     area=area_enum.value,
                 )
                 db.session.add(row)

@@ -26,7 +26,7 @@ class ListExtremistsTerroristsBase(ABC, ListColor):
         if self.area is not None:
             query = query.filter(ExtremistTerrorist.area == self.area.value)
         if self.status is not None:
-            query = query.filter(ExtremistTerrorist.status == self.status.value)
+            query = query.filter(ExtremistTerrorist.type == self.status.value)
         rows = query.all()
         phrases: list[Phrase] = []
 

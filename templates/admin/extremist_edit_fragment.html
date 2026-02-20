@@ -1,0 +1,56 @@
+<form
+  method="post"
+  action="{{ edit_save_url }}"
+  class="extremist-edit-form space-y-4"
+>
+  {% if csrf_token is defined and csrf_token %}
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+  {% endif %}
+
+  <div>
+    <label for="extremist-fragment-full_name" class="formLabel">Полное наименование / ФИО</label>
+    <input
+      type="text"
+      id="extremist-fragment-full_name"
+      name="full_name"
+      value="{{ form_data.full_name or '' }}"
+      class="inputField inputField__default"
+      placeholder="ФИО или наименование"
+    >
+  </div>
+
+  <div>
+    <label for="extremist-fragment-type" class="formLabel">Тип</label>
+    <select id="extremist-fragment-type" name="type" class="inputField inputField__default">
+      {% for value, label in type_choices %}
+      <option value="{{ value }}" {% if form_data.type == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div>
+    <label class="formLabel">Поисковые фразы</label>
+    <div class="grid gap-3 grid-cols-2 mt-1">
+      {% for term in form_data.search_terms %}
+      <div>
+        <input
+          type="text"
+          name="search_terms"
+          value="{{ term }}"
+          class="inputField inputField__default"
+          placeholder="Фраза {{ loop.index }}"
+        >
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="flex gap-2 pt-2">
+    <button type="submit" class="btn btn__primary">
+      <i class="fa fa-check"></i> Сохранить
+    </button>
+    <button type="button" class="btn btn__secondary" data-modal-close="extremist-edit-modal">
+      Отмена
+    </button>
+  </div>
+</form>
