@@ -11,8 +11,8 @@ from services.words_list.list_extremists_international_fiz import ListExtremists
 from services.words_list.list_extremists_international_ur import ListExtremistsInternationalUR
 from services.words_list.list_extremists_russian_fiz import ListExtremistsRussianFIZ
 from services.words_list.list_extremists_russian_ur import ListExtremistsRussianUR
+from services.words_list.list_from_text import ListFromText
 from services.enum import PredefinedListKey
-from services.enum.predefined_list import ESearchSource
 from services.utils.regex_pattern import RegexPattern
 from services.patterns.profanity_words import PROFANITY_WORDS_PATTERNS
 
@@ -29,12 +29,10 @@ class AnalysisData:
             self.read_from_list(terms)
 
     def read_from_list(self, terms: List[str]) -> None:
-        for term in terms:
-            if term and term.strip():
-                text = term.strip()
+        phrases: List[Phrase] = ListFromText().load_from_lines(terms)
 
-                if text not in self.phrases:
-                    self.phrases[text] = Phrase(text, ESearchSource.TEXT)
+        for phrase in phrases:
+            self.phrases[phrase.phrase] = phrase
 
     def read_regex_patterns(self, patterns: Dict[str, str]) -> None:
         """Load regex patterns for search.
