@@ -32,7 +32,7 @@ class Analyser:
 
     def _get_list_slug_from_match(self, match: AnalysisMatch) -> Optional[str]:
         if isinstance(match.search_match, FTSTextMatch):
-            source = match.search_match.search_phrase.source
+            source = match.search_match.search_phrase.source_list
             if source is not None:
                 return ESOURCE_TO_SLUG.get(source)
 

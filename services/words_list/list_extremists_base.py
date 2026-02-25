@@ -37,7 +37,7 @@ class ListExtremistsTerroristsBase(ABC, ListColor):
             for text in terms:
                 phrase = Phrase(
                     phrase=text,
-                    source=ESearchSource.LIST_EXTREMISTS_TERRORISTS,
+                    source_list=self,
                     phrase_original=full_name
                 )
                 phrases.append(phrase)

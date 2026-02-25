@@ -81,9 +81,8 @@ class WordsList(ABC, ListColor):
             .with_entities(PhraseRecord.phrase)
             .all()
         )
-        source = PREDEFINED_LIST_SOURCE.get(PredefinedListKey(self.list_key))
 
-        return [Phrase(phrase=phrase, source=source) for (phrase,) in rows]
+        return [Phrase(phrase=phrase, source_list=self) for (phrase,) in rows]
 
     def clear(self) -> None:
         list_record = self._get_list_record()
