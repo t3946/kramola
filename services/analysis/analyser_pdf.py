@@ -146,7 +146,7 @@ class AnalyserPdf(Analyser):
                 # convert to local page character indices
                 local_start: int = match_start_in_page - page_start_offset
                 local_end: int = match_end_in_page - page_start_offset
-                match_color: Tuple[float, float, float] = self.get_highlight_color_pdf_for_match(match)
+                match_color: Tuple[float, float, float] = self._highlight_color_for_match(match).rgb()
 
                 page_analyser.highlight_range(local_start, local_end - 1, match, color=match_color)
             # [end]

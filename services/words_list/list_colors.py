@@ -14,8 +14,3 @@ class ListColor:
         self.highlight_color = Color(record.color)
 
         super().__init__(*args, **kwargs)
-
-    @staticmethod
-    def get_color_by_slug(slug: str) -> str:
-        record = ListRecord.query.filter_by(slug=slug).first()
-        return record.color if record else ""

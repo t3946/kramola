@@ -243,7 +243,7 @@ class AnalyserDocx(Analyser):
 
         for match in matches:
             self.stats.add(match)
-            highlight_val: str = self.get_highlight_color_docx_for_match(match)
+            highlight_val: str = self._highlight_color_for_match(match).rrggbb().upper()
             search_match = match.search_match
             start_token_idx = search_match.start_token_idx
             end_token_idx = search_match.end_token_idx

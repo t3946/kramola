@@ -4,12 +4,10 @@ from typing import ClassVar, List, Optional
 from models import ExtremistTerrorist
 from models.extremists_terrorists import ExtremistArea, ExtremistStatus
 from services.enum import WordsListKey
-from services.enum.predefined_list import ESearchSource
 from services.fulltext_search.phrase import Phrase
-from services.words_list.list_colors import ListColor
 
 
-class ListExtremistsTerroristsBase(ABC, ListColor):
+class ListExtremistsTerroristsBase(ABC):
     """Base for loading extremists/terrorists search_terms from DB by area and status."""
 
     key = WordsListKey.EXTREMISTS_TERRORISTS
