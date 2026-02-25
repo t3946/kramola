@@ -1,4 +1,3 @@
-from abc import ABC, abstractmethod
 from typing import List
 
 from extensions import db
@@ -9,7 +8,7 @@ from services.words_list.list_logs import ListLogs
 from services.words_list.words_list import WordsList
 
 
-class SimpleList(ABC, WordsList):
+class SimpleList(WordsList):
     def __init__(self) -> None:
         super().__init__()
 
