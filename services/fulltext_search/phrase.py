@@ -1,19 +1,18 @@
 from typing import List, Dict, Any, Optional
 from services.tokenization import Token, tokenize_text
-from services.words_list.words_list import WordsList
 
 
 class Phrase:
     phrase: str
     phrase_original: Optional[str]
-    source_list: WordsList
+    source_list: "WordsList"
     tokens: List[Token]
     # full text imagination of search object
 
     def __init__(
             self,
             phrase: str,
-            source_list: WordsList,
+            source_list: Optional["WordsList"] = None,
             phrase_original: Optional[str] = None,
     ) -> None:
         self.source_list = source_list

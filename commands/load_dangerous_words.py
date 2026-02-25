@@ -42,7 +42,7 @@ def main():
         logger.info("=" * 60)
 
         # File path
-        file_path = BASE_DIR / "predefined_lists" / f"{PredefinedListKey.DANGEROUS_WORDS.value}.txt"
+        file_path = BASE_DIR / "predefined_lists" / f"{PredefinedListKey.DANGEROUS.value}.txt"
 
         if not file_path.exists():
             logger.error(f"File not found: {file_path}")

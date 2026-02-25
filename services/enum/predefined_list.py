@@ -5,7 +5,7 @@ class PredefinedListKey(str, Enum):
     FOREIGN_AGENTS_COMPANIES = "foreign_agents_companies"
     PROFANITY = "profanity"
     PROHIBITED_SUBSTANCES = "prohibited_substances"
-    DANGEROUS_WORDS = "dangerous_words"
+    DANGEROUS = "dangerous"
     EXTREMISTS_TERRORISTS = "extremists_terrorists"
     EXTREMISTS_INTERNATIONAL_FIZ = "extremists_international_fiz"
     EXTREMISTS_INTERNATIONAL_UR = "extremists_international_ur"
@@ -24,9 +24,9 @@ class ESearchSource(str, Enum):
 
 
 class ESearchSourceAnnotTitle(str, Enum):
+    PROFANITY = "Матные слова"
+    PROHIBITED_SUBSTANCES = "Запрещенные вещества"
+    DANGEROUS_WORDS = "Опасные слова"
+    EXTREMISTS_TERRORISTS = "Экстремисты и террористы"
+    INAGENTS = "Иноагенты"
     CUSTOM = "Пользовательский список"
-    LIST_INAGENTS = "Инагенты"
-    LIST_PROFANITY = "Матные слова"
-    LIST_PROHIBITED_SUBSTANCES = "Запрещенные вещества"
-    LIST_DANGEROUS_WORDS = "Опасные слова"
-    LIST_EXTREMISTS_TERRORISTS = "Экстремисты и террористы"

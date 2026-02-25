@@ -536,7 +536,7 @@ SEARCH_LISTS: list[tuple[str, str, str]] = [
     ("extremists_terrorists", SLUG_EXTREMISTS_TERRORISTS, "Экстремисты и террористы"),
     ("profanity", "profanity", "Матные слова"),
     ("prohibited_substances", "prohibited_substances", "Запрещенные вещества"),
-    ("dangerous_words", "dangerous-words", "Опасные слова"),
+    ("dangerous", "dangerous", "Опасные слова"),
 ]
 
 

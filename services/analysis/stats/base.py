@@ -40,7 +40,7 @@ class Stats(ABC):
         if isinstance(match.search_match, FTSTextMatch):
             phrase = match.search_match.search_phrase
         elif isinstance(match.search_match, FTSRegexMatch):
-            phrase = Phrase(phrase=match.search_match.get_search_str(), source=None)
+            phrase = Phrase(phrase=match.search_match.get_search_str())
 
         search_item = StatItemSearch(phrase=phrase, kind=match.kind)
         stat_item = self.stats.get(search_item)

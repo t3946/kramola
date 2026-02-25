@@ -21,7 +21,7 @@ def get_annot_title_content(match: AnalysisMatch) -> Tuple[str, str]:
 
         title: str = getattr(ESearchSourceAnnotTitle, phrase.source_list.key.name).value
 
-        if phrase.source_list.key.name == ESearchSourceAnnotTitle.LIST_INAGENTS.name:
+        if phrase.source_list.key.name == ESearchSourceAnnotTitle.INAGENTS.name:
             content = ''
             inagents: list[Inagent] = Inagent.get_by_term(phrase.phrase)
 

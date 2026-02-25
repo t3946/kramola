@@ -52,7 +52,7 @@ class AnalysisData:
             PredefinedListKey.FOREIGN_AGENTS_COMPANIES: ListInagentsUR,
             PredefinedListKey.PROFANITY: ListProfanity,
             PredefinedListKey.PROHIBITED_SUBSTANCES: ListProhibitedSubstances,
-            PredefinedListKey.DANGEROUS_WORDS: ListDangerousWords,
+            PredefinedListKey.DANGEROUS: ListDangerousWords,
             PredefinedListKey.EXTREMISTS_TERRORISTS: ListExtremistsTerrorists,
             PredefinedListKey.EXTREMISTS_INTERNATIONAL_FIZ: ListExtremistsInternationalFIZ,
             PredefinedListKey.EXTREMISTS_INTERNATIONAL_UR: ListExtremistsInternationalUR,

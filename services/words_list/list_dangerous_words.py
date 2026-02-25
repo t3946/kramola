@@ -3,4 +3,4 @@ from services.words_list import SimpleList
 
 
 class ListDangerousWords(SimpleList):
-    key = WordsListKey.DANGEROUS_WORDS
+    key = WordsListKey.DANGEROUS

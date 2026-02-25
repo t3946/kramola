@@ -6,9 +6,10 @@ from models import Inagent
 from models.inagents import AgentType
 from services.enum import WordsListKey
 from services.fulltext_search.phrase import Phrase
+from services.words_list import WordsList
 
 
-class ListInagents(ABC):
+class ListInagents(WordsList):
     """Base for loading inagents search_terms from DB, merged into list[Phrase]."""
 
     key = WordsListKey.INAGENTS
