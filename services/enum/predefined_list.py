@@ -24,8 +24,7 @@ class ESearchSource(str, Enum):
 
 
 class ESearchSourceAnnotTitle(str, Enum):
-    FILE = "Пользовательский список"
-    TEXT = "Пользовательский список"
+    CUSTOM = "Пользовательский список"
     LIST_INAGENTS = "Инагенты"
     LIST_PROFANITY = "Матные слова"
     LIST_PROHIBITED_SUBSTANCES = "Запрещенные вещества"

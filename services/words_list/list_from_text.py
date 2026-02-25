@@ -14,6 +14,6 @@ class ListFromText(ListUserCustom):
         phrases: List[Phrase] = []
 
         for text in lines:
-            phrases.append(Phrase(text, source_list=self.source))
+            phrases.append(Phrase(text, source_list=self))
 
         return phrases

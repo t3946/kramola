@@ -47,7 +47,7 @@ class ListInagents(ABC, ListColor):
             for text in terms:
                 phrase = Phrase(
                     phrase=text,
-                    source=ESearchSource.LIST_INAGENTS,
+                    source_list=self,
                     phrase_original=full_name
                 )
 
