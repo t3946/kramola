@@ -11,21 +11,3 @@ class ListUserCustom(WordsList, ABC):
     @property
     def list_key(self) -> str:
         return self.key
-
-    @property
-    @abstractmethod
-    def source(self) -> ESearchSource:
-        pass
-
-    @abstractmethod
-    def _get_phrases(self) -> List[str]:
-        pass
-
-    def load(self) -> List[Phrase]:
-        return [Phrase(phrase=s, source=self.source) for s in self._get_phrases()]
-
-    def save(self, words_list: List[str], logging: bool) -> None:
-        pass
-
-    def clear(self) -> None:
-        pass
