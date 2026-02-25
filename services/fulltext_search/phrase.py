@@ -3,6 +3,7 @@ import json
 
 from services.enum.predefined_list import ESearchSource
 from services.tokenization import Token, tokenize_text
+from services.words_list import WordsList
 
 
 class Phrase:
@@ -10,6 +11,7 @@ class Phrase:
     phrase_original: Optional[str]
     source: Optional[ESearchSource]
     tokens: List[Token]
+    list: WordsList
     # full text imagination of search object
 
     def __init__(
