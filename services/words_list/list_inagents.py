@@ -4,6 +4,7 @@ from sqlalchemy import or_
 
 from models import Inagent
 from models.inagents import AgentType
+from services.enum import WordsListKey
 from services.enum.predefined_list import ESearchSource
 from services.fulltext_search.phrase import Phrase
 from services.words_list.list_colors import ListColor
@@ -12,7 +13,7 @@ from services.words_list.list_colors import ListColor
 class ListInagents(ABC, ListColor):
     """Base for loading inagents search_terms from DB, merged into list[Phrase]."""
 
-    key = 'inagents'
+    key = WordsListKey.INAGENTS
     agent_types: ClassVar[List[AgentType]]
 
     def load(self) -> list[Phrase]:

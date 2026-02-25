@@ -1,6 +1,4 @@
 from enum import Enum
-from typing import Dict, Tuple
-
 
 class PredefinedListKey(str, Enum):
     FOREIGN_AGENTS_PERSONS = "foreign_agents_persons"
@@ -13,17 +11,6 @@ class PredefinedListKey(str, Enum):
     EXTREMISTS_INTERNATIONAL_UR = "extremists_international_ur"
     EXTREMISTS_RUSSIAN_FIZ = "extremists_russian_fiz"
     EXTREMISTS_RUSSIAN_UR = "extremists_russian_ur"
-
-
-# Static set: 5 thematic lists (backend). Order for reference only.
-STATIC_LIST_KEYS: Tuple[PredefinedListKey, ...] = (
-    PredefinedListKey.PROFANITY,
-    PredefinedListKey.PROHIBITED_SUBSTANCES,
-    PredefinedListKey.DANGEROUS_WORDS,
-    PredefinedListKey.FOREIGN_AGENTS_PERSONS,
-    PredefinedListKey.FOREIGN_AGENTS_COMPANIES,
-    PredefinedListKey.EXTREMISTS_TERRORISTS,
-)
 
 
 class ESearchSource(str, Enum):
@@ -44,17 +31,3 @@ class ESearchSourceAnnotTitle(str, Enum):
     LIST_PROHIBITED_SUBSTANCES = "Запрещенные вещества"
     LIST_DANGEROUS_WORDS = "Опасные слова"
     LIST_EXTREMISTS_TERRORISTS = "Экстремисты и террористы"
-
-
-PREDEFINED_LIST_SOURCE: Dict[PredefinedListKey, ESearchSource] = {
-    PredefinedListKey.PROFANITY: ESearchSource.LIST_PROFANITY,
-    PredefinedListKey.PROHIBITED_SUBSTANCES: ESearchSource.LIST_PROHIBITED_SUBSTANCES,
-    PredefinedListKey.DANGEROUS_WORDS: ESearchSource.LIST_DANGEROUS_WORDS,
-    PredefinedListKey.FOREIGN_AGENTS_PERSONS: ESearchSource.LIST_INAGENTS,
-    PredefinedListKey.FOREIGN_AGENTS_COMPANIES: ESearchSource.LIST_INAGENTS,
-    PredefinedListKey.EXTREMISTS_TERRORISTS: ESearchSource.LIST_EXTREMISTS_TERRORISTS,
-    PredefinedListKey.EXTREMISTS_INTERNATIONAL_FIZ: ESearchSource.LIST_EXTREMISTS_TERRORISTS,
-    PredefinedListKey.EXTREMISTS_INTERNATIONAL_UR: ESearchSource.LIST_EXTREMISTS_TERRORISTS,
-    PredefinedListKey.EXTREMISTS_RUSSIAN_FIZ: ESearchSource.LIST_EXTREMISTS_TERRORISTS,
-    PredefinedListKey.EXTREMISTS_RUSSIAN_UR: ESearchSource.LIST_EXTREMISTS_TERRORISTS,
-}

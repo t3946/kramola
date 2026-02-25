@@ -1,7 +1,11 @@
 from abc import ABC
+from typing import ClassVar
+
+from services.enum import WordsListKey
+
 
 class WordsList(ABC):
-    key: str
+    key: ClassVar[WordsListKey]
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)

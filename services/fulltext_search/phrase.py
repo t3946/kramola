@@ -33,7 +33,7 @@ class Phrase:
             'phrase': self.phrase,
             'phrase_original': self.phrase_original,
             'tokens': [token.to_dict() for token in self.tokens],
-            'source_list': self.source_list.value if self.source_list is not None else None,
+            'source_list': self.source_list.key.value if self.source_list is not None else None,
         }
 
     def to_json(self) -> str:

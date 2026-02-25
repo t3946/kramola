@@ -1,6 +1,6 @@
-from services.enum import PredefinedListKey
+from services.enum import WordsListKey
 from services.words_list import SimpleList
 
 
 class ListProfanity(SimpleList):
-    key = PredefinedListKey.PROFANITY.value
+    key = WordsListKey.PROFANITY
