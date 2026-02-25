@@ -12,15 +12,6 @@ class ListColor:
 
         super().__init__(*args, **kwargs)
 
-    def get_color(self) -> str:
-        return (
-            ListRecord
-            .query
-            .filter_by(slug=self.key)
-            .first()
-            .color
-        )
-
     @staticmethod
     def get_color_by_slug(slug: str) -> str:
         record = ListRecord.query.filter_by(slug=slug).first()
