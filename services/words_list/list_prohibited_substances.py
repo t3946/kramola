@@ -1,11 +1,6 @@
 from services.enum import PredefinedListKey
-from services.words_list import WordsList
+from services.words_list import SimpleList
 
 
-class ListProhibitedSubstances(WordsList):
+class ListProhibitedSubstances(SimpleList):
     key = PredefinedListKey.PROHIBITED_SUBSTANCES.value
-
-    @property
-    def list_key(self) -> str:
-        return self.key
-
