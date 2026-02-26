@@ -63,3 +63,7 @@ class SimpleList(WordsList):
         ListPhrase.query.filter_by(list_id=list_record.id).delete(synchronize_session=False)
         ListLogs(list_record.id).clear()
         db.session.commit()
+
+    def count_phrases(self) -> int:
+        list_record = self._get_list_record()
+        return ListPhrase.query.filter_by(list_id=list_record.id).count()

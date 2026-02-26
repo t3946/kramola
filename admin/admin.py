@@ -8,6 +8,7 @@ from flask_admin.theme import Bootstrap4Theme
 from flask_login import current_user
 from wtforms import PasswordField
 
+from admin.menu_config import MENU_SPEC
 from models import Inagent, User, Role
 from models.extremists_terrorists import (
     EXTREMIST_AREA_LABELS,
@@ -641,6 +642,18 @@ class RoleView(SecureModelView):
     form_columns = ["name", "description"]
 
 
+MODEL_MAP: dict[str, type] = {"User": User, "Role": Role}
+
+VIEW_CLASS_MAP: dict[str, type] = {
+    "UserView": UserView,
+    "RoleView": RoleView,
+    "InagentsListView": InagentsListView,
+    "WordsListView": WordsListView,
+    "SearchSettingsView": SearchSettingsView,
+    "AutoloadView": AutoloadView,
+}
+
+
 def init_admin(app: Flask, db) -> Admin:
     admin = Admin(
         app,
@@ -648,25 +661,7 @@ def init_admin(app: Flask, db) -> Admin:
         theme=Bootstrap4Theme(swatch="cerulean"),
         index_view=SecureAdminIndexView(url="/admin", endpoint="admin", name="Главная"),
     )
-    admin.add_view(UserView(User, db.session, category="Пользователи", name="Пользователи"))
-    admin.add_view(RoleView(Role, db.session, category="Пользователи", name="Роли"))
-    admin.add_view(
-        InagentsListView(
-            name="Инагенты",
-            url="words-list/inagents",
-            endpoint="inagents_list",
-            category="Готовые списки",
-        )
-    )
-    admin.add_view(
-        SearchSettingsView(
-            name="Поиск",
-            url="settings/search",
-            endpoint="search_settings",
-            category="Настройки",
-        )
-    )
-    admin.add_view(AutoloadView(name="Автозагрузка", url="autoload", endpoint="autoload"))
+
     with app.app_context():
         has_pl_lists = "pl_lists" in inspect(db.engine).get_table_names()
         list_records = (
@@ -674,17 +669,38 @@ def init_admin(app: Flask, db) -> Admin:
             if has_pl_lists
             else []
         )
-    for list_record in list_records:
-        if list_record.slug == "inagents":
-            continue
-        endpoint = f"words_list_{list_record.slug.replace('-', '_')}"
-        admin.add_view(
-            WordsListView(
-                list_record.slug,
-                name=list_record.title or list_record.slug,
-                url=f"words-list/{list_record.slug}",
-                endpoint=endpoint,
-                category="Готовые списки",
-            )
-        )
+
+    for group in MENU_SPEC:
+        category: str | None = group.get("category")
+        for view_spec in group["views"]:
+            if view_spec.get("dynamic"):
+                for list_record in list_records:
+                    if list_record.slug in view_spec.get("exclude_slugs", ()):
+                        continue
+                    endpoint = f"words_list_{list_record.slug.replace('-', '_')}"
+                    view_cls = VIEW_CLASS_MAP[view_spec["view_class"]]
+                    admin.add_view(
+                        view_cls(
+                            list_record.slug,
+                            name=list_record.title or list_record.slug,
+                            url=f"words-list/{list_record.slug}",
+                            endpoint=endpoint,
+                            category=category,
+                        )
+                    )
+                continue
+
+            view_cls = VIEW_CLASS_MAP[view_spec["view_class"]]
+            name = view_spec["name"]
+            kwargs: dict = {"name": name, "category": category}
+            if "url" in view_spec:
+                kwargs["url"] = view_spec["url"]
+            if "endpoint" in view_spec:
+                kwargs["endpoint"] = view_spec["endpoint"]
+            if "model" in view_spec:
+                model = MODEL_MAP[view_spec["model"]]
+                admin.add_view(view_cls(model, db.session, **kwargs))
+            else:
+                admin.add_view(view_cls(**kwargs))
+
     return admin

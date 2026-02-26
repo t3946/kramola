@@ -16,19 +16,14 @@ import redis
 # from project
 from admin.admin import init_admin
 from admin.auth import admin_auth_bp, load_user
+from admin.menu_config import get_ready_lists_menu_items, READY_LISTS_DROPDOWN_TITLE
 from application.core import init_mysql
 from blueprints.foreign_agents.routes import foreign_agents_bp
 from blueprints.tool_footnotes.routes import footnotes_bp
 from blueprints.tool_highlight.routes import highlight_bp
 from blueprints.tool_highlight.socketio.socketio_handlers import register_socketio_handlers
 from commands.commands import register_commands
-from sqlalchemy import func
-
 from extensions import db
-from models import Inagent
-from models.extremists_terrorists import ExtremistTerrorist
-from models.phrase_list.list_phrase import ListPhrase
-from models.phrase_list.list_record import ListRecord
 from services.pymorphy_service import load_pymorphy, load_nltk_lemmatizer
 from services.redis.connection import get_redis_connection, get_redis_host
 from services.enum import PredefinedListKey
@@ -186,52 +181,10 @@ if "db" not in sys.argv:
 
 @app.context_processor
 def inject_admin_words_lists():
-    def _items():
-        records = ListRecord.query.order_by(ListRecord.id).all()
-        count_rows = (
-            db.session.query(ListPhrase.list_id, func.count(ListPhrase.id).label("cnt"))
-            .group_by(ListPhrase.list_id)
-            .all()
-        )
-        count_by_list_id = {row.list_id: row.cnt for row in count_rows}
-        slugs_extremists_terrorists = ("extremists-terrorists", "extremists_terrorists")
-        title_extremists_terrorists = "Экстремисты и террористы"
-
-        def _count_for_list(r: ListRecord) -> int:
-            if r.slug in slugs_extremists_terrorists or (r.title or "").strip() == title_extremists_terrorists:
-                return int(ExtremistTerrorist.query.count())
-            return count_by_list_id.get(r.id, 0)
-
-        inagents_endpoint = "inagents_list"
-        inagents_title = "Инагенты"
-        inagents_count = Inagent.query.count()
-        slugs_inagents: tuple[str, ...] = ("inagents", "foreign-agents-persons")
-
-        result: list[dict] = []
-        inagents_added = False
-        for r in records:
-            if r.slug in slugs_inagents:
-                if not inagents_added:
-                    result.append({
-                        "endpoint": inagents_endpoint,
-                        "title": inagents_title,
-                        "count": inagents_count,
-                    })
-                    inagents_added = True
-            else:
-                result.append({
-                    "endpoint": f"words_list_{r.slug.replace('-', '_')}",
-                    "title": r.title or r.slug,
-                    "count": _count_for_list(r),
-                })
-        if not inagents_added:
-            result.append({
-                "endpoint": inagents_endpoint,
-                "title": inagents_title,
-                "count": inagents_count,
-            })
-        return result
-    return {"admin_words_lists": _items}
+    return {
+        "admin_words_lists": get_ready_lists_menu_items,
+        "admin_ready_lists_title": READY_LISTS_DROPDOWN_TITLE,
+    }
 
 # --- Загрузка анализаторов при старте ---
 def initialize_analyzers():

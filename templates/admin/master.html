@@ -10,7 +10,7 @@
 {{ layout.menu() }}
 <div class="relative inline-block" x-data="{ open: false }">
   <button type="button" class="px-3 py-2 rounded hover:bg-gray-700 text-left flex items-center gap-1" @click="open = !open" @click.outside="open = false">
-    Готовые списки <i class="fa fa-caret-down text-xs"></i>
+    {{ admin_ready_lists_title }} <i class="fa fa-caret-down text-xs"></i>
   </button>
   <div x-show="open" x-cloak class="absolute left-0 top-full mt-1 py-1 bg-gray-700 rounded shadow-lg z-50 min-w-[300px]"
        x-transition:enter="transition ease-out duration-100"

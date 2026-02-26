@@ -5,9 +5,10 @@ from models import ExtremistTerrorist
 from models.extremists_terrorists import ExtremistArea, ExtremistStatus
 from services.enum import WordsListKey
 from services.fulltext_search.phrase import Phrase
+from services.words_list.words_list import WordsList
 
 
-class ListExtremistsTerroristsBase(ABC):
+class ListExtremistsTerroristsBase(WordsList, ABC):
     """Base for loading extremists/terrorists search_terms from DB by area and status."""
 
     key = WordsListKey.EXTREMISTS_TERRORISTS
@@ -42,3 +43,11 @@ class ListExtremistsTerroristsBase(ABC):
                 phrases.append(phrase)
 
         return phrases
+
+    def count_phrases(self) -> int:
+        query = ExtremistTerrorist.query
+        if self.area is not None:
+            query = query.filter(ExtremistTerrorist.area == self.area.value)
+        if self.status is not None:
+            query = query.filter(ExtremistTerrorist.type == self.status.value)
+        return query.count()

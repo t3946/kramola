@@ -8,3 +8,6 @@ class ListUserCustom(WordsList, ABC):
     """User-defined phrase set (from file or text). In-memory, no DB persistence."""
 
     key = WordsListKey.CUSTOM
+
+    def count_phrases(self) -> int:
+        return 0
