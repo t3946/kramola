@@ -7,26 +7,38 @@ URL_RUSSIAN = "https://www.fedsfm.ru/documents/terrorists-catalog-portal-act"
 URL_INTERNATIONAL = "https://www.fedsfm.ru/documents/omu-or-terrorists-catalog-all"
 
 JS_FIND_FL_NAMES = r"""
+function parseBirthDate(text) {
+    const birthRe = /(\d{1,2})\.(\d{1,2})\.(\d{4})\s+г\.р\./;
+    const m = (text || "").match(birthRe);
+    if (!m) return null;
+    const d = m[1].padStart(2, '0');
+    const month = m[2].padStart(2, '0');
+    const y = m[3];
+    return y + '-' + month + '-' + d;
+}
+
 function findFLNames(selector) {
-    const names = [];
+    const items = [];
     const elements = document.querySelectorAll(selector);
-    const re = /\d+\.\s(.+?)\*?,\s*(\((.+?)\))?/;
+    const nameRe = /\d+\.\s(.+?)\*?,\s*(\((.+?)\))?/;
 
     for (e of elements) {
-        const matches = e.innerText.match(re) || [];
-        const currentName = matches[1];
-        const previousName = matches[3];
+        const text = e.innerText;
+        const nameMatch = text.match(nameRe) || [];
+        const currentName = nameMatch[1];
+        const previousName = nameMatch[3];
+        const birthDate = parseBirthDate(text);
 
         if (currentName) {
-            names.push(currentName);
+            items.push({ name: currentName.trim(), birthDate: birthDate });
         }
 
         if (previousName) {
-            names.push(previousName);
+            items.push({ name: previousName.trim(), birthDate: null });
         }
     }
 
-    return names;
+    return items;
 }
 
 return findFLNames(arguments[0]);

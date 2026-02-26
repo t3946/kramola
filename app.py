@@ -78,6 +78,8 @@ logging.getLogger("nltk").setLevel(logging.INFO)
 logging.getLogger("pymorphy3").setLevel(logging.INFO)
 logging.getLogger("PIL").setLevel(logging.INFO)  # Pillow может быть шумным
 logging.getLogger("concurrent_log_handler").setLevel(logging.WARNING)  # Логи самого хендлера
+logging.getLogger("selenium").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 app = Flask(__name__)
 app.logger.name = "Flask_App"
