@@ -32,7 +32,8 @@ class AnalysisData:
         phrases: List[Phrase] = ListFromText().load_from_lines(terms)
 
         for phrase in phrases:
-            self.phrases[phrase.phrase] = phrase
+            if not self.phrases[phrase.phrase]:
+                self.phrases[phrase.phrase] = phrase
 
     def read_regex_patterns(self, patterns: Dict[str, str]) -> None:
         """Load regex patterns for search.

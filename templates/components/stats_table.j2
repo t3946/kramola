@@ -25,11 +25,13 @@
                 </thead>
                 <tbody>
                     {% for stat_item in stats_data %}
-                        {% set phrase_source = stat_item.get('search', {}).get('phrase', {}).get('source') %}
+
+
+                        {% set phrase_source = stat_item.get('search', {}).get('phrase', {}).get('source_list') %}
 
                         <tr>
                             <td>
-                                {% if phrase_source == search_source_type.LIST_INAGENTS.value %}
+                                {% if phrase_source == search_source_type.INAGENTS.value %}
                                     <a
                                         class="base-link showInagentDetails"
                                         href="#"
