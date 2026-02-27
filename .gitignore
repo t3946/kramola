@@ -25,3 +25,4 @@ venv
 static/admin/bundle.js
 
 commands/load-inagents/temp/
+temp
