@@ -41,8 +41,10 @@ def sync_extremists_cmd() -> None:
 
             for item in items_fl:
                 name = item.get("name") if isinstance(item, dict) else item
+
                 if not name or not str(name).strip():
                     continue
+
                 name = str(name).strip()
                 birth_date = _parse_birth_date(item.get("birthDate")) if isinstance(item, dict) else None
                 row = ExtremistTerrorist(
@@ -57,6 +59,7 @@ def sync_extremists_cmd() -> None:
             for name in names_ul:
                 if not name or not str(name).strip():
                     continue
+
                 row = ExtremistTerrorist(
                     full_name=name.strip(),
                     search_terms=[name.strip()],

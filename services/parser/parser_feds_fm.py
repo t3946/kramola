@@ -6,6 +6,9 @@ from services.loader_selenium import LoaderSelenium
 URL_RUSSIAN = "https://www.fedsfm.ru/documents/terrorists-catalog-portal-act"
 URL_INTERNATIONAL = "https://www.fedsfm.ru/documents/omu-or-terrorists-catalog-all"
 
+URL_INTERNATIONAL_EXCLUDED = "https://www.fedsfm.ru/documents/omu-or-terrorists-catalog-excluded"
+URL_RUSSIAN_EXCLUDED = "https://www.fedsfm.ru/documents/terrorists-catalog-portal-del"
+
 JS_FIND_FL_NAMES = r"""
 function parseBirthDate(text) {
     const birthRe = /(\d{1,2})\.(\d{1,2})\.(\d{4})\s+г\.р\./;
@@ -88,16 +91,37 @@ class ParserFedsFM:
 
     def load(self) -> dict[str, dict[str, List[str]]]:
         try:
-            result: dict[str, dict[str, List[str]]] = {}
+            result: dict = {
+                "international": {
+                    "all": [],
+                    "excluded": [],
+                },
+                "russian": {
+                    "all": [],
+                    "excluded": [],
+                }
+            }
 
             self.loader.get(URL_INTERNATIONAL)
-            result["international"] = self._parse_catalog(
+            result["international"]['all'] = self._parse_catalog(
+                "#russianFL ol.terrorist-list li",
+                "#russianUL ol.terrorist-list li",
+            )
+
+            self.loader.get(URL_INTERNATIONAL_EXCLUDED)
+            result["international"]['excluded'] = self._parse_catalog(
                 "#russianFL ol.terrorist-list li",
                 "#russianUL ol.terrorist-list li",
             )
 
             self.loader.get(URL_RUSSIAN)
-            result["russian"] = self._parse_catalog(
+            result["russian"]['all'] = self._parse_catalog(
+                "#russianFL ol.terrorist-list li",
+                "#russianUL ol.terrorist-list li",
+            )
+
+            self.loader.get(URL_RUSSIAN_EXCLUDED)
+            result["russian"]['excluded'] = self._parse_catalog(
                 "#russianFL ol.terrorist-list li",
                 "#russianUL ol.terrorist-list li",
             )
