@@ -1,11 +1,11 @@
 import re
 import json
 from pathlib import Path
-from datetime import date, datetime
 from extensions import db
 from typing import List, Union, Dict, Tuple
 
 from models.extremists_terrorists import ExtremistArea, ExtremistStatus, ExtremistTerrorist
+from services.parser_feds_fm.process_raw import ProcessRaw
 from services.parser_feds_fm.registry_loader import RegistryLoader
 
 URL_RUSSIAN = "https://www.fedsfm.ru/documents/terrorists-catalog-portal-act"
@@ -16,32 +16,10 @@ URL_INTERNATIONAL_EXCLUDED = "https://www.fedsfm.ru/documents/omu-or-terrorists-
 
 
 
-def _parse_birth_date(value: Union[str, None]) -> Union[date, None]:
-    """Parse 'YYYY-MM-DD' string to date or None."""
-    if not value or not isinstance(value, str):
-        return None
-
-    value = value.strip()
-
-    if not value:
-        return None
-    try:
-        return datetime.strptime(value, "%Y-%m-%d").date()
-    except ValueError:
-        return None
 
 
-def _parse_sanction_code(text) -> Union[str, None]:
-    """
-    extract sanction code from text and return None if no sanction code(ex. QDi.289, TAi.155, IRi.001, QDi.1234)
-    """
-    pattern = r'(?!код\s+санкций\s+ООН:\s+)(\w+?\.\d+)'
-    match = re.search(pattern, text, re.IGNORECASE)
 
-    return match.group(0) if match else None
-
-
-class ParserFedsFM:
+class ParserFedsFM (ProcessRaw):
     def __init__(self) -> None:
         pass
 
@@ -144,6 +122,10 @@ class ParserFedsFM:
             )
 
         raw_data: dict = json.loads(raw_data_path.read_text(encoding="utf-8"))
+        # [end]
+
+        # [start] process raw data to rich data objects
+        # todo: process row data: in russian FL - parse birthdate, in all international - parse sanction code
         # [end]
 
         return
