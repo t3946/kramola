@@ -23,6 +23,7 @@ def upgrade() -> None:
         sa.Column("search_terms", sa.JSON(), nullable=True),
         sa.Column("type", sa.String(20), nullable=False),
         sa.Column("area", sa.String(20), nullable=False),
+        sa.Column("sanction_code", sa.String(255), nullable=True),
         sa.Column("birth_date", sa.Date(), nullable=True),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),
         sa.Column("updated_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), onupdate=sa.text("CURRENT_TIMESTAMP"), nullable=False),

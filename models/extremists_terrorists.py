@@ -35,6 +35,7 @@ class ExtremistTerrorist(db.Model):
     search_terms = db.Column(db.JSON, nullable=True)
     type = db.Column(db.String(20), nullable=False)
     area = db.Column(db.String(20), nullable=False)
+    sanction_code = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
