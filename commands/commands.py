@@ -6,7 +6,7 @@ from commands.create_admin import create_admin_cmd
 from commands.load_inagents_cmd import load_inagents_cmd
 from commands.parse_inagents_cmd import parse_inagents_cmd
 from commands.update_inagents_cmd import update_inagents_cmd
-from commands.sync_extremists_cmd import sync_extremists_cmd
+from commands.parse_extremists import sync_extremists_cmd
 
 
 def register_commands(app: Flask) -> None:
