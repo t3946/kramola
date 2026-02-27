@@ -125,7 +125,49 @@ class ParserFedsFM (ProcessRaw):
         # [end]
 
         # [start] process raw data to rich data objects
-        # todo: process row data: in russian FL - parse birthdate, in all international - parse sanction code
+        # international all FL/UL: raw + sanction_code; russian FL: raw + birth_date; russian UL: raw only
+        rich_data: dict = {
+            "international": {"all": {}, "excluded": {}},
+            "russian": {"all": {}, "excluded": {}},
+        }
+
+        rich_data["international"]["all"]["namesFL"] = [
+            {"raw": s, "sanction_code": self._parse_sanction_code(s)}
+            for s in raw_data["international"]["all"]["namesFL"]
+        ]
+
+        rich_data["international"]["all"]["namesUL"] = [
+            {"raw": s, "sanction_code": self._parse_sanction_code(s)}
+            for s in raw_data["international"]["all"]["namesUL"]
+        ]
+
+        rich_data["international"]["excluded"]["namesFL"] = [
+            {"raw": s, "sanction_code": self._parse_sanction_code(s)}
+            for s in raw_data["international"]["excluded"]["namesFL"]
+        ]
+
+        rich_data["international"]["excluded"]["namesUL"] = [
+            {"raw": s, "sanction_code": self._parse_sanction_code(s)}
+            for s in raw_data["international"]["excluded"]["namesUL"]
+        ]
+
+        rich_data["russian"]["all"]["namesFL"] = [
+            {"raw": s, "birth_date": self._parse_birthdate(s)}
+            for s in raw_data["russian"]["all"]["namesFL"]
+        ]
+
+        rich_data["russian"]["all"]["namesUL"] = [
+            {"raw": s} for s in raw_data["russian"]["all"]["namesUL"]
+        ]
+
+        rich_data["russian"]["excluded"]["namesFL"] = [
+            {"raw": s, "birth_date": self._parse_birthdate(s)}
+            for s in raw_data["russian"]["excluded"]["namesFL"]
+        ]
+
+        rich_data["russian"]["excluded"]["namesUL"] = [
+            {"raw": s} for s in raw_data["russian"]["excluded"]["namesUL"]
+        ]
         # [end]
 
         return
