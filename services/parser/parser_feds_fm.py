@@ -1,7 +1,8 @@
+import re
 from datetime import date, datetime
 from services.loader_selenium import LoaderSelenium
 from extensions import db
-from typing import List, Union
+from typing import List, Union, Dict, Tuple
 
 from models.extremists_terrorists import ExtremistArea, ExtremistStatus, ExtremistTerrorist
 
@@ -35,11 +36,19 @@ function findFLNames(selector) {
         const birthDate = parseBirthDate(text);
 
         if (currentName) {
-            items.push({ name: currentName.trim(), birthDate: birthDate });
+            items.push({
+                name: currentName.trim(),
+                birthDate: birthDate,
+                text: text,
+            });
         }
 
         if (previousName) {
-            items.push({ name: previousName.trim(), birthDate: null });
+            items.push({
+                name: previousName.trim(),
+                birthDate: null,
+                text: text,
+            });
         }
     }
 
@@ -51,27 +60,16 @@ return findFLNames(arguments[0]);
 
 JS_FIND_UL_NAMES = r"""
 function findULNames(selector) {
-    const names = [];
+    const items = [];
     const elements = document.querySelectorAll(selector);
 
     for (e of elements) {
-        let matches = e.innerText.match(/\d+\.\s([^*,\(]+)/);
-
-        if (matches && matches[1]) {
-            names.push(matches[1].trim());
-        }
-
-        matches = e.innerText.match(/\((.+?)\)/);
-
-        if (matches) {
-            const otherNames = matches[1]
-                .split(';')
-                .map(name => name.trim());
-            names.push(...otherNames);
-        }
+        items.push({
+            text: e.innerText,
+        });
     }
 
-    return names;
+    return items;
 }
 
 return findULNames(arguments[0]);
@@ -93,6 +91,16 @@ def _parse_birth_date(value: Union[str, None]) -> Union[date, None]:
         return None
 
 
+def _parse_sanction_code(text) -> Union[str, None]:
+    """
+    extract sanction code from text and return None if no sanction code(ex. QDi.289, TAi.155, IRi.001, QDi.1234)
+    """
+    pattern = r'(?!код\s+санкций\s+ООН:\s+)(\w+?\.\d+)'
+    match = re.search(pattern, text, re.IGNORECASE)
+
+    return match.group(0) if match else None
+
+
 class ParserFedsFM:
     def __init__(self) -> None:
         self.loader = LoaderSelenium()
@@ -104,6 +112,7 @@ class ParserFedsFM:
     ) -> dict[str, List[str]]:
         names_fl: List[str] = self.loader.driver.execute_script(JS_FIND_FL_NAMES, fl_selector)
         names_ul: List[str] = self.loader.driver.execute_script(JS_FIND_UL_NAMES, ul_selector)
+
         return {"namesFL": names_fl or [], "namesUL": names_ul or []}
 
     def _load(self) -> dict:
@@ -130,6 +139,22 @@ class ParserFedsFM:
             "#russianUL ol.terrorist-list li",
         )
 
+        # [start] process raw international data
+        for all_division in result["international"]['all']:
+            for item in all_division["names_FL"]:
+                item["sanction_code"] = _parse_sanction_code(item["text"])
+
+            for item in all_division["names_UL"]:
+                item["sanction_code"] = _parse_sanction_code(item["text"])
+
+        for excluded_division in result["international"]['excluded']:
+            for item in excluded_division["names_FL"]:
+                item["sanction_code"] = _parse_sanction_code(item["text"])
+
+            for item in excluded_division["names_UL"]:
+                item["sanction_code"] = _parse_sanction_code(item["text"])
+        # [end]
+
         self.loader.get(URL_RUSSIAN)
         result["russian"]['all'] = self._parse_catalog(
             "#russianFL ol.terrorist-list li",
@@ -146,9 +171,41 @@ class ParserFedsFM:
 
         return result
 
+    def sync_international_fl_ul(self, data_from_registry: dict) -> None:
+        # [start] build models dict
+        models: List[ExtremistTerrorist] = (
+            ExtremistTerrorist
+            .query
+            .filter(ExtremistTerrorist.area == ExtremistArea.INTERNATIONAL.value)
+            .all()
+        )
+        models_dict: Dict[Tuple[str, str], ExtremistTerrorist] = {}
+
+        # key models by full_name and sanction_code
+        for model in models:
+            key: Tuple[str, str] = (model.full_name, model.sanction_code)
+            models_dict[key] = model
+        # [end]
+
+        # [start] sync models with registry data
+        for division_all in data_from_registry["all"]:
+            for fl in division_all["namesFL"]:
+                # todo check if models_dict contain this fl
+                pass
+
+            for ul in division_all["namesUL"]:
+                pass
+        # [end]
+
+        pass
+
     def parse(self):
         data = self._load()
 
+        # new sync logic
+        self.sync_international_fl_ul(data["international"])
+
+        # old sync logic
         for area in ExtremistArea:
             block = data.get(area, {})
             items_fl = block.get("namesFL") or []
