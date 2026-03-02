@@ -95,6 +95,8 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
 
         # [start] hydrate rich data objects
         for item in rich_data:
+            item["raw"] = self._strip_number(item["raw"])
+
             if item["area"] == ExtremistArea.INTERNATIONAL:
                 item["sanction_code"] = self._parse_sanction_code(item["raw"])
                 item["names"] = self._parse_international_name(item["raw"])
@@ -113,8 +115,10 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 item["full_name"] = item["names"]["main"]
                 item["search_terms"].append(item["names"]["main"])
 
-            if item["names"]["additional"]:
-                item["search_terms"].extend(item["names"]["additional"])
+            additional = item["names"].get("additional") or []
+
+            if additional:
+                item["search_terms"].extend(additional)
         # [end]
 
         # [start] sync DB international data
@@ -186,4 +190,6 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
             else:
                 old_model.is_active = new_model.is_active
         # [end]
+
+        db.session.commit()
         return
