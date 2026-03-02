@@ -30,13 +30,14 @@ class ExtremistTerrorist(db.Model):
     __tablename__ = "extremists_terrorists"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    full_name = db.Column(db.Text, nullable=True)
     raw_source = db.Column(db.Text, nullable=True)
-    birth_date = db.Column(db.Date, nullable=True)
+    full_name = db.Column(db.Text, nullable=True)
     search_terms = db.Column(db.JSON, nullable=True)
     type = db.Column(db.String(20), nullable=False)
     area = db.Column(db.String(20), nullable=False)
     sanction_code = db.Column(db.String(255), nullable=True)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    birth_date = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 

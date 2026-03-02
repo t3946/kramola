@@ -15,14 +15,9 @@ URL_INTERNATIONAL = "https://www.fedsfm.ru/documents/omu-or-terrorists-catalog-a
 URL_INTERNATIONAL_EXCLUDED = "https://www.fedsfm.ru/documents/omu-or-terrorists-catalog-excluded"
 
 
-
-
-
-
-class ParserFedsFM (ProcessRawInternational, ProcessRawRussian):
+class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
     def __init__(self) -> None:
         pass
-
 
     def _load(self) -> dict:
         result: dict = {
@@ -163,6 +158,31 @@ class ParserFedsFM (ProcessRawInternational, ProcessRawRussian):
         # [end]
 
         # [start] sync DB data
-        #
+        international_items = [item for item in rich_data if item["area"] == ExtremistArea.INTERNATIONAL]
+
+        for item in international_items:
+            old_model = (
+                ExtremistTerrorist
+                .query
+                .filter(ExtremistTerrorist.area == ExtremistArea.INTERNATIONAL.value)
+                .filter(ExtremistTerrorist.sanction_code == item.get("sanction_code"))
+                .first()
+            )
+
+            new_model = ExtremistTerrorist(
+                raw_source=item.get("raw"),
+                full_name=item.get("full_name"),
+                search_terms=item.get("search_terms"),
+                type=item["type"].value,
+                area=ExtremistArea.INTERNATIONAL.value,
+                sanction_code=item.get("sanction_code"),
+                is_active=item["is_active"],
+            )
+
+            # insert new
+            if old_model is None:
+                db.session.add(new_model)
+            elif old_model.is_active != new_model.is_active:
+                old_model.is_active = new_model.is_active
         # [end]
         return
