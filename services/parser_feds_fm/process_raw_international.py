@@ -1,8 +1,18 @@
 import re
 from typing import Union
 
+from services.parser_feds_fm.process_raw import ProcessRaw
 
-class ProcessRawInternational:
+
+class ProcessRawInternational(ProcessRaw):
+    @staticmethod
+    def _parse_international_name(raw):
+        names = {"main": ""}
+        raw = ProcessRaw._strip_number(raw)
+        names["main"] = raw.split(",", 1)[0]
+
+        return names
+
     @staticmethod
     def _parse_sanction_code(text) -> Union[str, None]:
         """

@@ -1,6 +1,10 @@
-from services.parser_feds_fm.process_raw_international import ProcessRawInternational
-from services.parser_feds_fm.process_raw_russian import ProcessRawRussian
+import re
 
+class ProcessRaw:
+    @staticmethod
+    def _strip_number(raw: str) -> str:
+        raw = raw.strip()
+        m_num = re.match(r"^\s*\d+\.\s*", raw)
+        raw_without_number = raw[m_num.end():]
 
-class ProcessRaw (ProcessRawInternational, ProcessRawRussian):
-    pass
+        return raw_without_number

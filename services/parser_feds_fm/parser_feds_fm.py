@@ -4,8 +4,9 @@ from extensions import db
 from typing import List, Dict, Tuple
 
 from models.extremists_terrorists import ExtremistArea, ExtremistStatus, ExtremistTerrorist
-from services.parser_feds_fm.process_raw import ProcessRaw
 from services.parser_feds_fm.registry_loader import RegistryLoader
+from services.parser_feds_fm.process_raw_international import ProcessRawInternational
+from services.parser_feds_fm.process_raw_russian import ProcessRawRussian
 
 URL_RUSSIAN = "https://www.fedsfm.ru/documents/terrorists-catalog-portal-act"
 URL_RUSSIAN_EXCLUDED = "https://www.fedsfm.ru/documents/terrorists-catalog-portal-del"
@@ -18,7 +19,7 @@ URL_INTERNATIONAL_EXCLUDED = "https://www.fedsfm.ru/documents/omu-or-terrorists-
 
 
 
-class ParserFedsFM (ProcessRaw):
+class ParserFedsFM (ProcessRawInternational, ProcessRawRussian):
     def __init__(self) -> None:
         pass
 
@@ -141,54 +142,27 @@ class ParserFedsFM (ProcessRaw):
         for item in rich_data:
             if item["area"] == ExtremistArea.INTERNATIONAL:
                 item["sanction_code"] = self._parse_sanction_code(item["raw"])
+                item["names"] = self._parse_international_name(item["raw"])
 
-            if item["area"] == ExtremistArea.RUSSIAN and item["type"] == ExtremistStatus.FIZ:
-                item["birth_date"] = self._parse_birthdate(item["raw"])
-                item["names"] = self._parse_ru_fl_name(item["raw"])
+            if item["area"] == ExtremistArea.RUSSIAN:
+                if item["type"] == ExtremistStatus.FIZ:
+                    item["birth_date"] = self._parse_birthdate(item["raw"])
+                    item["names"] = self._parse_ru_fl_name(item["raw"])
+
+                if item["type"] == ExtremistStatus.UR:
+                    item["names"] = self._parse_ru_ul_name(item["raw"])
+
+            item["search_terms"] = []
+
+            if item["names"]["main"]:
+                item["full_name"] = item["names"]["main"]
+                item["search_terms"].append(item["names"]["main"])
+
+            if item["names"]["additional"]:
+                item["search_terms"].extend(item["names"]["additional"])
         # [end]
 
+        # [start] sync DB data
+        #
+        # [end]
         return
-        data = self._load()
-
-        # new sync logic
-        self.sync_international_fl_ul(data["international"])
-
-        # old sync logic
-        for area in ExtremistArea:
-            block = data.get(area, {})
-            items_fl = block.get("namesFL") or []
-            names_ul = block.get("namesUL") or []
-
-            ExtremistTerrorist.query.filter_by(area=area.value).delete(synchronize_session=False)
-
-            for item in items_fl:
-                name = item.get("name") if isinstance(item, dict) else item
-
-                if not name or not str(name).strip():
-                    continue
-
-                name = str(name).strip()
-                birth_date = _parse_birth_date(item.get("birthDate")) if isinstance(item, dict) else None
-                row = ExtremistTerrorist(
-                    full_name=name,
-                    birth_date=birth_date,
-                    search_terms=[name],
-                    type=ExtremistStatus.FIZ.value,
-                    area=area.value,
-                )
-                db.session.add(row)
-
-            for name in names_ul:
-                if not name or not str(name).strip():
-                    continue
-
-                row = ExtremistTerrorist(
-                    full_name=name.strip(),
-                    search_terms=[name.strip()],
-                    type=ExtremistStatus.UR.value,
-                    area=area.value,
-                )
-                db.session.add(row)
-
-            db.session.commit()
-            print(f"Synced {area.value}: FL={len(items_fl)}, UL={len(names_ul)}")
