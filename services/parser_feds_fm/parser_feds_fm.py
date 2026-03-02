@@ -19,62 +19,6 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
     def __init__(self) -> None:
         pass
 
-    def _load(self) -> dict:
-        result: dict = {
-            "international": {
-                "all": {},
-                "excluded": {},
-            },
-            "russian": {
-                "all": {},
-                "excluded": {},
-            }
-        }
-
-        self.loader.get(URL_INTERNATIONAL)
-        result["international"]['all'] = self._parse_catalog(
-            "#russianFL ol.terrorist-list li",
-            "#russianUL ol.terrorist-list li",
-        )
-
-        self.loader.get(URL_INTERNATIONAL_EXCLUDED)
-        result["international"]['excluded'] = self._parse_catalog(
-            "#russianFL ol.terrorist-list li",
-            "#russianUL ol.terrorist-list li",
-        )
-
-        # [start] process raw international data
-        for all_division in result["international"]['all']:
-            for item in all_division["names_FL"]:
-                item["sanction_code"] = _parse_sanction_code(item["text"])
-
-            for item in all_division["names_UL"]:
-                item["sanction_code"] = _parse_sanction_code(item["text"])
-
-        for excluded_division in result["international"]['excluded']:
-            for item in excluded_division["names_FL"]:
-                item["sanction_code"] = _parse_sanction_code(item["text"])
-
-            for item in excluded_division["names_UL"]:
-                item["sanction_code"] = _parse_sanction_code(item["text"])
-        # [end]
-
-        self.loader.get(URL_RUSSIAN)
-        result["russian"]['all'] = self._parse_catalog(
-            "#russianFL ol.terrorist-list li",
-            "#russianUL ol.terrorist-list li",
-        )
-
-        self.loader.get(URL_RUSSIAN_EXCLUDED)
-        result["russian"]['excluded'] = self._parse_catalog(
-            "#russianFL ol.terrorist-list li",
-            "#russianUL ol.terrorist-list li",
-        )
-
-        self.loader.driver.quit()
-
-        return result
-
     def sync_international_fl_ul(self, data_from_registry: dict) -> None:
         # [start] build models dict
         models: List[ExtremistTerrorist] = (
