@@ -103,7 +103,9 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
 
             if item["area"] == ExtremistArea.RUSSIAN:
                 if item["type"] == ExtremistType.FIZ:
-                    item["birth_date"] = self._parse_birthdate(item["raw"])
+                    birth = self._parse_birth_details(item["raw"])
+                    item["birth_date"] = birth["date"]
+                    item["birth_place"] = birth["place"]
                     item["names"] = self._parse_ru_fl_name(item["raw"])
 
                 if item["type"] == ExtremistType.UR:
@@ -186,10 +188,12 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 old_model = (
                     query
                     .filter(ExtremistTerrorist.birth_date == item["birth_date"])
+                    .filter(ExtremistTerrorist.birth_place == item["birth_place"])
                     .first()
                 )
 
                 new_model.birth_date = item["birth_date"]
+                new_model.birth_place = item["birth_place"]
 
             if item["type"] == ExtremistType.UR:
                 old_model = query.first()

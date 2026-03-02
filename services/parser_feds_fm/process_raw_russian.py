@@ -7,20 +7,31 @@ from services.parser_feds_fm.process_raw import ProcessRaw
 
 class ProcessRawRussian(ProcessRaw):
     @staticmethod
-    def _parse_birthdate(raw: str) -> Union[date, None]:
+    def _parse_birth_details(raw: str) -> Union[dict, None]:
+        result = {
+            "date": None,
+            "place": None
+        }
         # parse birthdate in format: DD.MM.YYYY г.р.
         if not raw:
-            return None
+            return result
 
-        pattern = r'(\d{2})\.(\d{2})\.(\d{4})\s*г\.р\.'
-        match = re.search(pattern, raw)
+        # [start] parse birthdate
+        match = re.search(r'(\d{2})\.(\d{2})\.(\d{4})\s*г\.р\.', raw)
 
         if not match:
-            return None
+            return result
 
         day, month, year = map(int, match.groups())
+        result["date"] = date(year, month, day)
+        # [end]
 
-        return date(year, month, day)
+        # [start] birthplace
+        match = re.search(r'(?:\d{2}\.\d{2}\.\d{4}\s*г\.р\.)[\s,]+([\w.\s]+)', raw)
+        result["place"] = match[1] if match else None
+        # [end]
+
+        return result
 
     @staticmethod
     def _parse_ru_fl_name(raw: str) -> dict:
