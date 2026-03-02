@@ -99,7 +99,12 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
 
             if item["area"] == ExtremistArea.INTERNATIONAL:
                 item["sanction_code"] = self._parse_sanction_code(item["raw"])
-                item["names"] = self._parse_international_name(item["raw"])
+
+                if item["type"] == ExtremistType.FIZ:
+                    item["names"] = self._parse_international_fl_name(item["raw"])
+
+                if item["type"] == ExtremistType.UR:
+                    item["names"] = self._parse_international_ul_name(item["raw"])
 
             if item["area"] == ExtremistArea.RUSSIAN:
                 if item["type"] == ExtremistType.FIZ:
