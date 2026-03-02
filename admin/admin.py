@@ -15,7 +15,7 @@ from models.extremists_terrorists import (
     EXTREMIST_AREA_LABELS,
     EXTREMIST_TYPE_LABELS,
     ExtremistArea,
-    ExtremistStatus,
+    ExtremistType,
     ExtremistTerrorist,
 )
 from models.inagents import AGENT_TYPE_MAP, AGENT_TYPE_SHORT_LABELS
@@ -40,7 +40,7 @@ from admin.words_list_controller import (
 SLUG_EXTREMISTS_TERRORISTS: str = "extremists-terrorists"
 
 
-VALID_EXTREMIST_TYPES: tuple[str, ...] = (ExtremistStatus.FIZ.value, ExtremistStatus.UR.value)
+VALID_EXTREMIST_TYPES: tuple[str, ...] = (ExtremistType.FIZ.value, ExtremistType.UR.value)
 
 
 def _extremist_to_form_data(et: ExtremistTerrorist) -> dict:

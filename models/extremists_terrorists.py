@@ -5,14 +5,14 @@ from typing import List
 from extensions import db
 
 
-class ExtremistStatus(str, Enum):
+class ExtremistType(str, Enum):
     FIZ = "fiz"
     UR = "ur"
 
 
 EXTREMIST_TYPE_LABELS: dict[str, str] = {
-    ExtremistStatus.FIZ.value: "ФЛ",
-    ExtremistStatus.UR.value: "ЮЛ",
+    ExtremistType.FIZ.value: "ФЛ",
+    ExtremistType.UR.value: "ЮЛ",
 }
 
 class ExtremistArea(str, Enum):

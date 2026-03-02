@@ -2,7 +2,7 @@ from abc import ABC
 from typing import ClassVar, List, Optional
 
 from models import ExtremistTerrorist
-from models.extremists_terrorists import ExtremistArea, ExtremistStatus
+from models.extremists_terrorists import ExtremistArea, ExtremistType
 from services.enum import WordsListKey
 from services.fulltext_search.phrase import Phrase
 from services.words_list.words_list import WordsList
@@ -13,7 +13,7 @@ class ListExtremistsTerroristsBase(WordsList, ABC):
 
     key = WordsListKey.EXTREMISTS_TERRORISTS
     area: ClassVar[Optional[ExtremistArea]] = None
-    status: ClassVar[Optional[ExtremistStatus]] = None
+    status: ClassVar[Optional[ExtremistType]] = None
 
     def __init__(self) -> None:
         super().__init__()

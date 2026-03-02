@@ -3,7 +3,7 @@ from pathlib import Path
 from extensions import db
 from typing import List, Dict, Tuple
 
-from models.extremists_terrorists import ExtremistArea, ExtremistStatus, ExtremistTerrorist
+from models.extremists_terrorists import ExtremistArea, ExtremistType, ExtremistTerrorist
 from services.parser_feds_fm.registry_loader import RegistryLoader
 from services.parser_feds_fm.process_raw_international import ProcessRawInternational
 from services.parser_feds_fm.process_raw_russian import ProcessRawRussian
@@ -67,14 +67,30 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
         # international all FL/UL: raw + sanction_code; russian FL: raw + birth_date; russian UL: raw only
         rich_data: List[dict] = []
 
-        rich_data.extend([{"raw": s, "type": ExtremistStatus.FIZ, "area": ExtremistArea.INTERNATIONAL, "is_active": True} for s in raw_data["international"]["all"]["namesFL"]])
-        rich_data.extend([{"raw": s, "type": ExtremistStatus.UR, "area": ExtremistArea.INTERNATIONAL, "is_active": True} for s in raw_data["international"]["all"]["namesUL"]])
-        rich_data.extend([{"raw": s, "type": ExtremistStatus.FIZ, "area": ExtremistArea.INTERNATIONAL, "is_active": False} for s in raw_data["international"]["excluded"]["namesFL"]])
-        rich_data.extend([{"raw": s, "type": ExtremistStatus.UR, "area": ExtremistArea.INTERNATIONAL, "is_active": False} for s in raw_data["international"]["excluded"]["namesUL"]])
-        rich_data.extend([{"raw": s, "type": ExtremistStatus.FIZ, "area": ExtremistArea.RUSSIAN, "is_active": True} for s in raw_data["russian"]["all"]["namesFL"]])
-        rich_data.extend([{"raw": s, "type": ExtremistStatus.UR, "area": ExtremistArea.RUSSIAN, "is_active": True} for s in raw_data["russian"]["all"]["namesUL"]])
-        rich_data.extend([{"raw": s, "type": ExtremistStatus.FIZ, "area": ExtremistArea.RUSSIAN, "is_active": False} for s in raw_data["russian"]["excluded"]["namesFL"]])
-        rich_data.extend([{"raw": s, "type": ExtremistStatus.UR, "area": ExtremistArea.RUSSIAN, "is_active": False} for s in raw_data["russian"]["excluded"]["namesUL"]])
+        rich_data.extend(
+            [{"raw": s, "type": ExtremistType.FIZ, "area": ExtremistArea.INTERNATIONAL, "is_active": True} for s in
+             raw_data["international"]["all"]["namesFL"]])
+        rich_data.extend(
+            [{"raw": s, "type": ExtremistType.UR, "area": ExtremistArea.INTERNATIONAL, "is_active": True} for s in
+             raw_data["international"]["all"]["namesUL"]])
+        rich_data.extend(
+            [{"raw": s, "type": ExtremistType.FIZ, "area": ExtremistArea.INTERNATIONAL, "is_active": False} for s in
+             raw_data["international"]["excluded"]["namesFL"]])
+        rich_data.extend(
+            [{"raw": s, "type": ExtremistType.UR, "area": ExtremistArea.INTERNATIONAL, "is_active": False} for s in
+             raw_data["international"]["excluded"]["namesUL"]])
+        rich_data.extend(
+            [{"raw": s, "type": ExtremistType.FIZ, "area": ExtremistArea.RUSSIAN, "is_active": True} for s in
+             raw_data["russian"]["all"]["namesFL"]])
+        rich_data.extend(
+            [{"raw": s, "type": ExtremistType.UR, "area": ExtremistArea.RUSSIAN, "is_active": True} for s in
+             raw_data["russian"]["all"]["namesUL"]])
+        rich_data.extend(
+            [{"raw": s, "type": ExtremistType.FIZ, "area": ExtremistArea.RUSSIAN, "is_active": False} for s in
+             raw_data["russian"]["excluded"]["namesFL"]])
+        rich_data.extend(
+            [{"raw": s, "type": ExtremistType.UR, "area": ExtremistArea.RUSSIAN, "is_active": False} for s in
+             raw_data["russian"]["excluded"]["namesUL"]])
         # [end]
 
         # [start] hydrate rich data objects
@@ -84,11 +100,11 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 item["names"] = self._parse_international_name(item["raw"])
 
             if item["area"] == ExtremistArea.RUSSIAN:
-                if item["type"] == ExtremistStatus.FIZ:
+                if item["type"] == ExtremistType.FIZ:
                     item["birth_date"] = self._parse_birthdate(item["raw"])
                     item["names"] = self._parse_ru_fl_name(item["raw"])
 
-                if item["type"] == ExtremistStatus.UR:
+                if item["type"] == ExtremistType.UR:
                     item["names"] = self._parse_ru_ul_name(item["raw"])
 
             item["search_terms"] = []
@@ -101,7 +117,7 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 item["search_terms"].extend(item["names"]["additional"])
         # [end]
 
-        # [start] sync DB data
+        # [start] sync DB international data
         international_items = [item for item in rich_data if item["area"] == ExtremistArea.INTERNATIONAL]
 
         for item in international_items:
@@ -109,7 +125,8 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 ExtremistTerrorist
                 .query
                 .filter(ExtremistTerrorist.area == ExtremistArea.INTERNATIONAL.value)
-                .filter(ExtremistTerrorist.sanction_code == item.get("sanction_code"))
+                .filter(ExtremistTerrorist.sanction_code == item["sanction_code"])
+                .filter(ExtremistTerrorist.full_name == item["names"]["main"])
                 .first()
             )
 
@@ -127,6 +144,46 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
             if old_model is None:
                 db.session.add(new_model)
             elif old_model.is_active != new_model.is_active:
+                old_model.is_active = new_model.is_active
+        # [end]
+
+        # [start] sync DB russian data
+        russian_items = [item for item in rich_data if item["area"] == ExtremistArea.RUSSIAN]
+
+        for item in russian_items:
+            query = (
+                ExtremistTerrorist
+                .query
+                .filter(ExtremistTerrorist.area == ExtremistArea.RUSSIAN.value)
+                .filter(ExtremistTerrorist.full_name == item["names"]["main"])
+                .filter(ExtremistTerrorist.type == item["type"].value)
+            )
+
+            old_model = None
+            new_model = ExtremistTerrorist(
+                raw_source=item.get("raw"),
+                full_name=item.get("full_name"),
+                search_terms=item.get("search_terms"),
+                type=item["type"].value,
+                area=ExtremistArea.RUSSIAN.value,
+                is_active=item["is_active"],
+            )
+
+            if item["type"] == ExtremistType.FIZ:
+                old_model = (
+                    query
+                    .filter(ExtremistTerrorist.birth_date == item["birth_date"])
+                    .first()
+                )
+
+                new_model.birth_date = item["birth_date"]
+
+            if item["type"] == ExtremistType.UR:
+                old_model = query.first()
+
+            if old_model is None:
+                db.session.add(new_model)
+            else:
                 old_model.is_active = new_model.is_active
         # [end]
         return
