@@ -63,15 +63,19 @@ class ProcessRawRussian(ProcessRaw):
 
         raw = ProcessRaw._strip_number(raw)
 
+        simple_pattern_1 = r"^([\s\w\-`]+)[\s*,;]+$"
+
         # [start] find main name
-        if "*" in raw:
+        if re.search(simple_pattern_1, raw):
+            names["main"] = re.search(simple_pattern_1, raw)[1].strip()
+        elif "*" in raw:
             names["main"] = raw.split("*", 1)[0].strip()
             is_name_found = True
         elif "(" in raw:
-            matches = re.search(r"^[\s\w]+", raw)
+            matches = re.search(r"^[\s\w\-`]+", raw)
 
             if matches:
-                names["main"] = matches[0]
+                names["main"] = matches[0].strip()
                 is_name_found = True
         # [end]
 
