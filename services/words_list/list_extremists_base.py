@@ -23,18 +23,21 @@ class ListExtremistsTerroristsBase(WordsList, ABC):
             ExtremistTerrorist.full_name,
             ExtremistTerrorist.search_terms
         )
+
         if self.area is not None:
             query = query.filter(ExtremistTerrorist.area == self.area.value)
+
         if self.status is not None:
             query = query.filter(ExtremistTerrorist.type == self.status.value)
+
         rows = query.all()
         phrases: list[Phrase] = []
 
-        for (full_name, terms) in rows:
-            if not isinstance(terms, list):
-                terms = []
+        for (full_name, search_terms) in rows:
+            if not isinstance(search_terms, list):
+                search_terms = []
 
-            for text in terms:
+            for text in search_terms:
                 phrase = Phrase(
                     phrase=text,
                     source_list=self,
