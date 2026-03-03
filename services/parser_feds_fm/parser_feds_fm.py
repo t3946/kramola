@@ -48,9 +48,15 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
         pass
 
     def parse(self, download_new_data: bool = True) -> None:
+        print("Parse: start")
+
         # download new raw data
         if download_new_data:
+            print("Parse: downloading new data")
             RegistryLoader().load()
+            print("Parse: data loaded")
+        else:
+            print("Parse: read old data")
 
         # [start] read raw data
         raw_data_path: Path = RegistryLoader.get_raw_path()
@@ -130,6 +136,8 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
 
         # [start] sync DB international data
         international_items = [item for item in rich_data if item["area"] == ExtremistArea.INTERNATIONAL]
+        commit_step = 1000
+        print(f"Sync international: start ({len(international_items)} items)")
 
         for i, item in enumerate(international_items):
             query = (
@@ -162,13 +170,17 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
             elif old_model.is_active != new_model.is_active:
                 old_model.is_active = new_model.is_active
 
-            if i % 1000 == 0:
+            if i % commit_step == 0:
                 db.session.commit()
-                print(f"{i}/{len(international_items)} items processed")
+                print(f"\r{i}/{len(international_items)} items processed", end="", flush=i > 0)
+
+        if len(international_items): print('')
+        print(f"Sync international: done ({len(international_items)} items)")
         # [end]
 
         # [start] sync DB russian data
         russian_items = [item for item in rich_data if item["area"] == ExtremistArea.RUSSIAN]
+        print(f"Sync russian: start ({len(russian_items)} items)")
 
         for i, item in enumerate(russian_items):
             query = (
@@ -212,10 +224,14 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
             else:
                 old_model.is_active = new_model.is_active
 
-            if i % 1000 == 0:
+            if i % commit_step == 0:
                 db.session.commit()
-                print(f"{i + 1}/{len(russian_items)} items processed")
+                print(f"\r{i}/{len(russian_items)} items processed", end="", flush=i > 0)
+
+        if len(russian_items): print('')
+        print(f"Sync russian: done ({len(russian_items)} items)")
         # [end]
 
         db.session.commit()
+        print("Parse: Done!")
         return

@@ -33,6 +33,14 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id"),
     )
 
+    op.execute("CREATE INDEX ix_et_area_sanction_code ON extremists_terrorists (area, sanction_code)")
+    op.execute("CREATE INDEX ix_et_area_type ON extremists_terrorists (area, type)")
+    op.execute("CREATE INDEX ix_et_area_type_full_name ON extremists_terrorists (area, type, full_name(100))")
+    op.execute("CREATE INDEX ix_et_area_type_birth ON extremists_terrorists (area, type, birth_date, birth_place(100))")
 
 def downgrade() -> None:
+    op.execute("DROP INDEX ix_et_area_sanction_code ON extremists_terrorists")
+    op.execute("DROP INDEX ix_et_area_type ON extremists_terrorists")
+    op.execute("DROP INDEX ix_et_area_type_full_name ON extremists_terrorists")
+    op.execute("DROP INDEX ix_et_area_type_birth ON extremists_terrorists")
     op.drop_table("extremists_terrorists")
