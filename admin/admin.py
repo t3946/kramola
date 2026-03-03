@@ -54,8 +54,10 @@ def _extremist_to_form_data(et: ExtremistTerrorist) -> dict:
         "type_label": EXTREMIST_TYPE_LABELS.get(et.type, et.type or ""),
         "area": et.area or "",
         "area_label": EXTREMIST_AREA_LABELS.get(et.area, et.area or ""),
+        "is_active_label": "Да" if et.is_active else "Нет",
         "birth_date": birth_date_str,
         "birth_place": et.birth_place or "",
+        "company_region": et.company_region or "",
         "search_terms": terms,
     }
 
@@ -77,6 +79,9 @@ def _form_apply_extremist(form, et: ExtremistTerrorist) -> None:
                 et.birth_date = None
         if "birth_place" in form:
             et.birth_place = form.get("birth_place", "").strip() or None
+    if et.type == ExtremistType.UR.value and et.area == ExtremistArea.RUSSIAN.value:
+        if "company_region" in form:
+            et.company_region = form.get("company_region", "").strip() or None
     search_terms_list = form.getlist("search_terms")[:6]
     et.search_terms = [s.strip() for s in search_terms_list if s.strip()] or []
 
@@ -92,6 +97,7 @@ def _extremists_terrorists_paginated(
     type_filter: str | None = None,
     area_filter: str | None = None,
     phrases_filter: str | None = None,
+    active_filter: str | None = None,
 ) -> tuple[list[ExtremistTerrorist], int]:
     base = ExtremistTerrorist.query
     if query:
@@ -109,6 +115,10 @@ def _extremists_terrorists_paginated(
                 func.json_length(ExtremistTerrorist.search_terms) == 0,
             )
         )
+    if active_filter == "yes":
+        base = base.filter(ExtremistTerrorist.is_active.is_(True))
+    elif active_filter == "no":
+        base = base.filter(ExtremistTerrorist.is_active.is_(False))
     total: int = base.count()
     rows = base.order_by(ExtremistTerrorist.full_name.asc()).limit(limit).offset(offset).all()
     return rows, total
@@ -306,26 +316,32 @@ class WordsListView(BaseView):
             phrases_filter = request.args.get("phrases", "").strip() or None
             if phrases_filter and phrases_filter not in ("yes", "no"):
                 phrases_filter = None
+            active_filter = request.args.get("active", "").strip() or None
+            if active_filter and active_filter not in ("yes", "no"):
+                active_filter = None
             rows, total = _extremists_terrorists_paginated(
                 limit, offset, query,
                 type_filter=type_filter,
                 area_filter=area_filter,
                 phrases_filter=phrases_filter,
+                active_filter=active_filter,
             )
 
             def row_et(et: ExtremistTerrorist) -> dict:
-                st_count = len(et.search_terms)
-                birth_date_str = et.birth_date.strftime("%d.%m.%Y") if et.birth_date else "-"
-
+                terms = et.search_terms
+                st_count = len(terms) if isinstance(terms, list) else 0
+                birth_date_str = et.birth_date.strftime("%d.%m.%Y") if et.birth_date else ""
+                display_name: str = (et.full_name or et.raw_source or "") or ""
                 return {
                     "id": et.id,
-                    "full_name": et.full_name,
+                    "full_name": display_name,
                     "birth_date": birth_date_str,
                     "type": et.type or "",
                     "type_label": EXTREMIST_TYPE_LABELS.get(et.type, et.type or ""),
                     "area": et.area or "",
                     "area_label": EXTREMIST_AREA_LABELS.get(et.area, et.area or ""),
                     "search_terms_count": st_count,
+                    "is_active": bool(et.is_active),
                     "edit_form_url": url_for(f"{endpoint}.extremist_edit_form", id=et.id),
                     "edit_save_url": url_for(f"{endpoint}.extremist_edit_save", id=et.id),
                 }

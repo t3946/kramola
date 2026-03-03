@@ -11,6 +11,7 @@ interface ExtremistsRow {
   area: string;
   area_label: string;
   search_terms_count: number;
+  is_active: boolean;
   edit_form_url: string;
   edit_save_url: string;
 }
@@ -54,6 +55,7 @@ function initExtremistsList(): void {
   const typeFilterEl = document.getElementById("extremist-type-filter") as HTMLSelectElement | null;
   const areaFilterEl = document.getElementById("extremist-area-filter") as HTMLSelectElement | null;
   const phrasesFilterEl = document.getElementById("extremist-phrases-filter") as HTMLSelectElement | null;
+  const activeFilterEl = document.getElementById("extremist-active-filter") as HTMLSelectElement | null;
   const dataUrl = searchEl?.getAttribute("data-data-url") ?? null;
   if (!dataUrl || !wrapper) return;
 
@@ -127,11 +129,13 @@ function initExtremistsList(): void {
     const typeVal = typeFilterEl?.value ?? "";
     const areaVal = areaFilterEl?.value ?? "";
     const phrases = phrasesFilterEl?.value ?? "";
+    const activeVal = activeFilterEl?.value ?? "";
     const params = new URLSearchParams();
     if (q) params.set("q", q);
     if (typeVal) params.set("type", typeVal);
     if (areaVal) params.set("area", areaVal);
     if (phrases) params.set("phrases", phrases);
+    if (activeVal) params.set("active", activeVal);
     const sep = dataUrlStr.indexOf("?") >= 0 ? "&" : "?";
     return dataUrlStr + (params.toString() ? sep + params.toString() : "");
   }
@@ -143,7 +147,7 @@ function initExtremistsList(): void {
     }
     const baseUrl = buildServerUrl();
     const grid = new Grid({
-      columns: ["Полное наименование / ФИО", "Дата рождения", "Тип", "Область", "Фразы", "Действия"],
+      columns: ["Полное наименование / ФИО", "Тип", "Область", "Фразы", "Числится", "Действия"],
       pagination: {
         limit: 100,
         server: {
@@ -158,11 +162,11 @@ function initExtremistsList(): void {
         then: (res: ExtremistsApiResponse) => {
           const q = searchEl?.value?.trim() ?? "";
           return (res.data ?? []).map((row: ExtremistsRow) => [
-            html(highlightSearch(row.full_name, q)),
-            row.birth_date,
-            row.type_label,
-            row.area_label,
-            row.search_terms_count,
+            html(highlightSearch(String(row.full_name ?? ""), q)),
+            row.type_label ?? "",
+            row.area_label ?? "",
+            row.search_terms_count ?? 0,
+            row.is_active ? "Да" : "Нет",
             html(editButtonHtml(row)),
           ]);
         },
@@ -187,6 +191,9 @@ function initExtremistsList(): void {
   }
   if (phrasesFilterEl) {
     phrasesFilterEl.addEventListener("change", renderGrid);
+  }
+  if (activeFilterEl) {
+    activeFilterEl.addEventListener("change", renderGrid);
   }
   renderGrid();
 }

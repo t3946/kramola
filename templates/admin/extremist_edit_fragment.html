@@ -26,7 +26,7 @@
     >
   </div>
 
-  <div class="grid grid-cols-2 gap-4">
+  <div class="grid grid-cols-3 gap-4">
     <div>
       <label for="extremist-fragment-area" class="formLabel">Область</label>
       <input
@@ -44,6 +44,17 @@
         type="text"
         id="extremist-fragment-type"
         value="{{ form_data.type_label or '' }}"
+        class="inputField inputField__default inputField__disabled"
+        disabled
+      >
+    </div>
+
+    <div>
+      <label for="extremist-fragment-is_active" class="formLabel">Числится</label>
+      <input
+        type="text"
+        id="extremist-fragment-is_active"
+        value="{{ form_data.is_active_label or '' }}"
         class="inputField inputField__default inputField__disabled"
         disabled
       >
@@ -73,6 +84,18 @@
         disabled
       >
     </div>
+  </div>
+  {% elif form_data.type == 'ur' and form_data.area == 'russian' %}
+  <div>
+    <label for="extremist-fragment-company_region" class="formLabel">Регион</label>
+    <input
+      type="text"
+      id="extremist-fragment-company_region"
+      name="company_region"
+      value="{{ form_data.company_region or '' }}"
+      class="inputField inputField__default"
+      placeholder="Регион"
+    >
   </div>
   {% endif %}
 
