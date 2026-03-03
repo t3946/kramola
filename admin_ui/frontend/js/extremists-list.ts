@@ -5,6 +5,7 @@ const DEBOUNCE_MS = 300;
 interface ExtremistsRow {
   id: number;
   full_name: string;
+  name_from_raw: boolean;
   birth_date: string;
   type: string;
   type_label: string;
@@ -99,6 +100,25 @@ function initExtremistsList(): void {
     }
   });
 
+  modalBody?.addEventListener("click", (e: Event) => {
+    const target = e.target as HTMLElement;
+    if (target.id !== "extremist-phrase-add") return;
+    const newInput = document.getElementById("extremist-phrase-new");
+    const listEl = document.getElementById("extremist-phrases-list");
+    if (!newInput || !listEl) return;
+    const value = (newInput as HTMLInputElement).value.trim();
+    (newInput as HTMLInputElement).value = "";
+    const div = document.createElement("div");
+    const input = document.createElement("input");
+    input.type = "text";
+    input.name = "search_terms";
+    input.value = value;
+    input.className = "inputField inputField__default w-full";
+    input.placeholder = "Фраза";
+    div.appendChild(input);
+    listEl.appendChild(div);
+  });
+
   modal?.addEventListener("submit", (e: Event) => {
     const form = (e.target as HTMLElement).closest("form.extremist-edit-form");
     if (!form || !(form instanceof HTMLFormElement)) return;
@@ -161,14 +181,20 @@ function initExtremistsList(): void {
         url: baseUrl,
         then: (res: ExtremistsApiResponse) => {
           const q = searchEl?.value?.trim() ?? "";
-          return (res.data ?? []).map((row: ExtremistsRow) => [
-            html(highlightSearch(String(row.full_name ?? ""), q)),
+          return (res.data ?? []).map((row: ExtremistsRow) => {
+            const nameHtml = highlightSearch(String(row.full_name ?? ""), q);
+            const nameCell = row.name_from_raw
+              ? '<span class="cell-name-from-raw">' + nameHtml + "</span>"
+              : nameHtml;
+            return [
+            html(nameCell),
             row.type_label ?? "",
             row.area_label ?? "",
             row.search_terms_count ?? 0,
             row.is_active ? "Да" : "Нет",
             html(editButtonHtml(row)),
-          ]);
+          ];
+          });
         },
         total: (res: ExtremistsApiResponse) => res.total ?? 0,
       },

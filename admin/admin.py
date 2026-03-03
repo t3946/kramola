@@ -44,8 +44,7 @@ VALID_EXTREMIST_TYPES: tuple[str, ...] = (ExtremistType.FIZ.value, ExtremistType
 
 
 def _extremist_to_form_data(et: ExtremistTerrorist) -> dict:
-    terms = list(et.search_terms)[:6] if isinstance(et.search_terms, list) else []
-    terms = terms + [""] * (6 - len(terms))
+    terms = list(et.search_terms) if isinstance(et.search_terms, list) else []
     birth_date_str = et.birth_date.strftime("%Y-%m-%d") if et.birth_date else ""
     return {
         "raw_source": et.raw_source or "",
@@ -82,7 +81,7 @@ def _form_apply_extremist(form, et: ExtremistTerrorist) -> None:
     if et.type == ExtremistType.UR.value and et.area == ExtremistArea.RUSSIAN.value:
         if "company_region" in form:
             et.company_region = form.get("company_region", "").strip() or None
-    search_terms_list = form.getlist("search_terms")[:6]
+    search_terms_list = form.getlist("search_terms")
     et.search_terms = [s.strip() for s in search_terms_list if s.strip()] or []
 
 
@@ -332,9 +331,11 @@ class WordsListView(BaseView):
                 st_count = len(terms) if isinstance(terms, list) else 0
                 birth_date_str = et.birth_date.strftime("%d.%m.%Y") if et.birth_date else ""
                 display_name: str = (et.full_name or et.raw_source or "") or ""
+                name_from_raw: bool = not bool(et.full_name and et.full_name.strip())
                 return {
                     "id": et.id,
                     "full_name": display_name,
+                    "name_from_raw": name_from_raw,
                     "birth_date": birth_date_str,
                     "type": et.type or "",
                     "type_label": EXTREMIST_TYPE_LABELS.get(et.type, et.type or ""),

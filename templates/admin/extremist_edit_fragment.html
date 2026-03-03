@@ -101,15 +101,26 @@
 
   <div>
     <label class="formLabel">Поисковые фразы</label>
-    <div class="grid gap-3 grid-cols-2 mt-1">
+    <div class="flex gap-2 mt-1 mb-2">
+      <input
+        type="text"
+        id="extremist-phrase-new"
+        class="inputField inputField__default flex-1"
+        placeholder="Новая фраза"
+      >
+      <button type="button" class="btn btn__secondary" id="extremist-phrase-add">
+        Добавить
+      </button>
+    </div>
+    <div id="extremist-phrases-list" class="grid gap-2 mt-3 grid-cols-2 max-h-48 overflow-y-auto">
       {% for term in form_data.search_terms %}
       <div>
         <input
           type="text"
           name="search_terms"
           value="{{ term }}"
-          class="inputField inputField__default"
-          placeholder="Фраза {{ loop.index }}"
+          class="inputField inputField__default w-full"
+          placeholder="Фраза"
         >
       </div>
       {% endfor %}
