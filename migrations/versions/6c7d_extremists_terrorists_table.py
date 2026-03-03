@@ -26,6 +26,7 @@ def upgrade() -> None:
         sa.Column("sanction_code", sa.String(255), nullable=True),
         sa.Column("raw_source", sa.Text(), nullable=True),
         sa.Column("birth_place", sa.Text(), nullable=True),
+        sa.Column("company_region", sa.Text(), nullable=True),
         sa.Column('is_active', sa.Boolean(), nullable=False),
         sa.Column("birth_date", sa.Date(), nullable=True),
         sa.Column("created_at", sa.DateTime(), server_default=sa.text("CURRENT_TIMESTAMP"), nullable=False),

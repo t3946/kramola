@@ -33,6 +33,7 @@ class ExtremistTerrorist(db.Model):
     raw_source = db.Column(db.Text, nullable=True)
     full_name = db.Column(db.Text, nullable=True)
     birth_place = db.Column(db.Text, nullable=True)
+    company_region = db.Column(db.Text, nullable=True)
     search_terms = db.Column(db.JSON, nullable=True)
     type = db.Column(db.String(20), nullable=False)
     area = db.Column(db.String(20), nullable=False)
