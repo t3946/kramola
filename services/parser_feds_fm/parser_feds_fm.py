@@ -131,7 +131,7 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
         # [start] sync DB international data
         international_items = [item for item in rich_data if item["area"] == ExtremistArea.INTERNATIONAL]
 
-        for item in international_items:
+        for i, item in enumerate(international_items):
             query = (
                 ExtremistTerrorist
                 .query
@@ -161,12 +161,16 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 db.session.add(new_model)
             elif old_model.is_active != new_model.is_active:
                 old_model.is_active = new_model.is_active
+
+            if i % 1000 == 0:
+                db.session.commit()
+                print(f"{i}/{len(international_items)} items processed")
         # [end]
 
         # [start] sync DB russian data
         russian_items = [item for item in rich_data if item["area"] == ExtremistArea.RUSSIAN]
 
-        for item in russian_items:
+        for i, item in enumerate(russian_items):
             query = (
                 ExtremistTerrorist
                 .query
@@ -207,6 +211,10 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 db.session.add(new_model)
             else:
                 old_model.is_active = new_model.is_active
+
+            if i % 1000 == 0:
+                db.session.commit()
+                print(f"{i + 1}/{len(russian_items)} items processed")
         # [end]
 
         db.session.commit()
