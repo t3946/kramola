@@ -65,6 +65,16 @@ function initExtremistsList(): void {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let currentGrid: Grid | null = null;
 
+  const params = new URLSearchParams(window.location.search);
+  const typeParam = params.get("type");
+  const areaParam = params.get("area");
+  if (typeParam && typeFilterEl && [...typeFilterEl.options].some((o) => o.value === typeParam)) {
+    typeFilterEl.value = typeParam;
+  }
+  if (areaParam && areaFilterEl && [...areaFilterEl.options].some((o) => o.value === areaParam)) {
+    areaFilterEl.value = areaParam;
+  }
+
   document.addEventListener("click", (e: Event) => {
     const target = (e.target as HTMLElement).closest("[data-modal-close]");
     if (target) {
@@ -180,6 +190,9 @@ function initExtremistsList(): void {
       server: {
         url: baseUrl,
         then: (res: ExtremistsApiResponse) => {
+          const total = res.total ?? 0;
+          const countEl = document.getElementById("words-count");
+          if (countEl) countEl.textContent = String(total);
           const q = searchEl?.value?.trim() ?? "";
           return (res.data ?? []).map((row: ExtremistsRow) => {
             const nameHtml = highlightSearch(String(row.full_name ?? ""), q);

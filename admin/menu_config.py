@@ -36,6 +36,14 @@ ADMIN_MENU_TERRORISTS_TITLES: dict[str, str] = {
     PredefinedListKey.EXTREMISTS_RUSSIAN_UR.value: "Террористы (РФ): ЮЛ",
 }
 
+# GET-параметры для предустановки фильтров на странице террористов (type, area)
+ADMIN_MENU_TERRORISTS_QUERY: dict[str, str] = {
+    PredefinedListKey.EXTREMISTS_INTERNATIONAL_FIZ.value: "?type=fiz&area=international",
+    PredefinedListKey.EXTREMISTS_INTERNATIONAL_UR.value: "?type=ur&area=international",
+    PredefinedListKey.EXTREMISTS_RUSSIAN_FIZ.value: "?type=fiz&area=russian",
+    PredefinedListKey.EXTREMISTS_RUSSIAN_UR.value: "?type=ur&area=russian",
+}
+
 
 # --- Menu items: PredefinedListKey -> (endpoint, list class for count) ---
 
@@ -125,9 +133,13 @@ def get_ready_lists_menu_items() -> list[dict]:
         title: str = ADMIN_MENU_TERRORISTS_TITLES.get(key_val) or predefined.get(key_val, "")
         if not title:
             title = key_val
-        result.append({
+        item: dict = {
             "endpoint": endpoint,
             "title": title,
             "count": list_cls().count_phrases(),
-        })
+        }
+        query_str = ADMIN_MENU_TERRORISTS_QUERY.get(key_val)
+        if query_str:
+            item["query_string"] = query_str
+        result.append(item)
     return result
