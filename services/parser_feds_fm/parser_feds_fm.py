@@ -1,4 +1,5 @@
 import json
+import time
 from pathlib import Path
 from extensions import db
 from typing import List, Dict, Tuple
@@ -17,34 +18,6 @@ URL_INTERNATIONAL_EXCLUDED = "https://www.fedsfm.ru/documents/omu-or-terrorists-
 
 class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
     def __init__(self) -> None:
-        pass
-
-    def sync_international_fl_ul(self, data_from_registry: dict) -> None:
-        # [start] build models dict
-        models: List[ExtremistTerrorist] = (
-            ExtremistTerrorist
-            .query
-            .filter(ExtremistTerrorist.area == ExtremistArea.INTERNATIONAL.value)
-            .all()
-        )
-        models_dict: Dict[Tuple[str, str], ExtremistTerrorist] = {}
-
-        # key models by full_name and sanction_code
-        for model in models:
-            key: Tuple[str, str] = (model.full_name, model.sanction_code)
-            models_dict[key] = model
-        # [end]
-
-        # [start] sync models with registry data
-        for division_all in data_from_registry["all"]:
-            for fl in division_all["namesFL"]:
-                # todo check if models_dict contain this fl
-                pass
-
-            for ul in division_all["namesUL"]:
-                pass
-        # [end]
-
         pass
 
     def parse(self, download_new_data: bool = True) -> None:
@@ -138,6 +111,7 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
         international_items = [item for item in rich_data if item["area"] == ExtremistArea.INTERNATIONAL]
         commit_step = 1000
         print(f"Sync international: start ({len(international_items)} items)")
+        international_start = time.perf_counter()
 
         for i, item in enumerate(international_items):
             query = (
@@ -172,15 +146,17 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
 
             if i % commit_step == 0:
                 db.session.commit()
-                print(f"\r{i}/{len(international_items)} items processed", end="", flush=i > 0)
+                elapsed = time.perf_counter() - international_start
+                print(f"\r{i}/{len(international_items)} items processed ({elapsed:.1f}s)", end="", flush=i > 0)
 
-        if len(international_items): print('')
+        if len(international_items): print("")
         print(f"Sync international: done ({len(international_items)} items)")
         # [end]
 
         # [start] sync DB russian data
         russian_items = [item for item in rich_data if item["area"] == ExtremistArea.RUSSIAN]
         print(f"Sync russian: start ({len(russian_items)} items)")
+        russian_start = time.perf_counter()
 
         for i, item in enumerate(russian_items):
             query = (
@@ -226,9 +202,10 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
 
             if i % commit_step == 0:
                 db.session.commit()
-                print(f"\r{i}/{len(russian_items)} items processed", end="", flush=i > 0)
+                elapsed = time.perf_counter() - russian_start
+                print(f"\r{i}/{len(russian_items)} items processed ({elapsed:.1f}s)", end="", flush=i > 0)
 
-        if len(russian_items): print('')
+        if len(russian_items): print("")
         print(f"Sync russian: done ({len(russian_items)} items)")
         # [end]
 

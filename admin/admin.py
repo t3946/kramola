@@ -305,11 +305,12 @@ class WordsListView(BaseView):
             )
 
             def row_et(et: ExtremistTerrorist) -> dict:
-                st_count = len(et.search_terms) if isinstance(et.search_terms, list) else 0
-                birth_date_str = et.birth_date.strftime("%d.%m.%Y") if et.birth_date else ""
+                st_count = len(et.search_terms)
+                birth_date_str = et.birth_date.strftime("%d.%m.%Y") if et.birth_date else "-"
+
                 return {
                     "id": et.id,
-                    "full_name": et.full_name or "",
+                    "full_name": et.full_name,
                     "birth_date": birth_date_str,
                     "type": et.type or "",
                     "type_label": EXTREMIST_TYPE_LABELS.get(et.type, et.type or ""),
