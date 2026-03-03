@@ -48,9 +48,14 @@ def _extremist_to_form_data(et: ExtremistTerrorist) -> dict:
     terms = terms + [""] * (6 - len(terms))
     birth_date_str = et.birth_date.strftime("%Y-%m-%d") if et.birth_date else ""
     return {
+        "raw_source": et.raw_source or "",
         "full_name": et.full_name or "",
         "type": et.type or "",
+        "type_label": EXTREMIST_TYPE_LABELS.get(et.type, et.type or ""),
+        "area": et.area or "",
+        "area_label": EXTREMIST_AREA_LABELS.get(et.area, et.area or ""),
         "birth_date": birth_date_str,
+        "birth_place": et.birth_place or "",
         "search_terms": terms,
     }
 
@@ -60,14 +65,18 @@ def _form_apply_extremist(form, et: ExtremistTerrorist) -> None:
     type_val = form.get("type", "").strip()
     if type_val in VALID_EXTREMIST_TYPES:
         et.type = type_val
-    raw_birth = form.get("birth_date", "").strip()
-    if raw_birth:
-        try:
-            et.birth_date = datetime.strptime(raw_birth, "%Y-%m-%d").date()
-        except ValueError:
-            et.birth_date = None
-    else:
-        et.birth_date = None
+    if et.type == ExtremistType.FIZ.value and et.area == ExtremistArea.RUSSIAN.value:
+        if "birth_date" in form:
+            raw_birth = form.get("birth_date", "").strip()
+            if raw_birth:
+                try:
+                    et.birth_date = datetime.strptime(raw_birth, "%Y-%m-%d").date()
+                except ValueError:
+                    et.birth_date = None
+            else:
+                et.birth_date = None
+        if "birth_place" in form:
+            et.birth_place = form.get("birth_place", "").strip() or None
     search_terms_list = form.getlist("search_terms")[:6]
     et.search_terms = [s.strip() for s in search_terms_list if s.strip()] or []
 

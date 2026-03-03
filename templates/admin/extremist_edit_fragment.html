@@ -8,6 +8,13 @@
   {% endif %}
 
   <div>
+    <label for="extremist-fragment-raw_source" class="formLabel">Исходная строка</label>
+    <Div
+      class="inputField inputField__default inputField__disabled"
+    >{{ form_data.raw_source or '' }}</div>
+  </div>
+
+  <div>
     <label for="extremist-fragment-full_name" class="formLabel">Полное наименование / ФИО</label>
     <input
       type="text"
@@ -19,25 +26,55 @@
     >
   </div>
 
-  <div>
-    <label for="extremist-fragment-type" class="formLabel">Тип</label>
-    <select id="extremist-fragment-type" name="type" class="inputField inputField__default">
-      {% for value, label in type_choices %}
-      <option value="{{ value }}" {% if form_data.type == value %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label for="extremist-fragment-area" class="formLabel">Область</label>
+      <input
+        type="text"
+        id="extremist-fragment-area"
+        value="{{ form_data.area_label or '' }}"
+        class="inputField inputField__default inputField__disabled"
+        disabled
+      >
+    </div>
+
+    <div>
+      <label for="extremist-fragment-type" class="formLabel">Тип</label>
+      <input
+        type="text"
+        id="extremist-fragment-type"
+        value="{{ form_data.type_label or '' }}"
+        class="inputField inputField__default inputField__disabled"
+        disabled
+      >
+    </div>
   </div>
 
-  <div>
-    <label for="extremist-fragment-birth_date" class="formLabel">Дата рождения</label>
-    <input
-      type="date"
-      id="extremist-fragment-birth_date"
-      name="birth_date"
-      value="{{ form_data.birth_date or '' }}"
-      class="inputField inputField__default"
-    >
+  {% if form_data.type == 'fiz' and form_data.area == 'russian' %}
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label for="extremist-fragment-birth_date" class="formLabel">Дата рождения</label>
+      <input
+        type="date"
+        id="extremist-fragment-birth_date"
+        value="{{ form_data.birth_date or '' }}"
+        class="inputField inputField__default inputField__disabled"
+        disabled
+      >
+    </div>
+
+    <div>
+      <label for="extremist-fragment-birth_place" class="formLabel">Место рождения</label>
+      <input
+        type="text"
+        id="extremist-fragment-birth_place"
+        value="{{ form_data.birth_place or '' }}"
+        class="inputField inputField__default inputField__disabled"
+        disabled
+      >
+    </div>
   </div>
+  {% endif %}
 
   <div>
     <label class="formLabel">Поисковые фразы</label>
