@@ -120,7 +120,7 @@ class BaseTestHelper:
         if search_path.suffix == '.docx':
             analyse_data = AnalysisData()
             analyse_data.read_from_docx(str(search_path))
-            search_terms = list(analyse_data.phrases.keys())
+            search_terms = analyse_data.phrases
         else:
             with open(search_path, 'r', encoding='utf-8') as f:
                 search_terms = [line.strip() for line in f if line.strip()]

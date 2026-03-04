@@ -69,7 +69,7 @@ class AnalyserPdf(Analyser):
         # [end]
 
         all_tokens: List[Token] = FulltextSearch.tokenize_text(whole_document_text)
-        phrases_list = list(self.analyse_data.phrases.values())
+        phrases_list = self.analyse_data.phrases
         search_phrases_for_search: List[Tuple[Phrase, List[Token]]] = [
             (phrase, phrase.tokens) for phrase in phrases_list
         ]

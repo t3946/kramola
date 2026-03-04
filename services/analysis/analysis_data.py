@@ -18,11 +18,11 @@ from services.patterns.profanity_words import PROFANITY_WORDS_PATTERNS
 
 
 class AnalysisData:
-    phrases: Dict[str, Phrase]
+    phrases: list[Phrase]
     regex_patterns: List[RegexPattern]
 
     def __init__(self, terms: Optional[List[str]] = None) -> None:
-        self.phrases = {}
+        self.phrases = []
         self.regex_patterns = []
 
         if terms is not None:
@@ -32,12 +32,11 @@ class AnalysisData:
         phrases: List[Phrase] = ListFromText().load_from_lines(terms)
 
         for phrase in phrases:
-            if not self.phrases[phrase.phrase]:
-                self.phrases[phrase.phrase] = phrase
+            self.phrases.append(phrase)
 
     def read_regex_patterns(self, patterns: Dict[str, str]) -> None:
         """Load regex patterns for search.
-        
+
         Args:
             patterns: Dictionary mapping pattern_name to pattern_string
         """
@@ -64,17 +63,14 @@ class AnalysisData:
         for key in list_keys:
             # Convert string key to enum if needed
             key_enum = PredefinedListKey(key) if isinstance(key, str) else key
-            
+
             if key_enum in list_mapping:
                 words_list = list_mapping[key_enum]()
                 phrases = words_list.load()
 
                 for phrase in phrases:
                     if phrase and phrase.phrase and phrase.phrase.strip():
-                        text = phrase.phrase.strip()
-
-                        if text not in self.phrases:
-                            self.phrases[text] = phrase
+                        self.phrases.append(phrase)
 
                 if key_enum == PredefinedListKey.PROFANITY:
                     self.read_regex_patterns(PROFANITY_WORDS_PATTERNS)

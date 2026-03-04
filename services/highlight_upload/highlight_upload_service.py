@@ -5,10 +5,11 @@ Service for handling file uploads and data preparation for highlight tool.
 import os
 import logging
 from typing import List, Dict, Union
-from flask import Request
+from flask import Request, current_app
 
 from services.document_service import save_uploaded_file, extract_lines_from_docx
 from services.convert import ConvertODT, ConvertDOC, ConvertError
+from services.fulltext_search import Phrase
 from services.utils.load_lines_from_txt import load_lines_from_txt
 from services.highlight_upload.upload_result import UploadResult
 from services.highlight_upload.upload_error import UploadError
@@ -205,7 +206,7 @@ class HighlightUploadService:
             analysis_data.load_predefined_lists(selected_list_keys)
 
             # Extract texts from loaded phrases
-            search_terms_from_lists = list(analysis_data.phrases.keys())
+            search_terms_from_lists: list[Phrase] = analysis_data.phrases
 
             # Collect used list names
             for key in selected_list_keys:
@@ -214,8 +215,10 @@ class HighlightUploadService:
                     used_predefined_list_names.append(display_name)
 
             # Combine with existing search_terms and deduplicate again
-            all_terms_with_lists = search_terms + search_terms_from_lists
-            unique_terms_dict = {term.strip().lower(): term.strip() for term in all_terms_with_lists if term.strip()}
+            all_terms_with_lists: list[Phrase] = search_terms + search_terms_from_lists
+            current_app.logger.info("all_terms_with_lists")
+            current_app.logger.debug(all_terms_with_lists)
+            unique_terms_dict = {phrase.phrase.lower(): phrase.phrase for phrase in all_terms_with_lists}
             search_terms = list(unique_terms_dict.values())
 
         return {

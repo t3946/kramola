@@ -392,7 +392,7 @@ class AnalyserDocx(Analyser):
         self._progress = None
 
         if task_id is not None:
-            phrases_list = list(self.analyse_data.phrases.values())
+            phrases_list = self.analyse_data.phrases
             preparation_max_value = len(phrases_list) + 1  # +1 for building dictionary
 
             total_table_paragraphs = 0
@@ -408,7 +408,7 @@ class AnalyserDocx(Analyser):
 
         # [start] build global dictionary and filter search phrases by it
         self._global_document_dictionary = self.__build_global_dictionary()
-        phrases_list = list(self.analyse_data.phrases.values())
+        phrases_list = self.analyse_data.phrases
         self._search_phrases = self.__filter_phrases_by_dictionary(
             phrases_list,
             self._global_document_dictionary

@@ -57,28 +57,15 @@ class Analyser:
                     match_kind = AnalysisMatchKind.PHRASE
             # [end]
 
-            # [start] filter matches unique by found tokens
-            is_unique = True
-
-            for match in analyser_matches:
-                fts_m1 = match.search_match
-                fts_m2 = fts_match
-
-                # compare found tokens
-                if fts_m1.start_token_idx == fts_m2.start_token_idx and fts_m1.end_token_idx == fts_m2.end_token_idx:
-                    is_unique = False
-            # [end]
-
-            if is_unique:
-                # cast fts match to analysis match
-                analyser_matches.append(AnalysisMatch(
-                    kind=match_kind,
-                    search_match=fts_match,
-                    found={
-                        'text': found_text,
-                        'tokens': fts_match.tokens,
-                    }
-                ))
+            # cast fts match to analysis match
+            analyser_matches.append(AnalysisMatch(
+                kind=match_kind,
+                search_match=fts_match,
+                found={
+                    'text': found_text,
+                    'tokens': fts_match.tokens,
+                }
+            ))
 
         return analyser_matches
 
