@@ -41,7 +41,6 @@ def save_uploaded_file(file_obj, upload_folder, custom_filename=None):
                      if not chunk:
                          break
                      f.write(chunk)
-        logger_ds.info(f"Файл '{getattr(file_obj, 'filename', 'N/A')}' сохранен как '{file_path}'")
         return file_path
     except Exception as e:
         logger_ds.error(f"Ошибка сохранения файла '{getattr(file_obj, 'filename', 'N/A')}' в '{file_path}': {e}", exc_info=True)

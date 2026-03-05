@@ -16,11 +16,9 @@ def register_socketio_handlers(socketio):
     @socketio.on('connect')
     def handle_connect():
         """Handle client connection"""
-        from flask import current_app
-        current_app.logger.debug('Client connected')
-    
+        pass
+
     @socketio.on('disconnect')
     def handle_disconnect():
         """Handle client disconnection"""
-        from flask import current_app
-        current_app.logger.debug('Client disconnected')
+        pass

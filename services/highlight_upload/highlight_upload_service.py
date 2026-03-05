@@ -216,8 +216,6 @@ class HighlightUploadService:
 
             # Combine with existing search_terms and deduplicate again
             all_terms_with_lists: list[Phrase] = search_terms + search_terms_from_lists
-            current_app.logger.info("all_terms_with_lists")
-            current_app.logger.debug(all_terms_with_lists)
             unique_terms_dict = {phrase.phrase.lower(): phrase.phrase for phrase in all_terms_with_lists}
             search_terms = list(unique_terms_dict.values())
 

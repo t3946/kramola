@@ -36,9 +36,6 @@ REDIS_TASK_TTL = 3600  # 1 час
 
 
 def _get_redis_client():
-    logger = current_app.logger  # Используем логгер текущего приложения
-    logger.debug(f"Attempting to get redis client. current_app object: {id(current_app)}")
-    logger.debug(f"Does current_app have redis_client_tasks? {hasattr(current_app, 'redis_client_tasks')}")
     if hasattr(current_app, 'redis_client_tasks') and current_app.redis_client_tasks:
         return current_app.redis_client_tasks
     current_app.logger.warning(
@@ -62,8 +59,6 @@ def _perform_highlight_processing(
 ):
     logger = current_app.logger
     redis_client = _get_redis_client()
-
-    logger.info(f"[Task {task_id}] Background processing started for '{source_filename_original or 'lists only'}'. OCR: {perform_ocr}")
     start_time_task = time.time()
 
     if redis_client:
@@ -106,7 +101,6 @@ def _perform_highlight_processing(
             reset_caches()
             result_filename_task = f"highlighted_{task_id}{file_ext}"
             output_path = os.path.join(RESULT_DIR, result_filename_task)
-            logger.info(f"[Task {task_id}] Analysis type: {file_ext}. Output: {output_path}")
 
             # [start] perform analyze
             # analysis_results -- структура вроде {'word_stats': {'word': {'c': 1, 'f': {'word': 1}}}, 'phrase_stats': {}, 'total_matches': 1}
@@ -149,8 +143,6 @@ def _perform_highlight_processing(
                 task_result_data['result_filename'] = result_filename_task
 
             task_result_data.update(analysis_results)
-            logger.info(
-                f"[Task {task_id}] Analysis successful. Matches: {task_result_data.get('total_matches', 0)}. File: {result_filename_task or 'N/A'}")
             final_status_for_redis = TaskStatus.COMPLETED
 
     except Exception as e:
@@ -196,8 +188,6 @@ def _perform_highlight_processing(
                 logger.warning(
                     f"[Task {task_id}] Failed to delete result file '{output_path}' after error: {e_del}")
 
-        logger.info(
-            f"[Task {task_id}] Background processing finished in {task_result_data['processing_time']} sec with state {final_status_for_redis}.")
     return task_result_data
 
 
@@ -217,7 +207,6 @@ def process_async():
     start_time_request = time.time()
     logger = current_app.logger
     redis_client = _get_redis_client()
-    logger.info(f"Request to /highlight/process_async. Method: {request.form.get('input-method')}")
 
     ANALYZERS_READY = current_app.config.get('ANALYZERS_READY', False)
     UPLOAD_DIR = current_app.config.get('UPLOAD_DIR_HIGHLIGHT', current_app.config.get('UPLOAD_DIR'))
@@ -275,7 +264,6 @@ def process_async():
                     "source_filename": source_filename_original or "Списки для поиска"
                 })
                 redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
-                logger.info(f"[Req {task_id}] Task state PENDING saved to Redis.")
 
                 from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
                 TaskProgressRoom.send_status(task_id, TaskStatus.PENDING.value, "Задача принята в очередь")
@@ -326,8 +314,6 @@ def process_async():
         source_path_local, words_path_local = source_path, words_path
         source_path, words_path = None, None  # Handover to background task
 
-        logger.info(
-            f"[Req {task_id}] Task submitted. Request handling took {time.time() - start_time_request:.2f} sec.")
         return jsonify({'task_id': task_id, 'message': 'Файл принят в обработку.'}), 202
 
     except Exception as e:
@@ -440,7 +426,6 @@ def results():
     pattern_stats = []
 
     if isinstance(stats, list):
-        logger.info(f"[Results {task_id_for_template}] Processing {len(stats)} stat items")
         for stat_item in stats:
             kind_value = stat_item.get('search', {}).get('kind')
             
@@ -450,8 +435,6 @@ def results():
                 phrase_stats.append(stat_item)
             elif kind_value == AnalysisMatchKind.REGEX.value:
                 pattern_stats.append(stat_item)
-        
-        logger.info(f"[Results {task_id_for_template}] Separated stats: words={len(word_stats)}, phrases={len(phrase_stats)}, patterns={len(pattern_stats)}")
     else:
         logger.warning(f"[Results {task_id_for_template}] Stats is not a list, got {type(stats)}: {stats}")
     #[end]

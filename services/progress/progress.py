@@ -75,7 +75,6 @@ class Progress:
             self._send_progress_event()
 
     def setValue(self, value: float):
-        logging.info("setValue")
         """Set progress value (bypasses throttling, applies immediately)"""
         # setValue применяется сразу, так как это установка конкретного значения, а не инкремент
         self._pending_delta = 0  # Сбрасываем накопленные изменения
