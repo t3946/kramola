@@ -227,7 +227,6 @@ register_commands(app)
 @app.route('/')
 def home():
     """Перенаправляет на главную страницу инструмента подсветки."""
-    app.logger.info("Request to '/', redirecting to /highlight/...")
     return redirect(url_for('highlight.index'))  # Перенаправляем на highlight.index
 
 
