@@ -25,7 +25,7 @@ from blueprints.tool_highlight.socketio.socketio_handlers import register_socket
 from commands.commands import register_commands
 from extensions import db
 from services.pymorphy_service import load_pymorphy, load_nltk_lemmatizer
-from services.redis.connection import get_redis_connection, get_redis_host
+from services.redis.connection import get_redis_connection, get_redis_config
 from services.enum import PredefinedListKey
 
 load_dotenv()
@@ -68,9 +68,8 @@ root_logger.addHandler(file_handler)  # Добавляем файловый хе
 root_logger.addHandler(stream_handler)  # Добавляем консольный хендлер
 
 # Конфигурация Redis (можно вынести в app.config)
-REDIS_HOST = get_redis_host()
-REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
-REDIS_DB = int(os.environ.get('REDIS_DB_TASKS', 0))  # Отдельная БД для задач
+REDIS_HOST, REDIS_PORT, _ = get_redis_config()
+REDIS_DB = int(os.environ.get('REDIS_DB_TASKS', 0))
 
 # Уменьшаем уровень логирования для "шумных" библиотек
 logging.getLogger("werkzeug").setLevel(logging.ERROR)

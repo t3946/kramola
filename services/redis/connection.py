@@ -1,28 +1,6 @@
 import os
 import redis
-from pathlib import Path
 from typing import Optional
-
-
-def get_redis_host():
-    """
-    Automatically determines Redis host based on execution context.
-    Priority:
-    1. REDIS_HOST environment variable (if set)
-    2. Check if running in Docker (/.dockerenv exists) -> use 'redis'
-    3. Otherwise -> use 'localhost'
-    """
-    # Check environment variable first
-    env_host = os.environ.get('REDIS_HOST')
-    if env_host:
-        return env_host
-    
-    # Check if running inside Docker container
-    if Path('/.dockerenv').exists():
-        return 'redis'
-    
-    # Default to localhost for local execution
-    return 'localhost'
 
 
 def get_redis_config():
@@ -30,7 +8,7 @@ def get_redis_config():
     Get Redis connection configuration.
     Returns tuple: (host, port, db)
     """
-    host = get_redis_host()
+    host = os.environ.get('REDIS_HOST', 'localhost')
     port = int(os.environ.get('REDIS_PORT', 6379))
     db = int(os.environ.get('REDIS_DB', 0))
     return host, port, db
@@ -52,7 +30,7 @@ def get_redis_connection_pool(
     Returns:
         redis.ConnectionPool instance
     """
-    host = get_redis_host()
+    host = os.environ.get('REDIS_HOST', 'localhost')
     port = int(os.environ.get('REDIS_PORT', 6379))
     
     if db is None:
@@ -103,7 +81,7 @@ def get_redis_connection(
         pool = get_redis_connection_pool(db=db, decode_responses=decode_responses, **kwargs)
         return redis.Redis(connection_pool=pool)
     else:
-        host = get_redis_host()
+        host = os.environ.get('REDIS_HOST', 'localhost')
         port = int(os.environ.get('REDIS_PORT', 6379))
         
         if db is None:
