@@ -4,6 +4,7 @@ from typing import Dict, Tuple
 
 from services.analysis.analyser_docx import AnalyserDocx
 from services.analysis.analysis_data import AnalysisData
+from services.words_list.list_from_text import ListFromText
 from tests.analysis.test_base import BaseTest
 
 
@@ -60,8 +61,9 @@ class BaseDocxTest(BaseTest):
 
     @staticmethod
     def _run_analysis(cls, source_docx_path: Path, search_terms: list[str]) -> Tuple[AnalyserDocx, Dict]:
+        ListFromText("task_test").save_from_text(search_terms)
         analyse_data = AnalysisData()
-        analyse_data.read_from_list(search_terms)
+        analyse_data.load_user_list("task_test")
 
         # load lists
         predefined_lists = getattr(cls, 'predefined_lists', None)

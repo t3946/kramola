@@ -1,5 +1,4 @@
-from typing import List, Optional, Dict
-from services.document_service import extract_lines_from_docx
+from typing import List, Dict
 from services.fulltext_search.phrase import Phrase
 from services.words_list.list_inagents_fiz import ListInagentsFIZ
 from services.words_list.list_inagents_ur import ListInagentsUR
@@ -21,18 +20,9 @@ class AnalysisData:
     phrases: list[Phrase]
     regex_patterns: List[RegexPattern]
 
-    def __init__(self, terms: Optional[List[str]] = None) -> None:
+    def __init__(self) -> None:
         self.phrases = []
         self.regex_patterns = []
-
-        if terms is not None:
-            self.read_from_list(terms)
-
-    def read_from_list(self, terms: List[str]) -> None:
-        phrases: List[Phrase] = ListFromText().load_from_lines(terms)
-
-        for phrase in phrases:
-            self.phrases.append(phrase)
 
     def read_regex_patterns(self, patterns: Dict[str, str]) -> None:
         """Load regex patterns for search.
@@ -45,13 +35,11 @@ class AnalysisData:
                 regex_pattern = RegexPattern(pattern_name=pattern_name, pattern=pattern_str.strip())
                 self.regex_patterns.append(regex_pattern)
 
-    def load_user_list(self, task_id: str):
-        phrases: list[Phrase] = ListFromText().load(task_id=task_id)
+    def load_user_list(self, task_id: str) -> None:
+        phrases: list[Phrase] = ListFromText(task_id).load()
 
         for phrase in phrases:
             self.phrases.append(phrase)
-
-        pass
 
     def load_predefined_lists(self, list_keys: List[str]) -> None:
         """Load ready-made Phrase objects from predefined lists (MySQL) by their keys."""
@@ -82,7 +70,3 @@ class AnalysisData:
 
                 if key_enum == PredefinedListKey.PROFANITY:
                     self.read_regex_patterns(PROFANITY_WORDS_PATTERNS)
-
-    def read_from_docx(self, path: str) -> None:
-        terms = extract_lines_from_docx(path)
-        self.read_from_list(terms)

@@ -4,6 +4,7 @@ from typing import Dict, Optional, List
 
 from flask import Flask
 from services.analysis.analysis_data import AnalysisData
+from services.document_service import extract_lines_from_docx
 
 
 class BaseTestHelper:
@@ -118,9 +119,7 @@ class BaseTestHelper:
             AssertionError: If no search terms found
         """
         if search_path.suffix == '.docx':
-            analyse_data = AnalysisData()
-            analyse_data.read_from_docx(str(search_path))
-            search_terms = analyse_data.phrases
+            search_terms = extract_lines_from_docx(str(search_path))
         else:
             with open(search_path, 'r', encoding='utf-8') as f:
                 search_terms = [line.strip() for line in f if line.strip()]

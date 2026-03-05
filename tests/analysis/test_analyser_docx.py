@@ -5,6 +5,7 @@ from typing import Dict, Optional, List
 
 from services.analysis.analyser_docx import AnalyserDocx
 from services.analysis.analysis_data import AnalysisData
+from services.words_list.list_from_text import ListFromText
 from tests.analysis.test_base import BaseTest
 
 
@@ -37,8 +38,9 @@ class TestAnalyserDocx(BaseTest):
         # [end]
 
         # [start] Create AnalyseData
+        ListFromText("task_test").save_from_text(search_terms)
         analyse_data = AnalysisData()
-        analyse_data.read_from_list(search_terms)
+        analyse_data.load_user_list("task_test")
         # [end]
 
         # [start] Create analysis and perform analysis

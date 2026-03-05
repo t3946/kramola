@@ -4,6 +4,7 @@ from typing import Dict, Optional, List
 from services.analysis.analyser_pdf import AnalyserPdf
 from services.analysis.analysis_data import AnalysisData
 from services.enum import PredefinedListKey
+from services.words_list.list_from_text import ListFromText
 
 
 class AnalysisSetupMixin:
@@ -32,9 +33,8 @@ class AnalysisSetupMixin:
         if predefined_lists:
             analyse_data.load_predefined_lists(predefined_lists)
         
-        # Add search terms from file (if any)
-        if search_terms:
-            analyse_data.read_from_list(search_terms)
+        ListFromText("task_test").save_from_text(search_terms)
+        analyse_data.load_user_list("task_test")
 
         analyser = AnalyserPdf(str(source_path))
         analyser.set_analyse_data(analyse_data)

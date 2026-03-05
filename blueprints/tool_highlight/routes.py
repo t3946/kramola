@@ -257,9 +257,9 @@ def process_async():
 
                 # Save user list to Redis: from file if uploaded, else from text
                 if words_path:
-                    ListFromText().save_from_file(task_id, words_path)
+                    ListFromText(task_id).save_from_file(words_path)
                 elif len(user_search_terms) > 0:
-                    ListFromText().save_from_text(task_id, user_search_terms)
+                    ListFromText(task_id).save_from_text(user_search_terms)
 
                 from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
                 TaskProgressRoom.send_status(task_id, TaskStatus.PENDING.value, "Задача принята в очередь")
