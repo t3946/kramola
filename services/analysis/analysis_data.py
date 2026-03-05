@@ -45,6 +45,14 @@ class AnalysisData:
                 regex_pattern = RegexPattern(pattern_name=pattern_name, pattern=pattern_str.strip())
                 self.regex_patterns.append(regex_pattern)
 
+    def load_user_list(self, task_id: str):
+        phrases: list[Phrase] = ListFromText().load(task_id=task_id)
+
+        for phrase in phrases:
+            self.phrases.append(phrase)
+
+        pass
+
     def load_predefined_lists(self, list_keys: List[str]) -> None:
         """Load ready-made Phrase objects from predefined lists (MySQL) by their keys."""
         list_mapping = {

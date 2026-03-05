@@ -27,6 +27,7 @@ from services.analysis.analyser_pdf import AnalyserPdf
 
 from models import Inagent
 from models.inagents import AGENT_TYPE_MAP
+from services.words_list import ListFromText
 
 
 highlight_bp = Blueprint('highlight', __name__, template_folder='templates')
@@ -105,29 +106,18 @@ def _perform_highlight_processing(
             # [start] perform analyze
             # analysis_results -- структура вроде {'word_stats': {'word': {'c': 1, 'f': {'word': 1}}}, 'phrase_stats': {}, 'total_matches': 1}
 
+            analyse_data = AnalysisData()
+            analyse_data.load_user_list(task_id=task_id)
+
+            if selected_list_keys:
+                analyse_data.load_predefined_lists(selected_list_keys)
+
             if is_docx_source:
-                # prepare words for search
-                analyse_data = AnalysisData()
-
-                # Load ready-made Phrase objects from words_list
-                if selected_list_keys:
-                    analyse_data.load_predefined_lists(selected_list_keys)
-
-                analyse_data.read_from_list(all_search_lines_clean)
-
-                # search words in document
                 analyser = AnalyserDocx(source_path)
                 analyser.set_analyse_data(analyse_data)
                 analysis_results = analyser.analyse_and_highlight(task_id=task_id)
                 analyser.save(output_path)
             else:
-                analyse_data = AnalysisData()
-
-                if selected_list_keys:
-                    analyse_data.load_predefined_lists(selected_list_keys)
-
-                analyse_data.read_from_list(all_search_lines_clean)
-
                 analyser = AnalyserPdf(source_path)
                 analyser.set_analyse_data(analyse_data)
                 analysis_results = analyser.analyse_and_highlight(task_id=task_id, use_ocr=perform_ocr)
@@ -238,6 +228,7 @@ def process_async():
             words_path = upload_result['words_path']
             words_filename_original = upload_result['words_filename_original']
             all_search_lines_clean = upload_result['search_terms']
+            user_search_terms = upload_result.get('user_search_terms', [])
             is_docx_source = upload_result['is_docx_source']
             file_ext = upload_result['file_ext']
             used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
@@ -264,6 +255,12 @@ def process_async():
                     "source_filename": source_filename_original or "Списки для поиска"
                 })
                 redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
+
+                # Save user list to Redis: from file if uploaded, else from text
+                if words_path:
+                    ListFromText().save_from_file(task_id, words_path)
+                elif len(user_search_terms) > 0:
+                    ListFromText().save_from_text(task_id, user_search_terms)
 
                 from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
                 TaskProgressRoom.send_status(task_id, TaskStatus.PENDING.value, "Задача принята в очередь")

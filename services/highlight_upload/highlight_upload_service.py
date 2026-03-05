@@ -52,6 +52,7 @@ class HighlightUploadService:
             'words_path': words_result['path'],
             'words_filename_original': words_result['filename_original'],
             'search_terms': search_terms_result['search_terms'],
+            'user_search_terms': search_terms_result.get('user_search_terms', []),
             'is_docx_source': source_result['is_docx'],
             'file_ext': source_result['file_ext'],
             'used_predefined_list_names': search_terms_result['used_list_names'],
@@ -219,8 +220,11 @@ class HighlightUploadService:
             unique_terms_dict = {phrase.phrase.lower(): phrase.phrase for phrase in all_terms_with_lists}
             search_terms = list(unique_terms_dict.values())
 
+        user_search_terms = list(unique_lines_dict.values())
+
         return {
             'search_terms': search_terms,
+            'user_search_terms': user_search_terms,
             'used_list_names': used_predefined_list_names,
             'selected_list_keys': selected_list_keys
         }
