@@ -525,7 +525,6 @@ def download_result(filename):
         return "Ошибка: неверный путь к файлу.", 400
 
     if os.path.exists(filepath_abs) and os.path.isfile(filepath_abs):
-        logger.info(f"Downloading result file: {filename}")
         return send_file(filepath_abs, as_attachment=True)
     else:
         logger.error(f"Download failed: File not found at {filepath_abs}")
