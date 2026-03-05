@@ -73,9 +73,9 @@ REDIS_PORT = int(os.environ.get('REDIS_PORT', 6379))
 REDIS_DB = int(os.environ.get('REDIS_DB_TASKS', 0))  # Отдельная БД для задач
 
 # Уменьшаем уровень логирования для "шумных" библиотек
-logging.getLogger("werkzeug").setLevel(logging.WARNING)
+logging.getLogger("werkzeug").setLevel(logging.ERROR)
 logging.getLogger("nltk").setLevel(logging.INFO)
-logging.getLogger("pymorphy3").setLevel(logging.INFO)
+logging.getLogger("pymorphy3").setLevel(logging.WARNING)
 logging.getLogger("PIL").setLevel(logging.INFO)  # Pillow может быть шумным
 logging.getLogger("concurrent_log_handler").setLevel(logging.WARNING)  # Логи самого хендлера
 logging.getLogger("selenium").setLevel(logging.WARNING)
@@ -133,7 +133,6 @@ try:
     app.redis_client_tasks = get_redis_connection(db=REDIS_DB, decode_responses=True)
     app.redis_client = app.redis_client_tasks
     app.redis_client_tasks.ping()  # Check connection
-    app.logger.info(f"Successfully connected to Redis for task storage at {REDIS_HOST}:{REDIS_PORT}, DB: {REDIS_DB}")
 except redis.exceptions.ConnectionError as e:
     app.logger.error(f"Could not connect to Redis for task storage: {e}. Task status persistence will not work.")
     app.redis_client_tasks = None
@@ -169,13 +168,8 @@ dirs_to_create = [
 for dir_path in dirs_to_create:
     try:
         os.makedirs(dir_path, exist_ok=True)
-        # Используем логгер app после его настройки
-        app.logger.debug(f"Directory checked/created: {dir_path}")
     except OSError as e:
         app.logger.error(f"Failed to create directory {dir_path}: {e}")
-
-app.logger.info(
-    f"Base directories configured: UPLOAD={app.config['UPLOAD_DIR']}, RESULT={app.config['RESULT_DIR']}, LISTS={app.config['PREDEFINED_LISTS_DIR']}")
 
 # Skip admin init when running migrations (flask db) — app is loaded only to get DB URL
 if "db" not in sys.argv:
@@ -193,7 +187,6 @@ def inject_admin_words_lists():
 def initialize_analyzers():
     """Загружает Pymorphy3 и NLTK лемматизаторы."""
     try:
-        app.logger.info("Loading morphological analyzers...")
         start_time = time.time()
         morph = load_pymorphy()  # Загружает pymorphy3
         nltk_lemm = load_nltk_lemmatizer()  # Загружает NLTK WordNet
@@ -201,14 +194,9 @@ def initialize_analyzers():
 
         # Проверяем, загрузился ли хотя бы один анализатор
         if morph or nltk_lemm:
-            app.logger.info(f"Morphological analyzers ready (initialized in {end_time - start_time:.2f} sec).")
-            if morph:
-                app.logger.info(" -> Pymorphy3 loaded.")
-            else:
+            if not morph:
                 app.logger.warning(" -> Pymorphy3 FAILED to load.")
-            if nltk_lemm:
-                app.logger.info(" -> NLTK WordNet Lemmatizer loaded.")
-            else:
+            if not nltk_lemm:
                 app.logger.warning(" -> NLTK WordNet Lemmatizer FAILED to load.")
             return True
         else:
