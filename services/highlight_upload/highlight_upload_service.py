@@ -65,12 +65,12 @@ class HighlightUploadService:
             task_id: str,
             upload_dir: str
     ) -> Dict:
-        #get ext
+        # get ext
         source_file = request.files['source_file']
         filename = source_file.filename
         ext = os.path.splitext(filename)[1].lower()
 
-        #[start] validate format
+        # [start] validate format
         allowed_ext = SourceFormat.extensions()
         formats_str = ", ".join(allowed_ext)
 
@@ -79,18 +79,18 @@ class HighlightUploadService:
 
         if ext not in allowed_ext:
             raise UploadError(f"Недопустимый формат исходного файла. Загрузите {formats_str}", 400)
-        #[end]
+        # [end]
 
         source_path = save_uploaded_file(source_file, upload_dir, f"source_{task_id}{ext}")
 
-        #[start] convert to docx
+        # [start] convert to docx
         to_docx = {SourceFormat.DOC.value: ConvertDOC(), SourceFormat.ODT.value: ConvertODT()}
         if ext in to_docx:
             source_path = HighlightUploadService._convert_upload_to_docx(
                 source_path, upload_dir, task_id, to_docx[ext]
             )
             ext = SourceFormat.DOCX.value
-        #[end]
+        # [end]
 
         return {
             'path': source_path,
@@ -134,29 +134,37 @@ class HighlightUploadService:
 
         words_file_input = request.files.get('words_file')
 
+
         if words_file_input and words_file_input.filename:
             words_filename_original = words_file_input.filename
-            words_ext = os.path.splitext(words_filename_original)[1].lower()
+            words_ext: str = os.path.splitext(words_filename_original)[1].lower()
             allowed_words = WordsFormat.extensions()
+
             if words_ext not in allowed_words:
                 raise UploadError(
                     f'Файл слов должен быть в формате {", ".join(allowed_words)}.', 400
                 )
-            if words_ext == WordsFormat.DOCX:
+
+            if words_ext == WordsFormat.DOCX.value:
                 words_filename_unique = f"words_{task_id}{WordsFormat.DOCX}"
                 words_path = save_uploaded_file(words_file_input, upload_dir, words_filename_unique)
+
                 if not words_path:
                     raise UploadError('Ошибка сохранения файла слов (.docx).', 500)
+
                 search_lines_from_file = extract_lines_from_docx(words_path)
+
                 if not isinstance(search_lines_from_file, list):
                     search_lines_from_file = []
-            elif words_ext == WordsFormat.XLSX:
+            elif words_ext == WordsFormat.XLSX.value:
                 search_lines_from_file = []
-            elif words_ext == WordsFormat.TXT:
+            elif words_ext == WordsFormat.TXT.value:
                 words_filename_unique = f"words_{task_id}{WordsFormat.TXT}"
                 words_path = save_uploaded_file(words_file_input, upload_dir, words_filename_unique)
+
                 if not words_path:
                     raise UploadError('Ошибка сохранения файла слов (.txt).', 500)
+
                 search_lines_from_file = load_lines_from_txt(words_path)
 
         return {
@@ -249,4 +257,3 @@ class HighlightUploadService:
             'list_names': [],
             'selected_list_keys': selected_list_keys,
         }
-
