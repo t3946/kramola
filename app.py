@@ -80,6 +80,7 @@ logging.getLogger("PIL").setLevel(logging.INFO)  # Pillow может быть ш
 logging.getLogger("concurrent_log_handler").setLevel(logging.WARNING)  # Логи самого хендлера
 logging.getLogger("selenium").setLevel(logging.WARNING)
 logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("engineio.server").setLevel(logging.WARNING)
 
 app = Flask(__name__)
 app.logger.name = "Flask_App"
@@ -111,7 +112,7 @@ if socketio_async_mode is None:
         # Для flask run и socketio.run() используем threading
         socketio_async_mode = 'threading'
 
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode=socketio_async_mode, logger=True, engineio_logger=True)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode=socketio_async_mode, logger=False, engineio_logger=False)
 #[end]
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
