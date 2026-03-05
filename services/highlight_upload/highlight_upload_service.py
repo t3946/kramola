@@ -185,23 +185,19 @@ class HighlightUploadService:
         )
 
         # 4. Combine initial search lines (before predefined lists processing)
-        all_search_lines = (
+        user_search_terms: list[str] = (
                 search_lines_from_file +
                 search_lines_from_text
         )
-
+        selected_list_keys = predefined_result.get('selected_list_keys', [])
         used_predefined_list_names = []
 
-        if not len(predefined_result.get('selected_list_keys', [])) and not all_search_lines and not search_lines_from_text:
+        if not len(selected_list_keys) and not user_search_terms and not search_lines_from_text:
             raise UploadError('Укажите источник слов: файл, текстовое поле или выберите список.', 400)
 
-        # Clean and deduplicate
-        unique_lines_dict = {line.strip().lower(): line.strip() for line in all_search_lines if line.strip()}
-        search_terms = list(unique_lines_dict.values())
+        search_terms = []
 
         # 5. Load predefined lists using AnalysisData
-        selected_list_keys = predefined_result.get('selected_list_keys', [])
-
         if selected_list_keys:
             analysis_data = AnalysisData()
             analysis_data.load_predefined_lists(selected_list_keys)
@@ -219,8 +215,6 @@ class HighlightUploadService:
             all_terms_with_lists: list[Phrase] = search_terms + search_terms_from_lists
             unique_terms_dict = {phrase.phrase.lower(): phrase.phrase for phrase in all_terms_with_lists}
             search_terms = list(unique_terms_dict.values())
-
-        user_search_terms = list(unique_lines_dict.values())
 
         return {
             'search_terms': search_terms,
