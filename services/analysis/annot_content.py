@@ -1,6 +1,6 @@
 """Shared logic for annotation/comment title and content from AnalysisMatch."""
 
-from typing import Tuple
+from typing import Tuple, List
 
 from models import Inagent
 from models.inagents import AgentType
@@ -56,3 +56,20 @@ def get_annot_title_content(match: AnalysisMatch) -> Tuple[str, str]:
         return "Шаблон", f"«{match.search_match.regex_info.pattern_name}»"
 
     return "", ""
+
+
+def get_multiple_get_annot_title_content(matches: List[AnalysisMatch]) -> Tuple[str, str]:
+    title = f"{len(matches)} совпадений"
+    content = ""
+
+    for i, match in enumerate(matches):
+        match_title, match_content = get_annot_title_content(match)
+
+        if len(content):
+            content += "\n\n"
+
+        content += f"{i + 1}. {match_title}:"
+        content += "\n"
+        content += f"«{match_content}»"
+
+    return title, content

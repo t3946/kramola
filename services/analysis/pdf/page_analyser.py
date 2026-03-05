@@ -1,12 +1,13 @@
 import logging
-from typing import List, Optional, Tuple, TYPE_CHECKING
+from typing import List, Optional, Tuple, TYPE_CHECKING, Union
 
 import pymupdf
 
 from services.analysis import AnalysisMatch
-from services.analysis.annot_content import get_annot_title_content
+from services.analysis.annot_content import get_annot_title_content, get_multiple_get_annot_title_content
 from services.analysis.pdf.char import Char
 from services.analysis.pdf.pua_map import PuaMap
+from services.fulltext_search.search_match import FTSTextMatch
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +119,7 @@ class PageAnalyser:
         self,
         start: int,
         end: int,
-        match: Optional[AnalysisMatch] = None,
+        match: Optional[Union[AnalysisMatch, List[AnalysisMatch]]] = None,
         color: Optional[Tuple[float, float, float]] = None,
     ) -> None:
         """
@@ -176,7 +177,12 @@ class PageAnalyser:
         rect = pymupdf.Rect(x0, y0, x1, y1)
         annot: pymupdf.Annot = self.page.add_highlight_annot(rect)
         annot.set_colors(stroke=stroke_color)
+        title, content = "", ""
 
-        title, content = get_annot_title_content(match)
+        if isinstance(match, AnalysisMatch):
+            title, content = get_annot_title_content(match)
+        elif isinstance(match, List):
+            title, content = get_multiple_get_annot_title_content(matches=match)
+
         annot.set_info({"title": title, "content": content})
         annot.update()

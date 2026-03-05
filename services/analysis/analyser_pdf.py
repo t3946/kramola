@@ -1,7 +1,9 @@
 import re
 import pymupdf
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
+
+from services.analysis import AnalysisMatch
 from services.analysis.analyser import Analyser
 from services.analysis.stats import StatsPDF
 from services.fulltext_search.phrase import Phrase
@@ -24,6 +26,7 @@ USE_STEM_FALLBACK = True
 class AnalyserPdf(Analyser):
     document: Optional[pymupdf.Document]
     source_path: str
+
     # _progress: Optional['CombinedProgress']
 
     def __init__(self, source_path: str):
@@ -83,7 +86,7 @@ class AnalyserPdf(Analyser):
             }
 
         phrase_results = fulltext_search.search_all(
-            search_phrases_for_search, 
+            search_phrases_for_search,
             SearchStrategy.FUZZY_WORDS_PUNCT,
             regex_patterns=regex_patterns_dict
         )
@@ -95,7 +98,7 @@ class AnalyserPdf(Analyser):
             fts_matches.extend(fts_match)
         # [end]
 
-        matches = self._convert_fts_matches(fts_matches)
+        matches: List[AnalysisMatch] = self._convert_fts_matches(fts_matches)
 
         # [start] determine page number for each match
         for match in matches:
@@ -118,11 +121,13 @@ class AnalyserPdf(Analyser):
         # [end]
 
         if use_ocr:
-            #todo: ocr not implemented
+            # todo: ocr not implemented
             logger.warning(f'ocr not implemented')
 
         # [start] highlight matches
-        # [start] highlight each match
+        # key is tuple(page, start_index, end_index)
+        highlighting_map: Dict[(PageAnalyser, int, int), List[AnalysisMatch]] = {}
+
         for match in matches:
             search_match = match.search_match
             start_token_idx: int = search_match.start_token_idx
@@ -130,26 +135,42 @@ class AnalyserPdf(Analyser):
             start_char_pos: int = all_tokens[start_token_idx].start
             end_char_pos: int = all_tokens[end_token_idx].end
 
-            # [start] find pages that contain this match
+            # [start] find pages that contain this match and highlight it
             for page_idx, page_analyser in enumerate(pages):
                 page_start_offset: int = page_offsets[page_idx]
                 page_text_len: int = page_lengths[page_idx]
                 page_end_offset: int = page_start_offset + page_text_len - 1
 
-                # check if match overlaps with this page
+                # [start] check if match overlaps with this page
                 match_start_in_page: int = max(start_char_pos, page_start_offset)
                 match_end_in_page: int = min(end_char_pos, page_end_offset)
 
                 if match_start_in_page > match_end_in_page:
                     continue
+                # [end]
 
-                # convert to local page character indices
+                # convert global indices to local page character indices
                 local_start: int = match_start_in_page - page_start_offset
                 local_end: int = match_end_in_page - page_start_offset
-                match_color: Tuple[float, float, float] = self._highlight_color_for_match(match).rgb()
 
-                page_analyser.highlight_range(local_start, local_end - 1, match, color=match_color)
+                # add match into map
+                key = (page_analyser, local_start, local_end - 1)
+
+                if highlighting_map.get(key) is None:
+                    highlighting_map[key] = []
+
+                highlighting_map[key].append(match)
             # [end]
+
+        # [start] build highlighting map
+        for key, matches in highlighting_map.items():
+            page, start, end = key
+            color: Tuple[float, float, float] = self._highlight_color_for_match(matches[0]).rgb()
+
+            if len(matches) == 1:
+                page.highlight_range(start, end, matches[0], color)
+            else:
+                page.highlight_range(start, end, matches, color)
         # [end]
         # [end]
 
