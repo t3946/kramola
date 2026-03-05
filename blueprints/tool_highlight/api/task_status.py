@@ -9,7 +9,6 @@ from ..routes import (
     highlight_bp,
     _get_redis_client,
     _EXECUTOR_FUTURES_REGISTRY,
-    REDIS_TASK_TTL
 )
 
 
@@ -36,7 +35,7 @@ def check_task_status(task_id):
                 try:
                     redis_client.hmset(f"task:{task_id}",
                                        {"state": TaskStatus.PROCESSING.value, "status_message": "Задача выполняется..."})
-                    redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
+                    redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
                     
                     from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
                     TaskProgressRoom.send_status(task_id, TaskStatus.PROCESSING.value, "Задача выполняется...")

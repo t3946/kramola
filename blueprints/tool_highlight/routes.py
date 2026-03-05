@@ -33,7 +33,6 @@ from services.words_list import ListFromText
 highlight_bp = Blueprint('highlight', __name__, template_folder='templates')
 
 _EXECUTOR_FUTURES_REGISTRY = {}
-REDIS_TASK_TTL = 3600  # 1 час
 
 
 def _get_redis_client():
@@ -68,7 +67,7 @@ def _perform_highlight_processing(
             redis_client.hmset(f"task:{task_id}", {
                 "state": TaskStatus.PROCESSING.value, "status_message": status_message
             })
-            redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
+            redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
 
             from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
             TaskProgressRoom.send_status(task_id, TaskStatus.PROCESSING.value, status_message)
@@ -152,7 +151,7 @@ def _perform_highlight_processing(
                     "result_data_json": json.dumps(task_result_data)
                 }
                 redis_client.hmset(f"task:{task_id}", redis_payload)
-                redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
+                redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
 
                 from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
                 TaskProgressRoom.send_status(task_id, final_status_for_redis.value, status_message)
@@ -254,7 +253,7 @@ def process_async():
                     "state": TaskStatus.PENDING.value, "status_message": "Задача принята в очередь",
                     "source_filename": source_filename_original or "Списки для поиска"
                 })
-                redis_client.expire(f"task:{task_id}", REDIS_TASK_TTL)
+                redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
 
                 # Save user list to Redis: from file if uploaded, else from text
                 if words_path:
@@ -325,7 +324,7 @@ def process_async():
                     "result_data_json": json.dumps(
                         {'error': f'Ошибка при постановке задачи: {str(e)}', '_task_id_ref': current_task_id_in_exc})
                 })
-                redis_client.expire(f"task:{current_task_id_in_exc}", REDIS_TASK_TTL)
+                redis_client.expire(f"task:{current_task_id_in_exc}", current_app.config["REDIS_TASK_TTL"])
             except Exception as e_redis_fail:
                 logger.error(
                     f"[Req {current_task_id_in_exc}] Redis error (update to COMPLETED on initial error): {e_redis_fail}")

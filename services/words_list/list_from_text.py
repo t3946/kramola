@@ -4,7 +4,6 @@ from typing import List, Optional, Union
 import json
 from flask import current_app
 
-from blueprints.tool_highlight.routes import REDIS_TASK_TTL
 from services.document_service import extract_lines_from_docx
 from services.fulltext_search.phrase import Phrase
 from services.utils.load_lines_from_txt import load_lines_from_txt
@@ -41,7 +40,7 @@ class ListFromText(ListUserCustom):
     def _write_lines_to_redis(self, lines: List[str]) -> None:
         redis_client = getattr(current_app, 'redis_client_tasks', None)
         redis_client.hset(self._redis_name, self._redis_key, json.dumps(lines))
-        redis_client.expire(self._redis_name, REDIS_TASK_TTL)
+        redis_client.expire(self._redis_name, current_app.config.get("REDIS_TASK_TTL", 3600))
 
     def save_from_text(self, lines: List[str]) -> None:
         self._write_lines_to_redis(lines)

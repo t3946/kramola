@@ -29,6 +29,7 @@ from services.redis.connection import get_redis_connection, get_redis_config
 from services.enum import PredefinedListKey
 
 load_dotenv()
+from config.main import get_config
 
 log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(name)s - %(funcName)s - %(message)s')
 # Устанавливаем DEBUG уровень, как было в исходном запросе
@@ -94,8 +95,6 @@ login_manager.user_loader(load_user)
 
 app.register_blueprint(admin_auth_bp)
 
-app.config['EXECUTOR_TYPE'] = 'thread'  # или 'process'
-app.config['EXECUTOR_MAX_WORKERS'] = 5  # Количество одновременных фоновых задач
 executor = Executor(app)
 
 #[start] Initialize SocketIO
@@ -115,16 +114,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode=socketio_async_mod
 #[end]
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-# Общие директории
-app.config['UPLOAD_DIR'] = os.path.join(BASE_DIR, "uploads")
-app.config['RESULT_DIR'] = os.path.join(BASE_DIR, "results")
-app.config['PREDEFINED_LISTS_DIR'] = os.path.join(BASE_DIR, "predefined_lists")
-
-# Опциональные отдельные директории для инструментов
-app.config['UPLOAD_DIR_HIGHLIGHT'] = os.path.join(BASE_DIR, "uploads", "highlight")
-app.config['RESULT_DIR_HIGHLIGHT'] = os.path.join(BASE_DIR, "results", "highlight")
-app.config['UPLOAD_DIR_FOOTNOTES'] = os.path.join(BASE_DIR, "uploads", "footnotes")
-app.config['RESULT_DIR_FOOTNOTES'] = os.path.join(BASE_DIR, "results", "footnotes")
+app.config.update(get_config(BASE_DIR))
 
 try:
     # Create Redis connection using utility function
