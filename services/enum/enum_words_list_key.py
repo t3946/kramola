@@ -8,4 +8,5 @@ class WordsListKey(str, Enum):
     EXTREMISTS_TERRORISTS = "extremists_terrorists"
     INAGENTS = "inagents"
     CUSTOM = "custom"
+    CUSTOM_EXCLUDE = "custom_exclude"
     
