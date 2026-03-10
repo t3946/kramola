@@ -11,6 +11,7 @@ from services.words_list.list_extremists_international_ur import ListExtremistsI
 from services.words_list.list_extremists_russian_fiz import ListExtremistsRussianFIZ
 from services.words_list.list_extremists_russian_ur import ListExtremistsRussianUR
 from services.words_list.list_from_text import ListFromText
+from services.words_list.list_from_text_exclude import ListFromTextExclude
 from services.enum import PredefinedListKey
 from services.utils.regex_pattern import RegexPattern
 from services.patterns.profanity_words import PROFANITY_WORDS_PATTERNS
@@ -40,6 +41,24 @@ class AnalysisData:
 
         for phrase in phrases:
             self.phrases.append(phrase)
+
+    def apply_exclude_user_list(self, task_id: str) -> None:
+        """Remove from self.phrases any phrase whose text matches an exclude-list phrase (case-insensitive)."""
+        exclude_phrases: list[Phrase] = ListFromTextExclude(task_id).load()
+        result_phrases: list[Phrase] = []
+
+        for p in self.phrases:
+            is_excluded = False
+
+            for ex in exclude_phrases:
+                if p.phrase.lower() == ex.phrase.lower():
+                    is_excluded = True
+                    break
+
+            if not is_excluded:
+                result_phrases.append(p)
+
+        self.phrases = result_phrases
 
     def load_predefined_lists(self, list_keys: List[str]) -> None:
         """Load ready-made Phrase objects from predefined lists (MySQL) by their keys."""
