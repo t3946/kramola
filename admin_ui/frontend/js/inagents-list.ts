@@ -6,6 +6,7 @@ interface InagentsRow {
   id: number;
   registry_number: number | null;
   full_name: string;
+  search_terms: string[];
   status_label: string;
   agent_type: string;
   agent_type_label: string;
@@ -45,6 +46,18 @@ function editButtonHtml(row: InagentsRow): string {
     escapeHtml(row.edit_form_url) +
     '"><i class="fa fa-pencil"></i></button>'
   );
+}
+
+function nameCellHtml(row: InagentsRow, q: string): string {
+  const line1 = highlightSearch(String(row.full_name ?? ""), q);
+  const terms = row.search_terms ?? [];
+  const pills =
+    terms.length === 0
+      ? ""
+      : '<div class="cell-pills">' +
+        terms.map((t) => '<span class="pill">' + escapeHtml(t) + "</span>").join("") +
+        "</div>";
+  return '<div class="cell-source">' + line1 + pills + "</div>";
 }
 
 function initInagentsList(): void {
@@ -155,7 +168,7 @@ function initInagentsList(): void {
           const q = searchEl?.value?.trim() ?? "";
           return (res.data ?? []).map((row: InagentsRow) => [
             row.registry_number ?? "",
-            html(highlightSearch(row.full_name, q)),
+            html(nameCellHtml(row, q)),
             row.status_label,
             row.agent_type_label,
             row.search_terms_count,

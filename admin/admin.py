@@ -459,11 +459,14 @@ class InagentsListView(BaseView):
 
         def row(r: Inagent) -> dict:
             at = _agent_type_val(r.agent_type)
-            search_terms_count: int = len(r.search_terms) if isinstance(r.search_terms, list) else 0
+            terms = r.search_terms
+            search_terms_count: int = len(terms) if isinstance(terms, list) else 0
+            terms_list: list[str] = list(terms) if isinstance(terms, list) else []
             return {
                 "id": r.id,
                 "registry_number": r.registry_number,
                 "full_name": r.full_name or "",
+                "search_terms": terms_list,
                 "status_label": _inagent_status_label(r),
                 "agent_type": at,
                 "agent_type_label": AGENT_TYPE_SHORT_LABELS.get(at, at),
