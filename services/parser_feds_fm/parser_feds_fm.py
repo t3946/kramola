@@ -98,7 +98,6 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
             item["search_terms"] = []
 
             if item["names"]["main"]:
-                item["full_name"] = item["names"]["main"]
                 item["search_terms"].append(item["names"]["main"])
 
             additional = item["names"].get("additional") or []
@@ -121,16 +120,12 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 .filter(ExtremistTerrorist.sanction_code == item["sanction_code"])
             )
 
-            if item["names"]["main"]:
-                query = query.filter(ExtremistTerrorist.full_name == item["names"]["main"])
-            else:
-                query = query.filter(ExtremistTerrorist.raw_source == item["raw"])
+            query = query.filter(ExtremistTerrorist.raw_source == item["raw"])
 
             old_model = query.first()
 
             new_model = ExtremistTerrorist(
                 raw_source=item.get("raw"),
-                full_name=item.get("full_name"),
                 search_terms=item.get("search_terms"),
                 type=item["type"].value,
                 area=ExtremistArea.INTERNATIONAL.value,
@@ -166,15 +161,11 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 .filter(ExtremistTerrorist.type == item["type"].value)
             )
 
-            if item["names"]["main"]:
-                query = query.filter(ExtremistTerrorist.full_name == item["names"]["main"])
-            else:
-                query = query.filter(ExtremistTerrorist.raw_source == item["raw"])
+            query = query.filter(ExtremistTerrorist.raw_source == item["raw"])
 
             old_model = None
             new_model = ExtremistTerrorist(
                 raw_source=item.get("raw"),
-                full_name=item.get("full_name"),
                 search_terms=item.get("search_terms"),
                 type=item["type"].value,
                 area=ExtremistArea.RUSSIAN.value,

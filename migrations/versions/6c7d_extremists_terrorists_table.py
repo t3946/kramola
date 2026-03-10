@@ -19,7 +19,6 @@ def upgrade() -> None:
     op.create_table(
         "extremists_terrorists",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("full_name", sa.Text(), nullable=True),
         sa.Column("search_terms", sa.JSON(), nullable=True),
         sa.Column("type", sa.String(20), nullable=False),
         sa.Column("area", sa.String(20), nullable=False),
@@ -36,12 +35,10 @@ def upgrade() -> None:
 
     op.execute("CREATE INDEX ix_et_area_sanction_code ON extremists_terrorists (area, sanction_code)")
     op.execute("CREATE INDEX ix_et_area_type ON extremists_terrorists (area, type)")
-    op.execute("CREATE INDEX ix_et_area_type_full_name ON extremists_terrorists (area, type, full_name(100))")
     op.execute("CREATE INDEX ix_et_area_type_birth ON extremists_terrorists (area, type, birth_date, birth_place(100))")
 
 def downgrade() -> None:
     op.execute("DROP INDEX ix_et_area_sanction_code ON extremists_terrorists")
     op.execute("DROP INDEX ix_et_area_type ON extremists_terrorists")
-    op.execute("DROP INDEX ix_et_area_type_full_name ON extremists_terrorists")
     op.execute("DROP INDEX ix_et_area_type_birth ON extremists_terrorists")
     op.drop_table("extremists_terrorists")

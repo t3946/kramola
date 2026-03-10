@@ -48,7 +48,6 @@ def _extremist_to_form_data(et: ExtremistTerrorist) -> dict:
     birth_date_str = et.birth_date.strftime("%Y-%m-%d") if et.birth_date else ""
     return {
         "raw_source": et.raw_source or "",
-        "full_name": et.full_name or "",
         "type": et.type or "",
         "type_label": EXTREMIST_TYPE_LABELS.get(et.type, et.type or ""),
         "area": et.area or "",
@@ -62,7 +61,6 @@ def _extremist_to_form_data(et: ExtremistTerrorist) -> dict:
 
 
 def _form_apply_extremist(form, et: ExtremistTerrorist) -> None:
-    et.full_name = form.get("full_name", "").strip() or None
     type_val = form.get("type", "").strip()
     if type_val in VALID_EXTREMIST_TYPES:
         et.type = type_val
@@ -100,7 +98,7 @@ def _extremists_terrorists_paginated(
 ) -> tuple[list[ExtremistTerrorist], int]:
     base = ExtremistTerrorist.query
     if query:
-        base = base.filter(ExtremistTerrorist.full_name.ilike(f"%{query}%"))
+        base = base.filter(ExtremistTerrorist.raw_source.ilike(f"%{query}%"))
     if type_filter and type_filter in VALID_EXTREMIST_TYPES:
         base = base.filter(ExtremistTerrorist.type == type_filter)
     if area_filter:
@@ -119,7 +117,7 @@ def _extremists_terrorists_paginated(
     elif active_filter == "no":
         base = base.filter(ExtremistTerrorist.is_active.is_(False))
     total: int = base.count()
-    rows = base.order_by(ExtremistTerrorist.full_name.asc()).limit(limit).offset(offset).all()
+    rows = base.order_by(ExtremistTerrorist.raw_source.asc()).limit(limit).offset(offset).all()
     return rows, total
 
 
@@ -232,7 +230,7 @@ class WordsListView(BaseView):
             if not new_text:
                 flash("ФИО не может быть пустым.")
                 return redirect(url_for(".index"))
-            et.full_name = new_text
+            et.raw_source = new_text
             db.session.commit()
             flash("Запись сохранена.")
             return redirect(url_for(".index"))
@@ -329,18 +327,18 @@ class WordsListView(BaseView):
             def row_et(et: ExtremistTerrorist) -> dict:
                 terms = et.search_terms
                 st_count = len(terms) if isinstance(terms, list) else 0
+                terms_list: list[str] = list(terms) if isinstance(terms, list) else []
                 birth_date_str = et.birth_date.strftime("%d.%m.%Y") if et.birth_date else ""
-                display_name: str = (et.full_name or et.raw_source or "") or ""
-                name_from_raw: bool = not bool(et.full_name and et.full_name.strip())
+                display_name: str = (et.raw_source or "") or ""
                 return {
                     "id": et.id,
                     "full_name": display_name,
-                    "name_from_raw": name_from_raw,
                     "birth_date": birth_date_str,
                     "type": et.type or "",
                     "type_label": EXTREMIST_TYPE_LABELS.get(et.type, et.type or ""),
                     "area": et.area or "",
                     "area_label": EXTREMIST_AREA_LABELS.get(et.area, et.area or ""),
+                    "search_terms": terms_list,
                     "search_terms_count": st_count,
                     "is_active": bool(et.is_active),
                     "edit_form_url": url_for(f"{endpoint}.extremist_edit_form", id=et.id),

@@ -20,7 +20,7 @@ class ListExtremistsTerroristsBase(WordsList, ABC):
 
     def load(self) -> list[Phrase]:
         query = ExtremistTerrorist.query.with_entities(
-            ExtremistTerrorist.full_name,
+            ExtremistTerrorist.raw_source,
             ExtremistTerrorist.search_terms
         )
 
@@ -33,7 +33,7 @@ class ListExtremistsTerroristsBase(WordsList, ABC):
         rows = query.all()
         phrases: list[Phrase] = []
 
-        for (full_name, search_terms) in rows:
+        for (raw_source, search_terms) in rows:
             if not isinstance(search_terms, list):
                 search_terms = []
 
@@ -41,7 +41,7 @@ class ListExtremistsTerroristsBase(WordsList, ABC):
                 phrase = Phrase(
                     phrase=text,
                     source_list=self,
-                    phrase_original=full_name
+                    phrase_original=raw_source
                 )
                 phrases.append(phrase)
 

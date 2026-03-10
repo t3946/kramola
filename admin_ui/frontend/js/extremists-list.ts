@@ -5,7 +5,7 @@ const DEBOUNCE_MS = 300;
 interface ExtremistsRow {
   id: number;
   full_name: string;
-  name_from_raw: boolean;
+  search_terms: string[];
   birth_date: string;
   type: string;
   type_label: string;
@@ -48,6 +48,18 @@ function editButtonHtml(row: ExtremistsRow): string {
     escapeHtml(row.edit_form_url) +
     '"><i class="fa fa-pencil"></i></button>'
   );
+}
+
+function sourceCellHtml(row: ExtremistsRow, q: string): string {
+  const line1 = highlightSearch(String(row.full_name ?? ""), q);
+  const terms = row.search_terms ?? [];
+  const pills =
+    terms.length === 0
+      ? ""
+      : '<div class="cell-pills">' +
+        terms.map((t) => '<span class="pill">' + escapeHtml(t) + "</span>").join("") +
+        "</div>";
+  return '<div class="cell-source">' + line1 + pills + "</div>";
 }
 
 function initExtremistsList(): void {
@@ -177,7 +189,7 @@ function initExtremistsList(): void {
     }
     const baseUrl = buildServerUrl();
     const grid = new Grid({
-      columns: ["Полное наименование / ФИО", "Тип", "Область", "Фразы", "Числится", "Действия"],
+      columns: ["Исходная строка", "Тип", "Область", "Фразы", "Числится", "Действия"],
       pagination: {
         limit: 100,
         server: {
@@ -195,12 +207,8 @@ function initExtremistsList(): void {
           if (countEl) countEl.textContent = String(total);
           const q = searchEl?.value?.trim() ?? "";
           return (res.data ?? []).map((row: ExtremistsRow) => {
-            const nameHtml = highlightSearch(String(row.full_name ?? ""), q);
-            const nameCell = row.name_from_raw
-              ? '<span class="cell-name-from-raw">' + nameHtml + "</span>"
-              : nameHtml;
             return [
-            html(nameCell),
+            html(sourceCellHtml(row, q)),
             row.type_label ?? "",
             row.area_label ?? "",
             row.search_terms_count ?? 0,
