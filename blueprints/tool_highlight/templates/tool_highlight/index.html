@@ -87,7 +87,30 @@ function loadFileData(filename) {
         </div>
 
         <div class="card">
-            <h3>3. Готовые списки для поиска (необязательно):</h3>
+            <h3>
+                3. Слова исключения:
+                <div class="tabs">
+                    <input type="radio" name="input-method-exclude" id="file-method-exclude" value="file" checked>
+                    <label for="file-method-exclude" class="active">Загрузить файл</label>
+                    <input type="radio" name="input-method-exclude" id="text-method-exclude" value="text">
+                    <label for="text-method-exclude">Ввести вручную</label>
+                </div>
+            </h3>
+            <div id="file-input-exclude" class="js-input-file" data-input-name="exclude">
+                <input type="file" id="exclude_file" name="exclude_file" accept=".docx,.xlsx,.txt" style="display: none;">
+                <button type="button" class="button">
+                    <i class="fas fa-upload"></i>Выберите файл
+                </button>
+                <div class="file-info" id="exclude_file_info">Файл: docx, xlsx, txt | файл не выбран</div>
+            </div>
+            <div id="text-input-exclude" class="hidden">
+                <textarea id="exclude-textarea" name="exclude_text" placeholder="Введите слова исключения, разделяя их запятыми или переносом строки"></textarea>
+            </div>
+            <div class="note">Каждая слово/фраза должна начинаться с новой строки.</div>
+        </div>
+
+        <div class="card">
+            <h3>4. Готовые списки для поиска (необязательно):</h3>
             <div class="checkbox-group">
                 {% if predefined_lists %}
                     {% for key, name in predefined_lists.items() %}
@@ -106,7 +129,7 @@ function loadFileData(filename) {
         </div>
 
         <div class="card">
-            <h3>4. Глубокий анализ PDF (Для обложки):</h3>
+            <h3>5. Глубокий анализ PDF (Для обложки):</h3>
             <label><input type="checkbox" id="use_ocr" name="use_ocr" value="true" disabled> Включить</label>
             <div class="note">Включите для поиска текста на изображениях или в сложных PDF. Работает значительно медленнее!</div>
         </div>

@@ -50,6 +50,18 @@ export default class AnalyseForm extends BaseComponent {
         /** @type {InputFile|null} */
         this.wordsInput = null;
 
+        /** @type {InputMethodTabsController|null} */
+        this.tabsExclude = null;
+
+        /** @type {InputFile|null} */
+        this.excludeInput = null;
+
+        /** @type {HTMLTextAreaElement|null} */
+        this.excludeTextareaEl = null;
+
+        /** @type {NodeListOf<HTMLInputElement>} */
+        this.inputMethodExcludeRadios = /** @type {NodeListOf<HTMLInputElement>} */ ([]);
+
         this.init();
     }
 
@@ -76,18 +88,32 @@ export default class AnalyseForm extends BaseComponent {
             wordsTextarea: this.wordsTextareaEl,
         });
 
+        this.tabsExclude = new InputMethodTabsController({
+            fileInputContainer: /** @type {HTMLElement|null} */ (this.formEl.querySelector('#file-input-exclude')),
+            textInputContainer: /** @type {HTMLElement|null} */ (this.formEl.querySelector('#text-input-exclude')),
+            fileLabel: /** @type {HTMLElement|null} */ (this.formEl.querySelector('label[for="file-method-exclude"]')),
+            textLabel: /** @type {HTMLElement|null} */ (this.formEl.querySelector('label[for="text-method-exclude"]')),
+            wordsTextarea: /** @type {HTMLTextAreaElement|null} */ (this.formEl.querySelector('#exclude-textarea')),
+            radioName: 'input-method-exclude',
+        });
+
         this.sourceInput = this._getOrCreateInputFile('source');
         this.wordsInput = this._getOrCreateInputFile('words');
+        this.excludeInput = this._getOrCreateInputFile('exclude');
+        this.excludeTextareaEl = /** @type {HTMLTextAreaElement|null} */ (this.formEl.querySelector('#exclude-textarea'));
+        this.inputMethodExcludeRadios = this.formEl.querySelectorAll('input[name="input-method-exclude"]');
 
         this.tabs.syncView();
         this.tabs.adjustTextareaHeight();
+        this.tabsExclude.syncView();
+        this.tabsExclude.adjustTextareaHeight();
 
         this.bindUiHandlers();
         this.setupValidator();
     }
 
     /**
-     * @param {'source'|'words'} name
+     * @param {'source'|'words'|'exclude'} name
      * @returns {InputFile|null}
      */
     _getOrCreateInputFile(name) {
@@ -171,9 +197,14 @@ export default class AnalyseForm extends BaseComponent {
     resetHighlights() {
         this.sourceInput?.setInvalid(false);
         this.wordsInput?.setInvalid(false);
+        this.excludeInput?.setInvalid(false);
 
         if (this.wordsTextareaEl) {
             setInvalidBorder(this.wordsTextareaEl, false);
+        }
+
+        if (this.excludeTextareaEl) {
+            setInvalidBorder(this.excludeTextareaEl, false);
         }
 
         if (this.checkboxGroupEl) {
@@ -198,10 +229,21 @@ export default class AnalyseForm extends BaseComponent {
             this.wordsInput.inputEl.addEventListener('change', clear);
         }
 
+        if (this.excludeInput?.inputEl) {
+            this.excludeInput.inputEl.addEventListener('change', clear);
+        }
+
         if (this.wordsTextareaEl) {
             this.wordsTextareaEl.addEventListener('input', () => {
                 clear();
                 this.tabs?.adjustTextareaHeight();
+            });
+        }
+
+        if (this.excludeTextareaEl) {
+            this.excludeTextareaEl.addEventListener('input', () => {
+                clear();
+                this.tabsExclude?.adjustTextareaHeight();
             });
         }
 
@@ -211,6 +253,13 @@ export default class AnalyseForm extends BaseComponent {
             radio.addEventListener('change', () => {
                 clear();
                 this.tabs?.syncView();
+            });
+        });
+
+        [...this.inputMethodExcludeRadios].forEach((radio) => {
+            radio.addEventListener('change', () => {
+                clear();
+                this.tabsExclude?.syncView();
             });
         });
 
@@ -228,6 +277,7 @@ export default class AnalyseForm extends BaseComponent {
         const sourceSelector = '#source_file';
         const wordsFileSelector = '#words_file';
         const wordsTextSelector = '#words-textarea';
+        const excludeFileSelector = '#exclude_file';
 
         this.validator = new JustValidate(this.formEl, {
             focusInvalidField: false,
@@ -316,6 +366,20 @@ export default class AnalyseForm extends BaseComponent {
                     errorMessage: 'Ошибка: Укажите источник слов — загрузите файл, введите текст или выберите готовый список.',
                 },
             ])
+            .addField(excludeFileSelector, [
+                {
+                    validator: () => {
+                        const fileName = this.excludeInput?.getFile()?.name?.toLowerCase() || '';
+
+                        if (!fileName) {
+                            return true;
+                        }
+
+                        return this._isFileAllowed(this.excludeInput);
+                    },
+                    errorMessage: `Ошибка: Файл слов исключения должен быть в формате ${this._formatAllowedFormats(this.excludeInput)}.`,
+                },
+            ])
             .onFail((fields) => this.handleFail(fields))
             .onSuccess(() => this.handleSuccess());
     }
@@ -364,6 +428,10 @@ export default class AnalyseForm extends BaseComponent {
 
         if (!this._isFileAllowed(this.wordsInput)) {
             this.wordsInput?.setInvalid(true);
+        }
+
+        if (!this._isFileAllowed(this.excludeInput)) {
+            this.excludeInput?.setInvalid(true);
         }
 
         window.scrollTo(0, 0);
