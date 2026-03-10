@@ -1,11 +1,12 @@
 import docx
 import time
 from dataclasses import dataclass
-from typing import List, Union, Optional, Tuple, NamedTuple, TYPE_CHECKING
+from typing import List, Union, Optional, Tuple, NamedTuple, TYPE_CHECKING, Dict
 from functools import cmp_to_key
 
 from services.analysis.stats import StatsDocx
 from services.utils.intersects_at import intersects_at
+from services.utils.interval import Interval
 
 if TYPE_CHECKING:
     from services.progress.docx.combined_progress import CombinedProgress
@@ -19,7 +20,7 @@ from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 
 from services.analysis.analyser import Analyser
 from services.analysis.analysis_match import AnalysisMatch
-from services.analysis.annot_content import get_annot_title_content
+from services.analysis.annot_content import get_annot_title_content, get_multiple_get_annot_title_content
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.tokenization import Token, TokenType, TokenDictionary
 from services.fulltext_search.phrase import Phrase
@@ -164,9 +165,11 @@ class AnalyserDocx(Analyser):
             else:
                 skip_break_lines = True
 
-            run_before_match = AnalyserDocx.__clone_run(map_item.run, part_before_match, False, highlight_val, skip_break_lines=skip_break_lines)
+            run_before_match = AnalyserDocx.__clone_run(map_item.run, part_before_match, False, highlight_val,
+                                                        skip_break_lines=skip_break_lines)
             run_match = AnalyserDocx.__clone_run(map_item.run, part_match, True, highlight_val, skip_break_lines=True)
-            run_after_match = AnalyserDocx.__clone_run(map_item.run, part_after_match, False, highlight_val, skip_break_lines=True)
+            run_after_match = AnalyserDocx.__clone_run(map_item.run, part_after_match, False, highlight_val,
+                                                       skip_break_lines=True)
 
             parent = map_item.run.getparent()
             index = list(parent).index(map_item.run)
@@ -248,6 +251,7 @@ class AnalyserDocx(Analyser):
             start_token_idx = search_match.start_token_idx
             end_token_idx = search_match.end_token_idx
 
+            # [start] fill match.runs
             match_run_els: List[CT_R] = []
 
             for i in range(start_token_idx, end_token_idx + 1):
@@ -257,16 +261,68 @@ class AnalyserDocx(Analyser):
                 if run_match_el is not None:
                     match_run_els.append(run_match_el)
 
-            match_run_els_list.append((match, match_run_els))
+            if match.runs is None:
+                match.runs = []
+
+            match.runs.extend(match_run_els)
+            # [end]
+        # [end]
+
+        # [start] build footnotes map
+        footnotes_map: dict[Interval, List[AnalysisMatch]] = {}
+
+        for match in matches:
+            search_match = match.search_match
+            start_token_idx = search_match.start_token_idx
+            end_token_idx = search_match.end_token_idx
+            new_match_interval = Interval(start_token_idx, end_token_idx)
+            overlap_with: Optional[Interval] = None
+
+            # find match overlap with other matches
+            for interval, _ in footnotes_map.items():
+                if new_match_interval.intersects(interval):
+                    overlap_with = interval
+                    break
+
+            # place new match in map
+            if overlap_with:
+                # union match with others
+                footnotes_map[overlap_with].append(match)
+                interval_matches: List[AnalysisMatch] = footnotes_map[overlap_with]
+                new_interval = overlap_with.union(new_match_interval)
+                del footnotes_map[overlap_with]
+                footnotes_map[new_interval] = interval_matches
+            else:
+                # new match not overlaps with other
+                footnotes_map[new_match_interval] = [match]
+
+        # create footnotes
+        for _, matches in footnotes_map.items():
+            if len(matches) == 1:
+                title, content = get_annot_title_content(matches[0])
+            else:
+                title, content = get_multiple_get_annot_title_content(matches)
+
+            runs: List[CT_R] = []
+
+            for match in matches:
+                runs.extend(match.runs)
+
+            comment_runs: List[Run] = [Run(r_el, paragraph) for r_el in runs]
+
+            self.document.add_comment(
+                runs=comment_runs,
+                text=content,
+                author=title,
+                initials="",
+            )
         # [end]
 
         # [start] add annotation to highlight text in document
         for match, match_run_els in match_run_els_list:
-            if not match_run_els:
-                continue
-
             title, content = get_annot_title_content(match)
             comment_runs: List[Run] = [Run(r_el, paragraph) for r_el in match_run_els]
+
             self.document.add_comment(
                 runs=comment_runs,
                 text=content,

@@ -10,7 +10,7 @@ class Interval:
             self.begin = begin
             self.end = end
 
-    def __eq__(self, other: Interval):
+    def __eq__(self, other: 'Interval'):
         return self.begin == other.begin and self.end == other.end
 
     def __repr__(self):
