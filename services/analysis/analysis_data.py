@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Optional
 from services.fulltext_search.phrase import Phrase
 from services.words_list.list_inagents_fiz import ListInagentsFIZ
 from services.words_list.list_inagents_ur import ListInagentsUR
@@ -60,7 +60,10 @@ class AnalysisData:
 
         self.phrases = result_phrases
 
-    def load_predefined_lists(self, list_keys: List[str]) -> None:
+    def load_predefined_lists(self, list_keys: Optional[List[str]]) -> None:
+        if list_keys is None:
+            return
+
         """Load ready-made Phrase objects from predefined lists (MySQL) by their keys."""
         list_mapping = {
             PredefinedListKey.FOREIGN_AGENTS_PERSONS: ListInagentsFIZ,
