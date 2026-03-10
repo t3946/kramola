@@ -9,6 +9,7 @@
  *  fileLabel: HTMLElement|null,
  *  textLabel: HTMLElement|null,
  *  wordsTextarea: HTMLTextAreaElement|null,
+ *  radioName?: string,
  * }} InputMethodTabsControllerParams
  */
 
@@ -16,7 +17,7 @@ export default class InputMethodTabsController {
     /**
      * @param {InputMethodTabsControllerParams} params
      */
-    constructor({fileInputContainer, textInputContainer, fileLabel, textLabel, wordsTextarea}) {
+    constructor({fileInputContainer, textInputContainer, fileLabel, textLabel, wordsTextarea, radioName = 'input-method'}) {
         /** @type {HTMLElement|null} */
         this.fileInputContainer = fileInputContainer;
 
@@ -31,13 +32,16 @@ export default class InputMethodTabsController {
 
         /** @type {HTMLTextAreaElement|null} */
         this.wordsTextarea = wordsTextarea;
+
+        /** @type {string} */
+        this.radioName = radioName;
     }
 
     /**
      * @returns {InputMethod}
      */
     getSelectedMethod() {
-        const selected = document.querySelector('input[name="input-method"]:checked');
+        const selected = document.querySelector(`input[name="${this.radioName}"]:checked`);
         const value = selected?.getAttribute('value');
 
         return value === 'text' ? 'text' : 'file';

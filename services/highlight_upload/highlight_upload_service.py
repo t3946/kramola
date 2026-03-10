@@ -37,11 +37,19 @@ class HighlightUploadService:
         )
 
         # 2. Process words file (if provided)
-        words_result = HighlightUploadService._process_words_file(
-            request, task_id, upload_dir
+        words_result = HighlightUploadService._process_user_file(
+            request, task_id, upload_dir, file_key='words_file', path_prefix='words'
         )
 
-        # 3. Get search terms from all sources
+        # 3. Process exclude file/text (same source logic as words)
+        exclude_result = HighlightUploadService._process_user_file(
+            request, task_id, upload_dir, file_key='exclude_file', path_prefix='exclude'
+        )
+        exclude_lines = exclude_result['search_lines'] + HighlightUploadService._process_text_input(
+            request, form_key='exclude_text'
+        )
+
+        # 4. Get search terms from all sources
         search_terms_result = HighlightUploadService._get_search_terms(
             request, words_result, predefined_lists_dir, predefined_lists
         )
@@ -53,6 +61,8 @@ class HighlightUploadService:
             'words_filename_original': words_result['filename_original'],
             'search_terms': search_terms_result['search_terms'],
             'user_search_terms': search_terms_result.get('user_search_terms', []),
+            'exclude_path': exclude_result['path'],
+            'exclude_lines': exclude_lines,
             'is_docx_source': source_result['is_docx'],
             'file_ext': source_result['file_ext'],
             'used_predefined_list_names': search_terms_result['used_list_names'],
@@ -122,55 +132,56 @@ class HighlightUploadService:
         return docx_path
 
     @staticmethod
-    def _process_words_file(
+    def _process_user_file(
             request: Request,
             task_id: str,
-            upload_dir: str
+            upload_dir: str,
+            file_key: str = 'words_file',
+            path_prefix: str = 'words'
     ) -> Dict:
-        """Process and validate words file upload."""
-        search_lines_from_file = []
-        words_path = None
-        words_filename_original = None
+        """Process and validate user list file (words or exclude). Same reading logic for both."""
+        search_lines_from_file: List[str] = []
+        file_path = None
+        filename_original = None
 
-        words_file_input = request.files.get('words_file')
+        file_input = request.files.get(file_key)
 
+        if file_input and file_input.filename:
+            filename_original = file_input.filename
+            ext: str = os.path.splitext(filename_original)[1].lower()
+            allowed = WordsFormat.extensions()
 
-        if words_file_input and words_file_input.filename:
-            words_filename_original = words_file_input.filename
-            words_ext: str = os.path.splitext(words_filename_original)[1].lower()
-            allowed_words = WordsFormat.extensions()
-
-            if words_ext not in allowed_words:
+            if ext not in allowed:
                 raise UploadError(
-                    f'Файл слов должен быть в формате {", ".join(allowed_words)}.', 400
+                    f'Файл должен быть в формате {", ".join(allowed)}.', 400
                 )
 
-            if words_ext == WordsFormat.DOCX.value:
-                words_filename_unique = f"words_{task_id}{WordsFormat.DOCX}"
-                words_path = save_uploaded_file(words_file_input, upload_dir, words_filename_unique)
+            if ext == WordsFormat.DOCX.value:
+                filename_unique = f"{path_prefix}_{task_id}{WordsFormat.DOCX}"
+                file_path = save_uploaded_file(file_input, upload_dir, filename_unique)
 
-                if not words_path:
-                    raise UploadError('Ошибка сохранения файла слов (.docx).', 500)
+                if not file_path:
+                    raise UploadError(f'Ошибка сохранения файла (.docx).', 500)
 
-                search_lines_from_file = extract_lines_from_docx(words_path)
-
+                search_lines_from_file = extract_lines_from_docx(file_path)
                 if not isinstance(search_lines_from_file, list):
                     search_lines_from_file = []
-            elif words_ext == WordsFormat.XLSX.value:
+
+            elif ext == WordsFormat.XLSX.value:
                 search_lines_from_file = []
-            elif words_ext == WordsFormat.TXT.value:
-                words_filename_unique = f"words_{task_id}{WordsFormat.TXT}"
-                words_path = save_uploaded_file(words_file_input, upload_dir, words_filename_unique)
+            elif ext == WordsFormat.TXT.value:
+                filename_unique = f"{path_prefix}_{task_id}{WordsFormat.TXT}"
+                file_path = save_uploaded_file(file_input, upload_dir, filename_unique)
 
-                if not words_path:
-                    raise UploadError('Ошибка сохранения файла слов (.txt).', 500)
+                if not file_path:
+                    raise UploadError(f'Ошибка сохранения файла (.txt).', 500)
 
-                search_lines_from_file = load_lines_from_txt(words_path)
+                search_lines_from_file = load_lines_from_txt(file_path)
 
         return {
-            'path': words_path,
-            'filename_original': words_filename_original,
-            'search_lines': search_lines_from_file
+            'path': file_path,
+            'filename_original': filename_original,
+            'search_lines': [line.strip() for line in search_lines_from_file if line and line.strip()]
         }
 
     @staticmethod
@@ -185,7 +196,7 @@ class HighlightUploadService:
         search_lines_from_file = words_result['search_lines']
 
         # 2. Words from text input
-        search_lines_from_text = HighlightUploadService._process_text_input(request)
+        search_lines_from_text = HighlightUploadService._process_text_input(request, form_key='words_text')
 
         # 3. Predefined lists (from files and Redis)
         predefined_result = HighlightUploadService._load_predefined_lists(
@@ -232,13 +243,13 @@ class HighlightUploadService:
         }
 
     @staticmethod
-    def _process_text_input(request: Request) -> List[str]:
-        """Process text input from textarea."""
-        search_lines_from_text = []
-        words_text_raw = request.form.get('words_text', '')
+    def _process_text_input(request: Request, form_key: str = 'words_text') -> List[str]:
+        """Process text input from textarea (words or exclude)."""
+        search_lines_from_text: List[str] = []
+        raw = request.form.get(form_key, '')
 
-        if words_text_raw.strip():
-            lines_from_text = words_text_raw.replace(',', '\n').splitlines()
+        if raw.strip():
+            lines_from_text = raw.replace(',', '\n').splitlines()
             search_lines_from_text = [line.strip() for line in lines_from_text if line.strip()]
 
         return search_lines_from_text

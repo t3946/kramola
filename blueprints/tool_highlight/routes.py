@@ -27,7 +27,7 @@ from services.analysis.analyser_pdf import AnalyserPdf
 
 from models import Inagent
 from models.inagents import AGENT_TYPE_MAP
-from services.words_list import ListFromText
+from services.words_list import ListFromText, ListFromTextExclude
 
 
 highlight_bp = Blueprint('highlight', __name__, template_folder='templates')
@@ -55,7 +55,8 @@ def _perform_highlight_processing(
         task_id,
         file_ext,
         used_predefined_list_names_for_session,
-        app_config_dict
+        app_config_dict,
+        exclude_path: str = None
 ):
     logger = current_app.logger
     redis_client = _get_redis_client()
@@ -110,6 +111,8 @@ def _perform_highlight_processing(
 
             if selected_list_keys:
                 analyse_data.load_predefined_lists(selected_list_keys)
+
+            analyse_data.apply_exclude_user_list(task_id)
 
             if is_docx_source:
                 analyser = AnalyserDocx(source_path)
@@ -169,6 +172,12 @@ def _perform_highlight_processing(
             except Exception as e_del:
                 logger.warning(f"[Task {task_id}] Failed to delete words '{words_path}': {e_del}")
 
+        if exclude_path and os.path.exists(exclude_path):
+            try:
+                os.remove(exclude_path)
+            except Exception as e_del:
+                logger.warning(f"[Task {task_id}] Failed to delete exclude '{exclude_path}': {e_del}")
+
         if task_result_data.get('error') and output_path and os.path.exists(output_path):
             try:
                 os.remove(output_path)
@@ -208,6 +217,7 @@ def process_async():
     task_id = str(uuid.uuid4())
     source_path, words_path = None, None
     source_filename_original, words_filename_original = None, None
+    exclude_path = None
 
     # Wrap file operations and initial Redis write in a try-finally for cleanup
     # and to ensure we can return 500 if crucial steps fail.
@@ -232,6 +242,8 @@ def process_async():
             file_ext = upload_result['file_ext']
             used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
             selected_list_keys = upload_result.get('selected_list_keys', [])
+            exclude_path = upload_result.get('exclude_path')
+            exclude_lines = upload_result.get('exclude_lines', [])
 
             # Если нет исходного документа, но есть списки, устанавливаем значения по умолчанию
             if not source_path and used_predefined_list_names_for_session:
@@ -255,11 +267,17 @@ def process_async():
                 })
                 redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
 
-                # Save user list to Redis: from file if uploaded, else from text
+                # [start] save user lists to Redis: from file if uploaded, else from text
                 if words_path:
                     ListFromText(task_id).save_from_file(words_path)
                 elif len(user_search_terms) > 0:
                     ListFromText(task_id).save_from_text(user_search_terms)
+
+                if exclude_path:
+                    ListFromTextExclude(task_id).save_from_file(exclude_path)
+                elif exclude_lines:
+                    ListFromTextExclude(task_id).save_from_text(exclude_lines)
+                # [end]
 
                 from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
                 TaskProgressRoom.send_status(task_id, TaskStatus.PENDING.value, "Задача принята в очередь")
@@ -301,14 +319,15 @@ def process_async():
             task_id,
             file_ext,
             used_predefined_list_names_for_session,
-            app_config_dict
+            app_config_dict,
+            exclude_path
         )
         _EXECUTOR_FUTURES_REGISTRY[task_id] = future
         session['last_task_id_highlight'] = task_id
 
         # Prevent these files from being deleted by the except block if we reach here
-        source_path_local, words_path_local = source_path, words_path
-        source_path, words_path = None, None  # Handover to background task
+        source_path_local, words_path_local, exclude_path_local = source_path, words_path, exclude_path
+        source_path, words_path, exclude_path = None, None, None  # Handover to background task
 
         return jsonify({'task_id': task_id, 'message': 'Файл принят в обработку.'}), 202
 
@@ -344,6 +363,12 @@ def process_async():
             except Exception as e_del:
                 logger.warning(
                     f"[Req {locals().get('task_id', 'N/A')}] Failed to delete words '{words_path}' after error: {e_del}")
+        if exclude_path and os.path.exists(exclude_path):
+            try:
+                os.remove(exclude_path)
+            except Exception as e_del:
+                logger.warning(
+                    f"[Req {locals().get('task_id', 'N/A')}] Failed to delete exclude '{exclude_path}' after error: {e_del}")
 
 @highlight_bp.route('/results')
 def results():
