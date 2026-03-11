@@ -82,11 +82,5 @@ def run() -> Path | None:
     return out_path
 
 
-class InagentsXlsxParser:
-    """Parser for downloaded foreign agents registry xlsx. Left empty for future implementation."""
-
-    pass
-
-
 if __name__ == "__main__":
     run()
