@@ -34,6 +34,10 @@ class ProcessRawRussian(ProcessRaw):
         return result
 
     @staticmethod
+    def _extract_surname(name: str) -> str:
+        return name.strip().split(' ')[0]
+
+    @staticmethod
     def _parse_ru_fl_name(raw: str) -> dict:
         names = {"main": "", "additional": []}
 

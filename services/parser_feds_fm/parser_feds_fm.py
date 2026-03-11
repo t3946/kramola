@@ -96,14 +96,22 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                     item["names"] = self._parse_ru_ul_name(item["raw"])
 
             item["search_terms"] = []
+            is_russian_fiz = item["area"] == ExtremistArea.RUSSIAN and item["type"] == ExtremistType.FIZ
 
             if item["names"]["main"]:
                 item["search_terms"].append(item["names"]["main"])
 
-            additional = item["names"].get("additional") or []
+                if is_russian_fiz:
+                    item["search_terms"].append(self._extract_surname(item["names"]["main"]))
 
-            if additional:
-                item["search_terms"].extend(additional)
+            additional_names = item["names"].get("additional") or []
+
+            if additional_names:
+                for name in additional_names:
+                    item["search_terms"].append(name)
+
+                if is_russian_fiz:
+                    item["search_terms"].append(self._extract_surname(name))
         # [end]
 
         # [start] sync DB international data
@@ -164,9 +172,12 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
             query = query.filter(ExtremistTerrorist.raw_source == item["raw"])
 
             old_model = None
+            terms = item.get("search_terms")
+            unique_terms = list(dict.fromkeys(terms))
+
             new_model = ExtremistTerrorist(
                 raw_source=item.get("raw"),
-                search_terms=item.get("search_terms"),
+                search_terms=unique_terms,
                 type=item["type"].value,
                 area=ExtremistArea.RUSSIAN.value,
                 is_active=item["is_active"],
