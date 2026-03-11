@@ -1,0 +1,9 @@
+.baseLink {
+  color: theme('colors.link');
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    color: theme('colors.link-hover');
+  }
+}
