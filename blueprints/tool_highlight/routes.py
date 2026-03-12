@@ -372,7 +372,7 @@ def results():
         flash(last_result_data.get('error'))
         return redirect(url_for('highlight.index'))
 
-    return ResultsController.render(last_result_data, task_id)
+    return ResultsController.render(task_id)
 
 
 def _inagent_details_status_label(inagent: Inagent) -> str:
