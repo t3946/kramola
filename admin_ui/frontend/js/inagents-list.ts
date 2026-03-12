@@ -152,7 +152,7 @@ function initInagentsList(): void {
     }
     const baseUrl = buildServerUrl();
     const grid = new Grid({
-      columns: ["№ п/п", "Полное наименование / ФИО", "Статус инагента", "Тип", "Фразы", "Действия"],
+      columns: ["№ п/п", "Полное наименование / ФИО", "Статус иноагента", "Тип", "Фразы", "Действия"],
       pagination: {
         limit: 100,
         server: {

@@ -80,7 +80,7 @@ MENU_SPEC: list[dict] = [
         "views": [
             {
                 "view_class": "InagentsListView",
-                "name": "Инагенты",
+                "name": "Иноагенты",
                 "url": "words-list/inagents",
                 "endpoint": INAGENTS_ENDPOINT,
             },

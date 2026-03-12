@@ -498,7 +498,7 @@ class InagentsListView(BaseView):
         db.session.commit()
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return jsonify(success=True)
-        flash("Инагент сохранён.")
+        flash("Иноагент сохранён.")
         return redirect(url_for(".index"))
 
 
