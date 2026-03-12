@@ -1,19 +1,20 @@
-# tool_highlight/routes.py
-
 import os
 import time
 import uuid
-import json  # Для сериализации/десериализации данных в Redis
+import json
 from typing import List
+
+from utils.decorators import require_query_params
 
 from services.analysis import AnalysisData, AnalyserDocx, AnalysisMatchKind
 from services.enum.enum_words_list_key import WordsListKey
 from services.task import TaskStatus
+from services.task.result import TaskResult
 
 
 from flask import (
     request, redirect, url_for, Blueprint, current_app, render_template,
-    session, send_file, jsonify
+    session, send_file, jsonify, flash, get_flashed_messages
 )
 
 from services.highlight_upload import (
@@ -193,10 +194,13 @@ def _perform_highlight_processing(
 def index():
     session.pop('last_task_id_highlight', None)
     session.pop('last_result_data_highlight', None)
+    messages = get_flashed_messages()
+    error = messages[0] if messages else None
     return render_template(
         'tool_highlight/index.html',
         predefined_lists=current_app.config.get('PREDEFINED_LISTS', {}),
-        analyzers_ready=current_app.config.get('ANALYZERS_READY', False)
+        analyzers_ready=current_app.config.get('ANALYZERS_READY', False),
+        error=error
     )
 
 
@@ -371,43 +375,24 @@ def process_async():
                     f"[Req {locals().get('task_id', 'N/A')}] Failed to delete exclude '{exclude_path}' after error: {e_del}")
 
 @highlight_bp.route('/results')
+@require_query_params('task_id', redirect_endpoint='highlight.index')
 def results():
-    logger = current_app.logger
+    # [start] validate
     task_id = request.args.get('task_id')
-
-    if not task_id:
-        logger.warning("Access to /results without task_id parameter. Redirecting to index.")
-        return redirect(url_for('highlight.index'))
-
-    from services.task.result import TaskResult
     last_result_data = TaskResult.load(task_id)
 
     if not last_result_data:
-        logger.warning(f"Access to /results with task_id {task_id} but no result data found. Redirecting to index.")
+        return redirect(url_for('highlight.index'))
+    # [end]
+
+    # task ended up with error
+    if last_result_data.get('error'):
+        flash(last_result_data.get('error'))
+
         return redirect(url_for('highlight.index'))
 
+    logger = current_app.logger
     task_id_for_template = last_result_data.get('_task_id_ref', task_id)
-
-    if last_result_data.get('error'):
-        logger.error(
-            f"Displaying results page with error for task {task_id_for_template}: {last_result_data.get('error')}")
-        # --- СТАРЫЙ КОД ---
-        # return render_template('tool_highlight/results.html', error=last_result_data.get('error'), task_id=task_id_for_template, **last_result_data)
-        # --- НУЖНО ДОБАВИТЬ ПЕРЕДАЧУ ПУСТЫХ СПИСКОВ, ЕСЛИ ЕСТЬ ОШИБКА ---
-        # Create a copy of last_result_data without 'error' to avoid duplicate argument
-        template_data = {k: v for k, v in last_result_data.items() if k != 'error'}
-        return render_template(
-            'tool_highlight/results.html',
-            error=last_result_data.get('error'),
-            task_id=task_id_for_template,
-            word_stats=[],
-            phrase_stats=[],
-            pattern_stats=[],
-            stats=[],
-            result_file_missing=False,
-            search_source_type=WordsListKey,
-            **template_data
-        )
 
     RESULT_DIR = current_app.config.get('RESULT_DIR_HIGHLIGHT', current_app.config.get('RESULT_DIR'))
     result_filename = last_result_data.get('result_filename')
