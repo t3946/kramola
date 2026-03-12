@@ -6,8 +6,8 @@ from typing import List
 
 from utils.decorators import require_query_params
 
-from services.analysis import AnalysisData, AnalyserDocx, AnalysisMatchKind
-from services.enum.enum_words_list_key import WordsListKey
+from application.controllers import ResultsController
+from services.analysis import AnalysisData, AnalyserDocx
 from services.task import TaskStatus
 from services.task.result import TaskResult
 
@@ -362,52 +362,17 @@ def process_async():
 @highlight_bp.route('/results')
 @require_query_params('task_id', redirect_endpoint='highlight.index')
 def results():
-    # [start] validate
     task_id = request.args.get('task_id')
     last_result_data = TaskResult.load(task_id)
 
     if not last_result_data:
         return redirect(url_for('highlight.index'))
-    # [end]
 
-    # task ended up with error
     if last_result_data.get('error'):
         flash(last_result_data.get('error'))
-
         return redirect(url_for('highlight.index'))
 
-    task_id_for_template = last_result_data.get('_task_id_ref', task_id)
-    excluded_keys = {'task_id', 'word_stats_sorted', 'phrase_stats_sorted', '_task_id_ref', 'word_stats', 'phrase_stats', 'stats'}
-    template_data = {k: v for k, v in last_result_data.items() if k not in excluded_keys}
-
-
-    #[start] count stat
-    stats: list = last_result_data.get('stats', [])
-    word_stats = []
-    phrase_stats = []
-    pattern_stats = []
-
-    for stat_item in stats:
-        kind_value = stat_item.get('search', {}).get('kind')
-
-        if kind_value == AnalysisMatchKind.WORD.value:
-            word_stats.append(stat_item)
-        elif kind_value == AnalysisMatchKind.PHRASE.value:
-            phrase_stats.append(stat_item)
-        elif kind_value == AnalysisMatchKind.REGEX.value:
-            pattern_stats.append(stat_item)
-    #[end]
-
-    return render_template(
-        'tool_highlight/results.html',
-        task_id=task_id_for_template,
-        word_stats=word_stats,
-        phrase_stats=phrase_stats,
-        pattern_stats=pattern_stats,
-        stats=stats,
-        search_source_type=WordsListKey,
-        **template_data
-    )
+    return ResultsController.render(last_result_data, task_id)
 
 
 def _inagent_details_status_label(inagent: Inagent) -> str:
