@@ -21,7 +21,6 @@ from services.highlight_upload import (
     HighlightUploadService, UploadError
 )
 from services.pymorphy_service import (
-    prepare_search_terms,
     reset_caches
 )
 from services.analysis.analyser_pdf import AnalyserPdf
@@ -65,7 +64,7 @@ def _perform_highlight_processing(
 
     if redis_client:
         try:
-            status_message = "Обработка документа..." if source_path else "Обработка списков..."
+            status_message = "Обработка документа..."
             redis_client.hmset(f"task:{task_id}", {
                 "state": TaskStatus.PROCESSING.value, "status_message": status_message
             })
@@ -88,55 +87,43 @@ def _perform_highlight_processing(
     final_status_for_redis = TaskStatus.COMPLETED
 
     try:
-        # Если нет исходного документа, просто возвращаем информацию о списках
-        if not source_path:
-            logger.info(f"[Task {task_id}] No source document provided. Returning list information only.")
-            # Подготавливаем данные для статистики списков (без обработки документа)
-            prepared_data_unified = prepare_search_terms(all_search_lines_clean)
-            # Возвращаем пустую статистику, так как документ не обрабатывался
-            task_result_data['stats'] = []
-            task_result_data['total_matches'] = 0
-            final_status_for_redis = TaskStatus.COMPLETED
-            logger.info(f"[Task {task_id}] List processing completed. Lists: {used_predefined_list_names_for_session}")
+        reset_caches()
+        result_filename_task = f"highlighted_{task_id}{file_ext}"
+        output_path = os.path.join(RESULT_DIR, result_filename_task)
+
+        # [start] perform analyze
+        # analysis_results -- структура вроде {'word_stats': {'word': {'c': 1, 'f': {'word': 1}}}, 'phrase_stats': {}, 'total_matches': 1}
+
+        analyse_data = AnalysisData()
+        analyse_data.load_user_list(task_id=task_id)
+
+        if selected_list_keys:
+            analyse_data.load_predefined_lists(selected_list_keys)
+
+        analyse_data.apply_exclude_user_list(task_id)
+
+        if is_docx_source:
+            analyser = AnalyserDocx(source_path)
+            analyser.set_analyse_data(analyse_data)
+            analysis_results = analyser.analyse_and_highlight(task_id=task_id)
+            analyser.save(output_path)
         else:
-            # Обычная обработка с документом
-            reset_caches()
-            result_filename_task = f"highlighted_{task_id}{file_ext}"
-            output_path = os.path.join(RESULT_DIR, result_filename_task)
+            analyser = AnalyserPdf(source_path)
+            analyser.set_analyse_data(analyse_data)
+            analysis_results = analyser.analyse_and_highlight(task_id=task_id, use_ocr=perform_ocr)
+            analyser.save(output_path)
 
-            # [start] perform analyze
-            # analysis_results -- структура вроде {'word_stats': {'word': {'c': 1, 'f': {'word': 1}}}, 'phrase_stats': {}, 'total_matches': 1}
+        if analysis_results is None:
+            task_result_data['error'] = 'Ошибка анализа документа (сервис анализа вернул None).'
+            raise ValueError(task_result_data['error'])
 
-            analyse_data = AnalysisData()
-            analyse_data.load_user_list(task_id=task_id)
+        # [end]
 
-            if selected_list_keys:
-                analyse_data.load_predefined_lists(selected_list_keys)
+        if os.path.exists(output_path) and os.path.isfile(output_path):
+            task_result_data['result_filename'] = result_filename_task
 
-            analyse_data.apply_exclude_user_list(task_id)
-
-            if is_docx_source:
-                analyser = AnalyserDocx(source_path)
-                analyser.set_analyse_data(analyse_data)
-                analysis_results = analyser.analyse_and_highlight(task_id=task_id)
-                analyser.save(output_path)
-            else:
-                analyser = AnalyserPdf(source_path)
-                analyser.set_analyse_data(analyse_data)
-                analysis_results = analyser.analyse_and_highlight(task_id=task_id, use_ocr=perform_ocr)
-                analyser.save(output_path)
-
-            if analysis_results is None:
-                task_result_data['error'] = 'Ошибка анализа документа (сервис анализа вернул None).'
-                raise ValueError(task_result_data['error'])
-
-            # [end]
-
-            if os.path.exists(output_path) and os.path.isfile(output_path):
-                task_result_data['result_filename'] = result_filename_task
-
-            task_result_data.update(analysis_results)
-            final_status_for_redis = TaskStatus.COMPLETED
+        task_result_data.update(analysis_results)
+        final_status_for_redis = TaskStatus.COMPLETED
 
     except Exception as e:
         logger.error(f"[Task {task_id}] Error during background processing: {e}", exc_info=True)
@@ -249,10 +236,8 @@ def process_async():
             exclude_path = upload_result.get('exclude_path')
             exclude_lines = upload_result.get('exclude_lines', [])
 
-            # Если нет исходного документа, но есть списки, устанавливаем значения по умолчанию
-            if not source_path and used_predefined_list_names_for_session:
-                is_docx_source = None
-                file_ext = None
+            if not source_path:
+                return jsonify({'error': 'Исходный документ обязателен.'}), 400
 
         except UploadError as e:
             return jsonify({'error': e.message}), e.status_code
@@ -267,7 +252,7 @@ def process_async():
             try:
                 redis_client.hmset(f"task:{task_id}", {
                     "state": TaskStatus.PENDING.value, "status_message": "Задача принята в очередь",
-                    "source_filename": source_filename_original or "Списки для поиска"
+                    "source_filename": source_filename_original or "Документ"
                 })
                 redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
 
@@ -391,58 +376,26 @@ def results():
 
         return redirect(url_for('highlight.index'))
 
-    logger = current_app.logger
     task_id_for_template = last_result_data.get('_task_id_ref', task_id)
-
-    RESULT_DIR = current_app.config.get('RESULT_DIR_HIGHLIGHT', current_app.config.get('RESULT_DIR'))
-    result_filename = last_result_data.get('result_filename')
-    result_file_missing = False  # Флаг для проверки отсутствия файла
-
-    if result_filename:
-        filepath_abs = os.path.join(RESULT_DIR, result_filename)
-        # БЕЗОПАСНОСТЬ: Убедимся, что путь не выходит за пределы директории результатов
-        if not os.path.normpath(filepath_abs).startswith(os.path.normpath(RESULT_DIR)):
-            logger.error(f"Attempted path traversal in results check: {result_filename}")
-            last_result_data['error'] = "Ошибка: Неверный путь к файлу результата."
-            last_result_data['result_filename'] = None
-            result_file_missing = True  # Считаем отсутствующим
-            result_filename = None  # Обнуляем для дальнейшей логики
-        elif not os.path.exists(filepath_abs) or not os.path.isfile(filepath_abs):
-            logger.error(
-                f"Result file '{result_filename}' for task {task_id_for_template} not found at '{filepath_abs}'.")
-            # Обновляем сообщение об ошибке прямо в данных для передачи в шаблон
-            last_result_data[
-                'error'] = f"Файл результата '{result_filename}' не найден на сервере. Возможно, он был удален или произошла ошибка."
-            last_result_data['result_filename'] = None  # Очищаем невалидное имя
-            result_file_missing = True  # Устанавливаем флаг
-    else:  # No result_filename but no error means likely no matches or dry run.
-        logger.info(
-            f"Displaying results for task {task_id_for_template} with no downloadable file (total_matches: {last_result_data.get('total_matches', 0)}).")
-
-    # Передаем отсортированные списки и флаг отсутствия файла в шаблон
-    # Исключаем ключи, которые передаются явно, чтобы избежать дублирования
-    excluded_keys = {'task_id', 'word_stats_sorted', 'phrase_stats_sorted', 'result_file_missing', '_task_id_ref', 'word_stats', 'phrase_stats', 'stats'}
+    excluded_keys = {'task_id', 'word_stats_sorted', 'phrase_stats_sorted', '_task_id_ref', 'word_stats', 'phrase_stats', 'stats'}
     template_data = {k: v for k, v in last_result_data.items() if k not in excluded_keys}
 
 
     #[start] count stat
-    stats = last_result_data.get('stats', [])
+    stats: list = last_result_data.get('stats', [])
     word_stats = []
     phrase_stats = []
     pattern_stats = []
 
-    if isinstance(stats, list):
-        for stat_item in stats:
-            kind_value = stat_item.get('search', {}).get('kind')
-            
-            if kind_value == AnalysisMatchKind.WORD.value:
-                word_stats.append(stat_item)
-            elif kind_value == AnalysisMatchKind.PHRASE.value:
-                phrase_stats.append(stat_item)
-            elif kind_value == AnalysisMatchKind.REGEX.value:
-                pattern_stats.append(stat_item)
-    else:
-        logger.warning(f"[Results {task_id_for_template}] Stats is not a list, got {type(stats)}: {stats}")
+    for stat_item in stats:
+        kind_value = stat_item.get('search', {}).get('kind')
+
+        if kind_value == AnalysisMatchKind.WORD.value:
+            word_stats.append(stat_item)
+        elif kind_value == AnalysisMatchKind.PHRASE.value:
+            phrase_stats.append(stat_item)
+        elif kind_value == AnalysisMatchKind.REGEX.value:
+            pattern_stats.append(stat_item)
     #[end]
 
     return render_template(
@@ -451,7 +404,6 @@ def results():
         word_stats=word_stats,
         phrase_stats=phrase_stats,
         pattern_stats=pattern_stats,
-        result_file_missing=result_file_missing,
         stats=stats,
         search_source_type=WordsListKey,
         **template_data

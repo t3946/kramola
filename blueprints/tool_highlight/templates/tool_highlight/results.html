@@ -13,20 +13,16 @@
     <!-- Блок результата обработки -->
     <div class="card">
         <h3>Статус обработки:</h3>
-        {% if result_filename and not result_file_missing %}
+        {% if result_filename %}
             <div class="results" style="display: block;">
                 <p>Обработка успешно завершена за {{ processing_time | default('?') }} сек.</p>
                 <a href="{{ url_for('highlight.download_result', filename=result_filename) }}" class="button download-btn w-full">
                     <i class="fas fa-download"></i> Скачать обработанный документ ({{ result_filename }})
                 </a>
             </div>
-        {% elif result_file_missing and session['last_result_data_highlight']['result_filename'] %}
-            <div class="error">
-                Ошибка: Файл результата "{{ session['last_result_data_highlight']['result_filename'] }}" не найден на сервере. Возможно, произошла ошибка во время обработки или файл был удален.
-            </div>
         {% else %}
             <div class="note">
-                Обработка завершена за {{ processing_time | default('?') }} сек, но файл результата не был создан (возможно, совпадений не найдено или произошла ошибка при сохранении).
+                Обработка завершена за {{ processing_time | default('?') }} сек.
             </div>
         {% endif %}
     </div>
