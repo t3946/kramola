@@ -1,0 +1,64 @@
+<div>
+    {{ search_result_stats }}
+    {% for word_list_key, results in search_result_stats.items() %}
+        <table>
+            <thead style="background-color: {{ list_colors[word_list_key] }}">
+            <tr>
+                <th colspan="3">
+                    {{ e_search_source_annot_title[word_list_key.name].value }}
+                </th>
+            </tr>
+            </thead>
+
+            {% set words = results['words'] %}
+            {% set words_count = results['meta']['words']['total'] %}
+
+            {% if words_count > 0 %}
+                <thead>
+                <tr>
+                    <th>Найденные слова</th>
+                    <th>Количество ({{ words_count }})</th>
+                    <th>Страницы</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                {% for _, stat_form in words.items() %}
+                    <tr>
+                        <td>{{ stat_form["form"] }}</td>
+                        <td>{{ stat_form["count"] }}</td>
+                        <td>{{ stat_form["pages"] }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            {% endif %}
+
+            {% set phrases = results['phrases'] %}
+            {% set phrases_count = results['meta']['phrases']['total'] %}
+
+            {% if words_count > 0 %}
+                <thead>
+                <tr>
+                    <th colspan="3">Совпадение по фразам</th>
+                </tr>
+
+                <tr>
+                    <th>Найденные фразы</th>
+                    <th>Количество ({{ phrases_count }})</th>
+                    <th>Страницы</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                {% for _, stat_form in phrases.items() %}
+                    <tr>
+                        <td>{{ stat_form["form"] }}</td>
+                        <td>{{ stat_form["count"] }}</td>
+                        <td>{{ stat_form["pages"] }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            {% endif %}
+        </table>
+    {% endfor %}
+</div>

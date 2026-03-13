@@ -2,9 +2,13 @@ from typing import Any
 
 from flask import render_template
 
+from models import ListRecord
 from services.analysis import AnalysisMatchKind
 from services.enum.enum_words_list_key import WordsListKey
+from services.enum.predefined_list import ESearchSourceAnnotTitle
 from services.task import TaskResult
+from services.view_stats import ViewStats
+from services.words_list.list_colors import DEFAULT_LIST_COLOR_HEX
 
 
 class ResultsController:
@@ -41,14 +45,31 @@ class ResultsController:
         }
         stats: list = last_result_data.get('stats', [])
         word_stats, phrase_stats, pattern_stats = cls._split_stats_by_kind(stats)
+        search_result_stats = ViewStats(task_id).get()
+
+        # [start] get colors
+        list_colors: dict[WordsListKey, str] = {}
+        list_records = ListRecord.query.all()
+
+        for list_record in list_records:
+            key = WordsListKey(list_record.name)
+            list_colors[key] = list_record.color
+
+        if WordsListKey.CUSTOM not in list_colors:
+            list_colors[WordsListKey.CUSTOM] = DEFAULT_LIST_COLOR_HEX
+        # [end]
 
         return render_template(
             'tool_highlight/results.html',
             task_id=task_id_for_template,
-            word_stats=word_stats,
-            phrase_stats=phrase_stats,
             pattern_stats=pattern_stats,
             stats=stats,
             search_source_type=WordsListKey,
-            **template_data
+            e_words_list_key=WordsListKey,
+            e_search_source_annot_title=ESearchSourceAnnotTitle,
+            list_colors=list_colors,
+            search_result_stats=search_result_stats,
+            word_stats=word_stats,
+            phrase_stats=phrase_stats,
+            **template_data,
         )

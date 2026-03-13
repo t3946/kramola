@@ -6,8 +6,8 @@ from services.task import TaskResult
 
 class ESublist(Enum):
     """Search strategy enum."""
-    WORDS = "WORDS"
-    PHRASES = "PHRASES"
+    WORDS = "words"
+    PHRASES = "phrases"
 
 class ViewStats:
     task_id: str
@@ -26,7 +26,7 @@ class ViewStats:
 
     def get(self):
         stats: list[dict] = self.task_result["stats"]
-        stats_grouped: dict[WordsListKey, dict[str, StatForm]] = {}
+        stats_grouped: dict[WordsListKey, dict[str, dict[str, StatForm]]] = {}
 
         # [start] group stats
         for stat in stats:
@@ -45,8 +45,16 @@ class ViewStats:
 
             if list_key not in stats_grouped:
                 stats_grouped[list_key] = {
-                    ESublist.WORDS: {},
-                    ESublist.PHRASES: {},
+                    ESublist.WORDS.value: {},
+                    ESublist.PHRASES.value: {},
+                    "meta": {
+                        "words": {
+                            "total": 0,
+                        },
+                        "phrases": {
+                            "total": 0,
+                        },
+                    }
                 }
 
             for form in stat["forms"].values():
@@ -57,24 +65,26 @@ class ViewStats:
                 else:
                     continue
 
-                sublist: ESublist = ESublist.PHRASES if self._count_words(text) > 1 else ESublist.WORDS
+                sublist: str = ESublist.PHRASES.value if self._count_words(text) > 1 else ESublist.WORDS.value
 
-                if text not in stats_grouped[list_key]:
+                if text not in stats_grouped[list_key][sublist]:
                     # add new stat
                     stats_grouped[list_key][sublist][text] = StatForm(
-                        count=form["count"],
+                        count=0,
                         form=form["form"],
-                        pages=form["pages"],
+                        pages=[],
                     )
-                else:
-                    # update existing stat
-                    stats_grouped[list_key][text].count += form["count"]
 
-                    if form["pages"]:
-                        pages = stats_grouped[list_key][sublist][text].pages
-                        pages.append(form["pages"])
-                        pages = list(set(pages))
-                        stats_grouped[list_key][sublist][text].pages = pages
+                # update existing stat
+                stats_grouped[list_key][sublist][text].count += form["count"]
+
+                stats_grouped[list_key]["meta"][sublist]["total"] += form["count"]
+
+                if form["pages"]:
+                    pages = stats_grouped[list_key][sublist][text].pages
+                    pages.append(form["pages"])
+                    pages = list(set(pages))
+                    stats_grouped[list_key][sublist][text].pages = pages
         # [end]
 
         return stats_grouped
