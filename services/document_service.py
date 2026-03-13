@@ -94,11 +94,11 @@ def extract_lines_from_docx(file_path):
     """
     Извлекает непустые строки текста из файла DOCX.
     """
-    logger_ds.debug(f"Извлечение строк из DOCX: {file_path}")
     if not os.path.exists(file_path):
-        logger_ds.error(f"Файл DOCX не найден для извлечения строк: {file_path}")
         raise FileNotFoundError(f"Файл DOCX не найден: {file_path}")
+
     lines = []
+
     try:
         doc = docx.Document(file_path)
         for paragraph in doc.paragraphs:
@@ -110,10 +110,9 @@ def extract_lines_from_docx(file_path):
                     for paragraph in cell.paragraphs:
                         text = paragraph.text.strip()
                         if text: lines.append(text)
-        logger_ds.debug(f"Извлечено {len(lines)} строк из DOCX.")
+
         return lines
     except Exception as e:
-        logger_ds.error(f"Ошибка при извлечении строк из DOCX '{file_path}': {e}", exc_info=True)
         return []
 
 # --- END OF FILE document_service.py ---
