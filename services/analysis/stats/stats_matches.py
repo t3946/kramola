@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Dict, Any
+from typing import Dict, Any, Set
 
 from services.analysis.stats.stat_form import StatForm
 from services.analysis.stats.stats import Stats
@@ -33,17 +33,38 @@ class StatsMatches(Stats):
         return len(text.split())
 
     def get_stats(self) -> Dict[WordsListKey, Dict[str, Any]]:
+        # (list_key, sublist, text) -> check_ids set, form, pages list
+        raw: Dict[tuple, Dict[str, Any]] = {}
         stats_grouped: Dict[WordsListKey, Dict[str, Any]] = {}
 
+        # mapping matches
         for match in self.matches:
             source_list = match.get("phrase", {}).get("source_list")
-            if source_list is None:
-                continue
-
             list_key = WordsListKey(source_list)
-            if list_key not in SIMPLE_STATS_LIST_KEYS and list_key not in SMART_STATS_LIST_KEYS:
-                continue
 
+            if list_key in SIMPLE_STATS_LIST_KEYS:
+                text = match["form"]
+            else:
+                text = match.get("phrase", {}).get("phrase_original") or match.get("form", "")
+
+            sublist = f"{match['kind']}s"
+            key = (list_key, sublist, text)
+
+            if key not in raw:
+                raw[key] = {
+                    "check_ids": set(),
+                    "form": match["form"],
+                    "pages": [],
+                }
+
+            raw[key]["check_ids"].add(match["check_id"])
+            page = match.get("page")
+
+            if page is not None:
+                raw[key]["pages"].append(page)
+
+        # build stats
+        for (list_key, sublist, text), data in raw.items():
             if list_key not in stats_grouped:
                 stats_grouped[list_key] = {
                     ESublist.WORDS.value: {},
@@ -54,27 +75,12 @@ class StatsMatches(Stats):
                     },
                 }
 
-            if list_key in SIMPLE_STATS_LIST_KEYS:
-                text = match["form"]
-            else:
-                text = match.get("phrase", {}).get("phrase_original") or match.get("form", "")
-
-            sublist = ESublist.PHRASES.value if self._count_words(text) > 1 else ESublist.WORDS.value
-
-            if text not in stats_grouped[list_key][sublist]:
-                stats_grouped[list_key][sublist][text] = StatForm(
-                    count=0,
-                    form=match["form"],
-                    pages=[],
-                )
-
-            stat_form = stats_grouped[list_key][sublist][text]
-            stat_form.count += 1
-            stats_grouped[list_key]["meta"][sublist]["total"] += 1
-
-            page = match.get("page")
-            if page is not None:
-                stat_form.pages.append(page)
-                stat_form.pages = list(set(stat_form.pages))
+            count = len(data["check_ids"])
+            stats_grouped[list_key][sublist][text] = StatForm(
+                count=count,
+                form=data["form"],
+                pages=list(set(data["pages"])),
+            )
+            stats_grouped[list_key]["meta"][sublist]["total"] += count
 
         return stats_grouped
