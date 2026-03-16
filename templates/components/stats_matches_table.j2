@@ -31,17 +31,10 @@
 
                         <tr>
                             <td>
-                                {% if phrase_source == search_source_type.INAGENTS.value %}
-                                    <a
-                                        class="baseLink showInagentDetails"
-                                        href="#"
-                                        data-phrase="{{ stat_item['search']['phrase']['phrase'] }}"
-                                    >
-                                        {{ stat_item['search']['phrase']['phrase_original'] }}
-                                    </a>
-                                {% else %}
-                                    {{ stat_item['search']['phrase']['phrase'] }}
-                                {% endif %}
+                                {% set show_inagent_link = (phrase_source == search_source_type.INAGENTS.value) %}
+                                {% set data_phrase = stat_item['search']['phrase']['phrase'] %}
+                                {% set display_text = stat_item['search']['phrase']['phrase_original'] or stat_item['search']['phrase']['phrase'] %}
+                                {% include 'components/results/first_cell_inagent.j2' %}
                             </td>
                             <td>{{ stat_item['total'] }}</td>
                             <td>

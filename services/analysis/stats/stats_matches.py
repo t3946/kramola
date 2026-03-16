@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Dict, Any, Set
 
+from flask import current_app
+
 from services.analysis.stats.stat_form import StatForm
 from services.analysis.stats.stats import Stats
 from services.enum import WordsListKey
@@ -36,6 +38,7 @@ class StatsMatches(Stats):
         # (list_key, sublist, text) -> check_ids set, form, pages list
         raw: Dict[tuple, Dict[str, Any]] = {}
         stats_grouped: Dict[WordsListKey, Dict[str, Any]] = {}
+        current_app.logger.debug(self.matches)
 
         # mapping matches
         for match in self.matches:
@@ -53,7 +56,7 @@ class StatsMatches(Stats):
             if key not in raw:
                 raw[key] = {
                     "check_ids": set(),
-                    "form": match["form"],
+                    "form": text,
                     "pages": [],
                 }
 

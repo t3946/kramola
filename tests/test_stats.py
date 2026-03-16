@@ -17,6 +17,6 @@ class TestStats():
         app = instance.init_app()
 
         with app.app_context():
-            result = StatsMatches("2aa66b06-68d3-43f0-85dd-62605df6a0bf").get_stats()
+            result = StatsMatches("aa9f59a8-0d9f-4c25-a74b-c7a2256baf6e").get_stats()
 
             print(result)

@@ -421,8 +421,7 @@ def inagent_details_fragment():
             },
             agent_type_map=AGENT_TYPE_MAP,
         )
-    inagents = Inagent.query.filter(Inagent.search_terms.isnot(None)).all()
-    inagent = next((i for i in inagents if phrase in (i.search_terms or [])), None)
+    inagent = Inagent.query.filter(Inagent.full_name == phrase).first()
     if not inagent:
         return render_template(
             "tool_highlight/inagent_details_modal/fragment.html",

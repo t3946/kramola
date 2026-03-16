@@ -251,9 +251,9 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
 
             for start_idx in candidate_starts:
                 text_match: FTSTextMatch = self._verify_phrase_match(source_tokens, search_words, start_idx, phrase)
-                text_match.check_id = check_id_collection[(text_match.start_token_idx, text_match.end_token_idx)]
 
                 if text_match:
+                    text_match.check_id = check_id_collection[(text_match.start_token_idx, text_match.end_token_idx)]
                     matches.append(text_match)
 
             result_matches.append((phrase, matches))
