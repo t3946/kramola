@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from typing import List, Union, Optional, Tuple, NamedTuple, TYPE_CHECKING, Dict
 from functools import cmp_to_key
 
-from services.analysis.stats import StatsDocx
 from services.utils.intersects_at import intersects_at
 from services.utils.interval import Interval
 
@@ -62,7 +61,6 @@ class AnalyserDocx(Analyser):
         self._global_document_dictionary = None
         self._search_phrases = []
         self._progress = None
-        self.stats = StatsDocx([])
 
     @staticmethod
     def __clone_run(
@@ -244,8 +242,9 @@ class AnalyserDocx(Analyser):
         # [start] highlight match in document
         match_run_els_list: List[Tuple[AnalysisMatch, List[CT_R]]] = []
 
+        self._all_matches.extend(matches)
+
         for match in matches:
-            self.stats.add(match)
             highlight_val: str = self._highlight_color_for_match(match).rrggbb().upper()
             search_match = match.search_match
             start_token_idx = search_match.start_token_idx
@@ -438,7 +437,7 @@ class AnalyserDocx(Analyser):
 
     @timeit
     def analyse_and_highlight(self, task_id: Optional[str] = None) -> dict:
-        self.stats = StatsDocx([])
+        self._all_matches: List[AnalysisMatch] = []
         self._search_phrases = []
 
         paragraphs: List[Paragraph] = self.document.paragraphs
@@ -496,7 +495,7 @@ class AnalyserDocx(Analyser):
             self._progress.flush()
             self._progress.clear()
 
-        return self._get_stats_result()
+        return self._get_stats_result(self._all_matches)
 
     def save(self, output_path: str) -> None:
         self.document.save(output_path)

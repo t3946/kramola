@@ -66,9 +66,9 @@ class TestAnalyserDocxSpeed(BaseTest):
 
         # [start] Basic validation (no expected results check)
         assert analysis_results is not None, "Analysis returned None"
-        assert 'stats' in analysis_results, "Missing stats in results"
+        assert 'matches' in analysis_results, "Missing matches in results"
         assert 'total_matches' in analysis_results, "Missing total_matches in results"
-        assert isinstance(analysis_results['stats'], list), "stats should be list"
+        assert isinstance(analysis_results['matches'], list), "matches should be list"
         assert isinstance(analysis_results['total_matches'], int), "total_matches should be int"
         # [end]
 

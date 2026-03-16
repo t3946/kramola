@@ -5,7 +5,6 @@ from typing import List, Optional, Tuple, Dict
 
 from services.analysis import AnalysisMatch
 from services.analysis.analyser import Analyser
-from services.analysis.stats import StatsPDF
 from services.fulltext_search.phrase import Phrase
 from services.tokenization import Token
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
@@ -117,9 +116,6 @@ class AnalyserPdf(Analyser):
                     break
         # [end]
 
-        self.stats = StatsPDF(matches)
-        # [end]
-
         if use_ocr:
             # todo: ocr not implemented
             logger.warning(f'ocr not implemented')
@@ -174,7 +170,7 @@ class AnalyserPdf(Analyser):
         # [end]
         # [end]
 
-        return self._get_stats_result()
+        return self._get_stats_result(matches)
 
     def save(self, output_path: str) -> None:
         if self.document is None:

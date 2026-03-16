@@ -6,8 +6,8 @@ from models import ListRecord
 from services.analysis import AnalysisMatchKind
 from services.enum.enum_words_list_key import WordsListKey
 from services.enum.predefined_list import ESearchSourceAnnotTitle
+from services.analysis.stats import StatsSearch, StatsMatches
 from services.task import TaskResult
-from services.view_stats import ViewStats
 from services.words_list.list_colors import DEFAULT_LIST_COLOR_HEX
 
 
@@ -43,9 +43,9 @@ class ResultsController:
             k: v for k, v in last_result_data.items()
             if k not in cls._EXCLUDED_TEMPLATE_KEYS
         }
-        stats: list = last_result_data.get('stats', [])
-        word_stats, phrase_stats, pattern_stats = cls._split_stats_by_kind(stats)
-        search_result_stats = ViewStats(task_id).get()
+        stats_search = StatsSearch(task_id).get_stats()
+        stats_matches = StatsMatches(task_id).get_stats()
+        word_stats, phrase_stats, pattern_stats = cls._split_stats_by_kind(stats_search)
 
         # [start] get colors
         list_colors: dict[WordsListKey, str] = {}
@@ -63,12 +63,12 @@ class ResultsController:
             'tool_highlight/results.html',
             task_id=task_id_for_template,
             pattern_stats=pattern_stats,
-            stats=stats,
+            stats=stats_search,
             search_source_type=WordsListKey,
             e_words_list_key=WordsListKey,
             e_search_source_annot_title=ESearchSourceAnnotTitle,
             list_colors=list_colors,
-            search_result_stats=search_result_stats,
+            search_result_stats=stats_matches,
             word_stats=word_stats,
             phrase_stats=phrase_stats,
             **template_data,

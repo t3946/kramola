@@ -31,3 +31,12 @@ class Phrase:
             'tokens': [token.to_dict() for token in self.tokens],
             'source_list': self.source_list.key.value if self.source_list is not None else None,
         }
+
+    @staticmethod
+    def from_dict(data: Dict[str, Any]) -> "Phrase":
+        """Deserialize Phrase from dictionary (source_list not restored)."""
+        return Phrase(
+            phrase=data["phrase"],
+            phrase_original=data.get("phrase_original"),
+            source_list=None,
+        )

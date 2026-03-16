@@ -1,7 +1,7 @@
 from typing import List, Tuple, TYPE_CHECKING, Union
 
-from services.analysis.stats import Stats
 from services.analysis.analysis_match import AnalysisMatch, AnalysisMatchKind
+from services.analysis.stats.match_serializer import matches_to_dict_list
 from services.fulltext_search.search_match import FTSRegexMatch, FTSTextMatch
 from services.utils.color import Color
 from services.words_list import WordsList
@@ -14,10 +14,8 @@ DEFAULT_HEX_HIGHLIGHT: str = "#00ff00"
 
 class Analyser:
     analyse_data: 'AnalysisData'
-    stats: Stats
 
     def __init__(self) -> None:
-        self.stats = None
         self._default_color: Color = Color(DEFAULT_HEX_HIGHLIGHT)
 
     def get_highlight_color_pdf(self) -> Tuple[float, float, float]:
@@ -69,8 +67,8 @@ class Analyser:
 
         return analyser_matches
 
-    def _get_stats_result(self) -> dict:
-        stats_list = self.stats.asdict() if self.stats else []
-        total_matches = sum(item['total'] for item in stats_list)
-
-        return {'stats': stats_list, 'total_matches': total_matches}
+    def _get_stats_result(self, matches: List[AnalysisMatch]) -> dict:
+        return {
+            'matches': matches_to_dict_list(matches),
+            'total_matches': len(matches),
+        }

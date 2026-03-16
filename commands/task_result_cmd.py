@@ -1,9 +1,12 @@
 """CLI: print TaskResult.load(task_id) to console."""
 
 import json
+from dataclasses import asdict
+
 import click
+
+from services.analysis.stats import StatsMatches
 from services.task.result import TaskResult
-from services.view_stats import ViewStats
 
 
 @click.command("task:result")
@@ -18,13 +21,21 @@ def task_result_cmd(task_id: str) -> None:
     click.echo(json.dumps(result, ensure_ascii=False, indent=2))
 
 
+def _json_default(obj):
+    if hasattr(obj, "value"):
+        return obj.value
+    if hasattr(obj, "__dataclass_fields__"):
+        return asdict(obj)
+    raise TypeError(type(obj))
+
+
 @click.command("task:stats")
 @click.argument("task_id", type=str)
 def task_stats_cmd(task_id: str) -> None:
-    """Print ViewStats for task_id as JSON to console."""
+    """Print StatsMatches for task_id as JSON to console."""
     if TaskResult.load(task_id) is None:
         click.echo(f"Stats not found for task_id: \"{task_id}\"")
         return
 
-    stats = ViewStats(task_id).get()
-    click.echo(stats)
+    stats = StatsMatches(task_id).get_stats()
+    click.echo(json.dumps(stats, ensure_ascii=False, indent=2, default=_json_default))
