@@ -1,4 +1,7 @@
+import uuid
 from typing import List, Tuple, Optional, Dict, Union
+
+from services.fulltext_search.check_id_collection import CheckIdCollection
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 from services.fulltext_search.phrase import Phrase
 from services.fulltext_search.search_match import FTSTextMatch, FTSRegexMatch, FTSMatch
@@ -188,7 +191,8 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                 tokens=matched_tokens,
                 start_token_idx=start_token_idx,
                 end_token_idx=end_token_idx,
-                search_phrase=phrase
+                search_phrase=phrase,
+                check_id = uuid.uuid1(),
             )
         return None
 
@@ -218,6 +222,8 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             dictionary = TokenDictionary(source_tokens)
 
         result_matches: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
+        # unique identifiers groups matches with same source
+        check_id_collection: CheckIdCollection = CheckIdCollection()
 
         # [start] search regex matches if patterns provided
         regex_matches_map: Dict[Tuple[int, int], FTSRegexMatch] = {}
@@ -227,14 +233,13 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
 
             for regex_match in regex_matches:
                 key = (regex_match.start_token_idx, regex_match.end_token_idx)
+                regex_match.check_id = check_id_collection[key]
                 regex_matches_map[key] = regex_match
         # [end]
 
         # [start] search text matches
-        text_matches_map: Dict[Tuple[int, int], FTSTextMatch] = {}
-
         for phrase, search_tokens in search_phrases:
-            search_words = [t for t in search_tokens if t.type == TokenType.WORD]
+            search_words: list[Token] = [t for t in search_tokens if t.type == TokenType.WORD]
 
             if len(search_words) == 0:
                 result_matches.append((phrase, []))
@@ -245,7 +250,8 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
             matches: List[FTSTextMatch] = []
 
             for start_idx in candidate_starts:
-                text_match = self._verify_phrase_match(source_tokens, search_words, start_idx, phrase)
+                text_match: FTSTextMatch = self._verify_phrase_match(source_tokens, search_words, start_idx, phrase)
+                text_match.check_id = check_id_collection[(text_match.start_token_idx, text_match.end_token_idx)]
 
                 if text_match:
                     matches.append(text_match)
@@ -254,11 +260,8 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
 
         # [start] merge text and regex matches
         for start, end in regex_matches_map.keys():
-            text_match: FTSTextMatch = text_matches_map.get((start, end))
             regex_match: FTSRegexMatch = regex_matches_map.get((start, end))
-
-            if text_match is None:
-                result_matches.append(('regex ' + regex_match.regex_info.pattern_name, [regex_match]))
+            result_matches.append(('regex ' + regex_match.regex_info.pattern_name, [regex_match]))
         # [end]
 
         return result_matches

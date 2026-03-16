@@ -1,3 +1,4 @@
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import List
@@ -13,6 +14,7 @@ class FTSMatch(ABC):
     tokens: List[Token]  # found tokens sequence
     start_token_idx: int  # found tokens sequence start
     end_token_idx: int  # found tokens sequence end
+    check_id: uuid.UUID # unique id for word or phrase in document that matched one or more times
 
     @abstractmethod
     def get_search_str(self) -> str:

@@ -86,9 +86,9 @@ class AnalyserPdf(Analyser):
             }
 
         phrase_results = fulltext_search.search_all(
-            search_phrases_for_search,
-            SearchStrategy.FUZZY_WORDS_PUNCT,
-            regex_patterns=regex_patterns_dict
+            search_phrases=search_phrases_for_search,
+            strategy=SearchStrategy.FUZZY_WORDS_PUNCT,
+            search_patterns=regex_patterns_dict
         )
 
         # [start] todo: dev only simplify

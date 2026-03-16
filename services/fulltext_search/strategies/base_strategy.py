@@ -1,4 +1,5 @@
 import re
+import uuid
 from abc import ABC, abstractmethod
 from typing import List, Tuple, Optional, Dict
 from services.utils.regex_pattern import RegexPattern
@@ -65,7 +66,8 @@ class BaseSearchStrategy(ABC):
                         tokens=source_tokens[start_token_idx:end_token_idx + 1],
                         start_token_idx=start_token_idx,
                         end_token_idx=end_token_idx,
-                        regex_info=regex_pattern
+                        regex_info=regex_pattern,
+                        check_id = uuid.uuid1(),
                     ))
 
         return matches

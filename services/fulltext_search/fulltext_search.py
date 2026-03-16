@@ -1,3 +1,4 @@
+import uuid
 from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple, Union, Dict
@@ -117,8 +118,8 @@ class FulltextSearch:
     def search_all(
         self,
         search_phrases: List[Tuple[Phrase, Union[str, List[Token]]]],
+        search_patterns: Optional[Dict[str, RegexPattern]] = None,
         strategy: Optional[SearchStrategy] = None,
-        regex_patterns: Optional[Dict[str, RegexPattern]] = None
     ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
         """
         Search all phrases in one pass.
@@ -126,7 +127,7 @@ class FulltextSearch:
         Args:
             search_phrases: List of (phrase, text_or_tokens) tuples
             strategy: Search strategy to use (default: FUZZY_WORDS)
-            regex_patterns: Optional dictionary of {pattern_name: RegexPattern} for regex-based search
+            search_patterns: Optional dictionary of {pattern_name: RegexPattern} for regex-based search
 
         Returns:
             List of (phrase or str, matches) tuples where matches is list of FTSMatch objects
@@ -149,18 +150,18 @@ class FulltextSearch:
                 self.source_tokens,
                 search_phrases_tokens,
                 self.dictionary,
-                regex_patterns=regex_patterns
+                regex_patterns=search_patterns
             )
         # [end]
 
         # [start] Fallback: search each phrase separately with full text scan
         results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
-
         regex_matches_map: Dict[Tuple[int, int], RegexPattern] = {}
-        if hasattr(strategy_instance, 'search_regex_matches') and regex_patterns:
+
+        if hasattr(strategy_instance, 'search_regex_matches') and search_patterns:
             regex_matches = strategy_instance.search_regex_matches(
                 self.source_tokens,
-                regex_patterns=regex_patterns
+                regex_patterns=search_patterns
             )
 
             for regex_match in regex_matches:
@@ -180,14 +181,16 @@ class FulltextSearch:
                         tokens=self.source_tokens[start:end + 1],
                         start_token_idx=start,
                         end_token_idx=end,
-                        regex_info=regex_info
+                        regex_info=regex_info,
+                        check_id = uuid.uuid1(),
                     ))
                 else:
                     matches.append(FTSTextMatch(
                         tokens=self.source_tokens[start:end + 1],
                         start_token_idx=start,
                         end_token_idx=end,
-                        search_phrase=phrase
+                        search_phrase=phrase,
+                        check_id = uuid.uuid1(),
                     ))
 
             results.append((phrase, matches))
