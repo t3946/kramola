@@ -2,11 +2,16 @@ import { Grid, html } from "gridjs";
 
 const DEBOUNCE_MS = 300;
 
+interface SearchTermItem {
+  text: string;
+  type?: string;
+}
+
 interface InagentsRow {
   id: number;
   registry_number: number | null;
   full_name: string;
-  search_terms: string[];
+  search_terms: SearchTermItem[] | string[];
   status_label: string;
   agent_type: string;
   agent_type_label: string;
@@ -48,6 +53,21 @@ function editButtonHtml(row: InagentsRow): string {
   );
 }
 
+function pillClass(term: SearchTermItem | string): string {
+  const type = typeof term === "object" && term !== null ? (term as SearchTermItem).type : "text";
+  return type === "surname" ? "pill pill--teal" : "pill";
+}
+
+function pillText(term: SearchTermItem | string): string {
+  if (term == null) return "";
+  if (typeof term === "string") return term;
+  if (typeof term === "object") {
+    const t = (term as SearchTermItem).text;
+    return typeof t === "string" ? t : t != null ? String(t) : "";
+  }
+  return String(term);
+}
+
 function nameCellHtml(row: InagentsRow, q: string): string {
   const line1 = highlightSearch(String(row.full_name ?? ""), q);
   const terms = row.search_terms ?? [];
@@ -55,7 +75,9 @@ function nameCellHtml(row: InagentsRow, q: string): string {
     terms.length === 0
       ? ""
       : '<div class="cell-pills">' +
-        terms.map((t) => '<span class="pill">' + escapeHtml(t) + "</span>").join("") +
+        terms
+          .map((t) => '<span class="' + pillClass(t) + '">' + escapeHtml(pillText(t)) + "</span>")
+          .join("") +
         "</div>";
   return '<div class="cell-source">' + line1 + pills + "</div>";
 }

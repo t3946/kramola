@@ -15,5 +15,10 @@
     background-color: #e0e7ff;
     color: #3730a3;
     font-weight: 500;
+
+    &.pill--teal {
+      background-color: #afebbb;
+      color: #177240;
+    }
   }
 }

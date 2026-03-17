@@ -352,7 +352,10 @@ class WordsListView(BaseView):
             def row_et(et: ExtremistTerrorist) -> dict:
                 terms = et.search_terms or []
                 st_count = len(terms) if isinstance(terms, list) else 0
-                terms_list: list[str] = [t.get("text", t) if isinstance(t, dict) else t for t in terms]
+                terms_with_type: list[dict] = [
+                    {"text": t.get("text", t) if isinstance(t, dict) else t, "type": t.get("type", "text") if isinstance(t, dict) else "text"}
+                    for t in terms
+                ]
                 birth_date_str = et.birth_date.strftime("%d.%m.%Y") if et.birth_date else ""
                 display_name: str = (et.raw_source or "") or ""
                 return {
@@ -363,7 +366,7 @@ class WordsListView(BaseView):
                     "type_label": EXTREMIST_TYPE_LABELS.get(et.type, et.type or ""),
                     "area": et.area or "",
                     "area_label": EXTREMIST_AREA_LABELS.get(et.area, et.area or ""),
-                    "search_terms": terms_list,
+                    "search_terms": terms_with_type,
                     "search_terms_count": st_count,
                     "is_active": bool(et.is_active),
                     "edit_form_url": url_for(f"{endpoint}.extremist_edit_form", id=et.id),
@@ -487,12 +490,15 @@ class InagentsListView(BaseView):
             at = _agent_type_val(r.agent_type)
             terms = r.search_terms or []
             search_terms_count: int = len(terms) if isinstance(terms, list) else 0
-            terms_list: list[str] = [t.get("text", t) if isinstance(t, dict) else t for t in terms]
+            terms_with_type: list[dict] = [
+                {"text": t.get("text", t) if isinstance(t, dict) else t, "type": t.get("type", "text") if isinstance(t, dict) else "text"}
+                for t in terms
+            ]
             return {
                 "id": r.id,
                 "registry_number": r.registry_number,
                 "full_name": r.full_name or "",
-                "search_terms": terms_list,
+                "search_terms": terms_with_type,
                 "status_label": _inagent_status_label(r),
                 "agent_type": at,
                 "agent_type_label": AGENT_TYPE_SHORT_LABELS.get(at, at),
