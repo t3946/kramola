@@ -14,7 +14,7 @@
     {% for term in (form_data.search_terms | default([])) %}
     <div
       class="search-phrases-row grid gap-2"
-      style="grid-template-columns: 120px 1fr;"
+      style="grid-template-columns: 120px 1fr auto;"
     >
       <select
         name="search_terms_type"
@@ -31,6 +31,9 @@
         class="inputField inputField__default"
         placeholder="Фраза"
       >
+      <button type="button" class="btn btn__secondary search-phrases-remove" aria-label="Удалить">
+        Удалить
+      </button>
     </div>
     {% endfor %}
   </div>

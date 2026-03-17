@@ -4,7 +4,18 @@
  */
 function initSearchPhrasesForm(): void {
   document.addEventListener("click", (e: Event) => {
-    const addBtn = (e.target as HTMLElement).closest("button.search-phrases-add");
+    const target = e.target as HTMLElement;
+    const removeBtn = target.closest(".search-phrases-remove");
+
+    if (removeBtn) {
+      e.preventDefault();
+      e.stopPropagation();
+      const row = removeBtn.closest(".search-phrases-row") ?? removeBtn.parentElement;
+      if (row) row.remove();
+      return;
+    }
+
+    const addBtn = target.closest("button.search-phrases-add");
     if (!addBtn) return;
 
     e.preventDefault();
@@ -21,7 +32,7 @@ function initSearchPhrasesForm(): void {
     newInput.value = "";
     const row = document.createElement("div");
     row.className = "search-phrases-row grid gap-2";
-    row.style.gridTemplateColumns = "120px 1fr";
+    row.style.gridTemplateColumns = "120px 1fr auto";
 
     const select = document.createElement("select");
     select.name = "search_terms_type";
@@ -44,8 +55,15 @@ function initSearchPhrasesForm(): void {
     input.className = "inputField inputField__default";
     input.placeholder = "Фраза";
 
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "btn btn__secondary search-phrases-remove";
+    removeButton.setAttribute("aria-label", "Удалить");
+    removeButton.textContent = "Удалить";
+
     row.appendChild(select);
     row.appendChild(input);
+    row.appendChild(removeButton);
     listEl.appendChild(row);
   });
 }
