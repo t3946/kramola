@@ -15,3 +15,7 @@ class WordsList(ListColor, ABC):
     def count_phrases(self) -> int:
         """Number of phrases/entries in this list (for admin menu and stats)."""
         pass
+
+    @staticmethod
+    def patterns() -> dict:
+        return {}

@@ -14,7 +14,6 @@ from services.words_list.list_from_text import ListFromText
 from services.words_list.list_from_text_exclude import ListFromTextExclude
 from services.enum import PredefinedListKey
 from services.utils.regex_pattern import RegexPattern
-from services.patterns.profanity_words import PROFANITY_WORDS_PATTERNS
 
 
 class AnalysisData:
@@ -90,5 +89,4 @@ class AnalysisData:
                     if phrase and phrase.phrase and phrase.phrase.strip():
                         self.phrases.append(phrase)
 
-                if key_enum == PredefinedListKey.PROFANITY:
-                    self.read_regex_patterns(PROFANITY_WORDS_PATTERNS)
+                self.read_regex_patterns(words_list.patterns())
