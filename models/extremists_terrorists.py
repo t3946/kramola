@@ -45,4 +45,14 @@ class ExtremistTerrorist(db.Model):
     @classmethod
     def get_by_term(cls, term: str) -> List["ExtremistTerrorist"]:
         rows = cls.query.filter(cls.search_terms.isnot(None)).all()
-        return [r for r in rows if term in (r.search_terms or [])]
+        result: List["ExtremistTerrorist"] = []
+
+        for r in rows:
+            terms = r.search_terms or []
+
+            for item in terms:
+                if (item.get("text") == term if isinstance(item, dict) else item == term):
+                    result.append(r)
+                    break
+
+        return result

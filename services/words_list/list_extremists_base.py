@@ -37,7 +37,8 @@ class ListExtremistsTerroristsBase(WordsList, ABC):
             if not isinstance(search_terms, list):
                 search_terms = []
 
-            for text in search_terms:
+            for item in search_terms:
+                text = item.get("text", item) if isinstance(item, dict) else item
                 phrase = Phrase(
                     phrase=text,
                     source_list=self,

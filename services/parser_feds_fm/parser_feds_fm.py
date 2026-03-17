@@ -6,6 +6,7 @@ from typing import List, Dict, Tuple
 
 from models.extremists_terrorists import ExtremistArea, ExtremistType, ExtremistTerrorist
 from services.parser_feds_fm.registry_loader import RegistryLoader
+from services.words_list.search_term import EType
 from services.parser_feds_fm.process_raw_international import ProcessRawInternational
 from services.parser_feds_fm.process_raw_russian import ProcessRawRussian
 
@@ -19,6 +20,35 @@ URL_INTERNATIONAL_EXCLUDED = "https://www.fedsfm.ru/documents/omu-or-terrorists-
 class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
     def __init__(self) -> None:
         pass
+
+    def _build_search_terms(
+        self,
+        names: dict,
+        area: ExtremistArea,
+        extremist_type: ExtremistType,
+    ) -> List[dict]:
+        terms: List[dict] = []
+        main = names.get("main") or ""
+        additional = names.get("additional") or []
+        is_russian_fiz = area == ExtremistArea.RUSSIAN and extremist_type == ExtremistType.FIZ
+
+        if main:
+            terms.append({"text": main, "type": EType.TEXT.value})
+            if is_russian_fiz:
+                terms.append({"text": self._extract_surname(main), "type": EType.SURNAME.value})
+
+        for name in additional:
+            terms.append({"text": name, "type": EType.TEXT.value})
+            if is_russian_fiz:
+                terms.append({"text": self._extract_surname(name), "type": EType.SURNAME.value})
+
+        by_key: Dict[tuple, dict] = {}
+
+        for t in terms:
+            key = (t["text"], t["type"])
+            by_key.setdefault(key, t)
+
+        return list(by_key.values())
 
     def parse(self, download_new_data: bool = True) -> None:
         print("Parse: start")
@@ -95,23 +125,7 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
                 if item["type"] == ExtremistType.UR:
                     item["names"] = self._parse_ru_ul_name(item["raw"])
 
-            item["search_terms"] = []
-            is_russian_fiz = item["area"] == ExtremistArea.RUSSIAN and item["type"] == ExtremistType.FIZ
-
-            if item["names"]["main"]:
-                item["search_terms"].append(item["names"]["main"])
-
-                if is_russian_fiz:
-                    item["search_terms"].append(self._extract_surname(item["names"]["main"]))
-
-            additional_names = item["names"].get("additional") or []
-
-            if additional_names:
-                for name in additional_names:
-                    item["search_terms"].append(name)
-
-                if is_russian_fiz:
-                    item["search_terms"].append(self._extract_surname(name))
+            item["search_terms"] = self._build_search_terms(item["names"], item["area"], item["type"])
         # [end]
 
         # [start] sync DB international data
@@ -172,12 +186,10 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
             query = query.filter(ExtremistTerrorist.raw_source == item["raw"])
 
             old_model = None
-            terms = item.get("search_terms")
-            unique_terms = list(dict.fromkeys(terms))
 
             new_model = ExtremistTerrorist(
                 raw_source=item.get("raw"),
-                search_terms=unique_terms,
+                search_terms=item.get("search_terms"),
                 type=item["type"].value,
                 area=ExtremistArea.RUSSIAN.value,
                 is_active=item["is_active"],

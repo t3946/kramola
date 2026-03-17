@@ -7,7 +7,10 @@ from datetime import datetime as dt
 from pathlib import Path
 from typing import Any, Optional, Union
 
+from flask import current_app
+
 from models.inagents import AGENT_TYPE_MAP
+from services.words_list.search_term import SearchTerm, EType
 
 with warnings.catch_warnings():
     warnings.simplefilter("ignore", UserWarning)
@@ -216,7 +219,7 @@ class InagentsXlsxParser:
         return (inserted, updated)
 
     @staticmethod
-    def _parse_fio_with_nicknames(full_name: str) -> list:
+    def _parse_fio_with_nicknames(full_name: str) -> list[SearchTerm]:
         """
         Парсит строку "Фамилия Имя Отчество \"псевдоним1, псевдоним2\""
         и возвращает список строк в нужных форматах.
@@ -225,7 +228,7 @@ class InagentsXlsxParser:
         pattern = r'((?:[А-ЯЁ]{1}[а-яё]{1,}\s?){3})(?:\"(.+?)\")?'
         match = re.match(pattern, full_name.strip())
 
-        search_phrases = []
+        search_phrases: list[SearchTerm] = []
 
         if not match:
             return search_phrases
@@ -234,21 +237,21 @@ class InagentsXlsxParser:
 
         # [start] parse name
         surname, first_name, patronymic = [name for name in full_name.strip().split(" ")]
-        search_phrases.append(f"{surname} {first_name} {patronymic}")
-        search_phrases.append(f"{surname} {first_name[0]}. {patronymic[0]}.")
+        search_phrases.append(SearchTerm(text=f"{surname} {first_name} {patronymic}"))
+        search_phrases.append(SearchTerm(text=f"{surname}", term_type=EType.SURNAME))
         # [end]
 
         # pase nick
-        if nicknames is not None:
-            search_phrases.extend([nick.strip() for nick in nicknames.split(',')])
+        for nick in (nicknames.split(',') if nicknames else []):
+            search_phrases.append(SearchTerm(text=f"{nick.strip()}"))
 
         return search_phrases
 
     @staticmethod
-    def _parse_organisation_name(full_name: str):
+    def _parse_organisation_name(full_name: str) -> list[SearchTerm]:
         pattern = r'(?:[А-я]+\s)+?[«\"](.*?)[»\"]'
         match = re.match(pattern, full_name.strip())
-        search_phrases = []
+        search_phrases: list[SearchTerm] = []
 
         if match is None:
             return search_phrases
@@ -256,17 +259,27 @@ class InagentsXlsxParser:
         org_title = match.groups()[0]
 
         if org_title:
-            search_phrases.append(org_title)
+            search_phrases.append(SearchTerm(org_title))
 
         return search_phrases
 
     @staticmethod
-    def _parse_search_terms(full_name: str):
-        terms = []
+    def _parse_search_terms(full_name: str) -> list[dict]:
+        terms: list[SearchTerm] = []
         terms.extend(InagentsXlsxParser._parse_fio_with_nicknames(full_name))
         terms.extend(InagentsXlsxParser._parse_organisation_name(full_name))
 
-        return list(set(terms))
+        # [start] drop duplicates
+        by_key: dict[tuple[str, EType], SearchTerm] = {}
+
+        for t in terms:
+            by_key.setdefault((t.text, t.type), t)
+
+        terms = list(by_key.values())
+        # [end]
+
+        return [{"text": t.text, "type": t.type.value} for t in terms]
+
 
 def main() -> None:
     script_dir = Path(__file__).resolve().parent
