@@ -122,25 +122,6 @@ function initExtremistsList(): void {
     }
   });
 
-  modalBody?.addEventListener("click", (e: Event) => {
-    const target = e.target as HTMLElement;
-    if (target.id !== "extremist-phrase-add") return;
-    const newInput = document.getElementById("extremist-phrase-new");
-    const listEl = document.getElementById("extremist-phrases-list");
-    if (!newInput || !listEl) return;
-    const value = (newInput as HTMLInputElement).value.trim();
-    (newInput as HTMLInputElement).value = "";
-    const div = document.createElement("div");
-    const input = document.createElement("input");
-    input.type = "text";
-    input.name = "search_terms";
-    input.value = value;
-    input.className = "inputField inputField__default w-full";
-    input.placeholder = "Фраза";
-    div.appendChild(input);
-    listEl.appendChild(div);
-  });
-
   modal?.addEventListener("submit", (e: Event) => {
     const form = (e.target as HTMLElement).closest("form.extremist-edit-form");
     if (!form || !(form instanceof HTMLFormElement)) return;

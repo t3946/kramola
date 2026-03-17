@@ -10,14 +10,25 @@
       Добавить
     </button>
   </div>
-  <div class="search-phrases-list grid gap-2 mt-3 grid-cols-2 max-h-48 overflow-y-auto">
-    {% for term in (form_data.search_terms | default([])) if term %}
-    <div>
+  <div class="search-phrases-list flex flex-col gap-2 mt-3 max-h-48 overflow-y-auto">
+    {% for term in (form_data.search_terms | default([])) %}
+    <div
+      class="search-phrases-row grid gap-2"
+      style="grid-template-columns: 120px 1fr;"
+    >
+      <select
+        name="search_terms_type"
+        class="inputField inputField__default"
+        aria-label="Тип"
+      >
+        <option value="text" {{ 'selected' if (term.type | default('text')) == 'text' }}>Текст</option>
+        <option value="surname" {{ 'selected' if (term.type | default('text')) == 'surname' }}>Фамилия</option>
+      </select>
       <input
         type="text"
-        name="search_terms"
-        value="{{ term }}"
-        class="inputField inputField__default w-full"
+        name="search_terms_text"
+        value="{{ term.text | default('') }}"
+        class="inputField inputField__default"
         placeholder="Фраза"
       >
     </div>

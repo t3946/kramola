@@ -386,6 +386,12 @@ def _inagent_details_status_label(inagent: Inagent) -> str:
     return "—"
 
 
+def _inagent_search_terms_to_strings(search_terms: list | None) -> list[str]:
+    raw = list(search_terms)[:6] if isinstance(search_terms, list) else []
+
+    return [t.get("text", t) if isinstance(t, dict) else t for t in raw]
+
+
 def _inagent_details_to_form_data(inagent: Inagent) -> dict:
     def _agent_type_str(agent_type_attr) -> str:
         if agent_type_attr is None:
@@ -405,7 +411,7 @@ def _inagent_details_to_form_data(inagent: Inagent) -> dict:
         "date_included": inagent.include_minjust_date.strftime("%Y-%m-%d") if inagent.include_minjust_date else "",
         "date_excluded": inagent.exclude_minjust_date.strftime("%Y-%m-%d") if inagent.exclude_minjust_date else "",
         "domain": _domain_to_text(inagent.domain_name),
-        "search_terms": list(inagent.search_terms)[:6] if isinstance(inagent.search_terms, list) else [],
+        "search_terms": _inagent_search_terms_to_strings(inagent.search_terms),
     }
 
 

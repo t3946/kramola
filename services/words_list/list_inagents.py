@@ -43,13 +43,13 @@ class ListInagents(WordsList):
             if not isinstance(terms, list):
                 terms = []
 
-            for text in terms:
+            for item in terms:
+                text = item.get("text", item) if isinstance(item, dict) else item
                 phrase = Phrase(
                     phrase=text,
                     source_list=self,
                     phrase_original=full_name
                 )
-
                 phrases.append(phrase)
 
         return phrases

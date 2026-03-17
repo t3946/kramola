@@ -43,9 +43,32 @@ SLUG_EXTREMISTS_TERRORISTS: str = "extremists-terrorists"
 VALID_EXTREMIST_TYPES: tuple[str, ...] = (ExtremistType.FIZ.value, ExtremistType.UR.value)
 
 
+def _search_terms_for_form(search_terms: list | None) -> list[dict]:
+    """Return list of {text, type} for form display (and template)."""
+    raw = list(search_terms) if isinstance(search_terms, list) else []
+    return [
+        {"text": t.get("text", t) if isinstance(t, dict) else t, "type": t.get("type", "text") if isinstance(t, dict) else "text"}
+        for t in raw
+    ]
+
+
+def _search_terms_from_form(texts: list, types: list) -> list[dict]:
+    """Build list[dict] from form getlist('search_terms_text') and getlist('search_terms_type')."""
+    result: list[dict] = []
+    for t, ty in zip(texts, types):
+        text = t.strip() if isinstance(t, str) else ""
+        if not text:
+            continue
+        type_val = (ty.strip() if isinstance(ty, str) else "text") or "text"
+        if type_val not in ("text", "surname"):
+            type_val = "text"
+        result.append({"text": text, "type": type_val})
+    return result
+
+
 def _extremist_to_form_data(et: ExtremistTerrorist) -> dict:
     raw = list(et.search_terms) if isinstance(et.search_terms, list) else []
-    terms = [t.get("text", t) if isinstance(t, dict) else t for t in raw]
+    terms = _search_terms_for_form(et.search_terms)
     birth_date_str = et.birth_date.strftime("%Y-%m-%d") if et.birth_date else ""
     return {
         "raw_source": et.raw_source or "",
@@ -80,8 +103,9 @@ def _form_apply_extremist(form, et: ExtremistTerrorist) -> None:
     if et.type == ExtremistType.UR.value and et.area == ExtremistArea.RUSSIAN.value:
         if "company_region" in form:
             et.company_region = form.get("company_region", "").strip() or None
-    search_terms_list = form.getlist("search_terms")
-    et.search_terms = [{"text": s.strip(), "type": "text"} for s in search_terms_list if s.strip()] or []
+    texts = form.getlist("search_terms_text")
+    types = form.getlist("search_terms_type")
+    et.search_terms = _search_terms_from_form(texts, types)
 
 
 def _extremists_terrorists_count() -> int:
@@ -379,8 +403,9 @@ VALID_AGENT_TYPES: tuple[str, ...] = tuple(AGENT_TYPE_SHORT_LABELS.keys())
 
 
 def _form_apply_search_terms_only(form, inagent: Inagent) -> None:
-    search_terms_list = form.getlist("search_terms")[:6]
-    inagent.search_terms = [s.strip() for s in search_terms_list if s.strip()] or []
+    texts = form.getlist("search_terms_text")
+    types = form.getlist("search_terms_type")
+    inagent.search_terms = _search_terms_from_form(texts, types)
 
 
 class InagentsListView(BaseView):
@@ -460,9 +485,9 @@ class InagentsListView(BaseView):
 
         def row(r: Inagent) -> dict:
             at = _agent_type_val(r.agent_type)
-            terms = r.search_terms
+            terms = r.search_terms or []
             search_terms_count: int = len(terms) if isinstance(terms, list) else 0
-            terms_list: list[str] = list(terms) if isinstance(terms, list) else []
+            terms_list: list[str] = [t.get("text", t) if isinstance(t, dict) else t for t in terms]
             return {
                 "id": r.id,
                 "registry_number": r.registry_number,
@@ -530,7 +555,7 @@ def _inagent_to_form_data(inagent: Inagent) -> dict:
         "date_included": inagent.include_minjust_date.strftime("%Y-%m-%d") if inagent.include_minjust_date else "",
         "date_excluded": inagent.exclude_minjust_date.strftime("%Y-%m-%d") if inagent.exclude_minjust_date else "",
         "domain": _domain_to_text(inagent.domain_name),
-        "search_terms": _search_terms_to_list(inagent.search_terms),
+        "search_terms": _search_terms_for_form(inagent.search_terms),
         "activity": "",
     }
 
@@ -542,7 +567,8 @@ def _domain_to_text(domain_name: list | None) -> str:
 
 
 def _search_terms_to_list(search_terms: list | None) -> list[str]:
-    terms = list(search_terms)[:6] if isinstance(search_terms, list) else []
+    raw = list(search_terms)[:6] if isinstance(search_terms, list) else []
+    terms = [t.get("text", t) if isinstance(t, dict) else t for t in raw]
     return terms + [""] * (6 - len(terms))
 
 
@@ -560,8 +586,9 @@ def form_to_inagent(form, inagent: Inagent) -> None:
     domain_raw = form.get("domain", "").strip()
     inagent.domain_name = [s.strip() for s in domain_raw.split() if s.strip()] if domain_raw else None
 
-    search_terms_list = form.getlist("search_terms")[:6]
-    inagent.search_terms = [s.strip() for s in search_terms_list if s.strip()] or []
+    texts = form.getlist("search_terms_text")
+    types = form.getlist("search_terms_type")
+    inagent.search_terms = _search_terms_from_form(texts, types)
 
 
 def _parse_date(s: str | None):
