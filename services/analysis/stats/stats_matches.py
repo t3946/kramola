@@ -38,7 +38,6 @@ class StatsMatches(Stats):
         # (list_key, sublist, text) -> check_ids set, form, pages list
         raw: Dict[tuple, Dict[str, Any]] = {}
         stats_grouped: Dict[WordsListKey, Dict[str, Any]] = {}
-        current_app.logger.debug(self.matches)
 
         # mapping matches
         for match in self.matches:

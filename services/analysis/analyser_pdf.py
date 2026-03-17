@@ -159,14 +159,14 @@ class AnalyserPdf(Analyser):
             # [end]
 
         # [start] build highlighting map
-        for key, matches in highlighting_map.items():
+        for key, map_matches in highlighting_map.items():
             page, start, end = key
-            color: Tuple[float, float, float] = self._highlight_color_for_match(matches[0]).rgb()
+            color: Tuple[float, float, float] = self._highlight_color_for_match(map_matches[0]).rgb()
 
-            if len(matches) == 1:
-                page.highlight_range(start, end, matches[0], color)
+            if len(map_matches) == 1:
+                page.highlight_range(start, end, map_matches[0], color)
             else:
-                page.highlight_range(start, end, matches, color)
+                page.highlight_range(start, end, map_matches, color)
         # [end]
         # [end]
 
