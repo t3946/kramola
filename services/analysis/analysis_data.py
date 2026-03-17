@@ -1,5 +1,6 @@
 from typing import List, Dict, Optional
 from services.fulltext_search.phrase import Phrase
+from services.words_list import WordsList
 from services.words_list.list_inagents_fiz import ListInagentsFIZ
 from services.words_list.list_inagents_ur import ListInagentsUR
 from services.words_list.list_profanity import ListProfanity
@@ -24,15 +25,17 @@ class AnalysisData:
         self.phrases = []
         self.regex_patterns = []
 
-    def read_regex_patterns(self, patterns: Dict[str, str]) -> None:
-        """Load regex patterns for search.
+    def read_regex_patterns(self, words_list: WordsList) -> None:
+        """Load regex patterns for search."""
+        patterns = words_list.patterns()
 
-        Args:
-            patterns: Dictionary mapping pattern_name to pattern_string
-        """
         for pattern_name, pattern_str in patterns.items():
             if pattern_name and pattern_str and pattern_str.strip():
-                regex_pattern = RegexPattern(pattern_name=pattern_name, pattern=pattern_str.strip())
+                regex_pattern = RegexPattern(
+                    pattern_name=pattern_name,
+                    pattern=pattern_str.strip(),
+                    source_list=words_list,
+                )
                 self.regex_patterns.append(regex_pattern)
 
     def load_user_list(self, task_id: str) -> None:
@@ -89,4 +92,4 @@ class AnalysisData:
                     if phrase and phrase.phrase and phrase.phrase.strip():
                         self.phrases.append(phrase)
 
-                self.read_regex_patterns(words_list.patterns())
+                self.read_regex_patterns(words_list)

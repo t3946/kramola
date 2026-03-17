@@ -4,11 +4,13 @@ import functools
 
 class RegexPattern:
     """Information about a regex pattern that matched."""
-    
-    def __init__(self, pattern_name: str, pattern: str):
+    source_list: "WordsList"
+
+    def __init__(self, pattern_name: str, pattern: str, source_list: "WordsList"):
         self.pattern_name = pattern_name
         self._pattern = pattern
         self._compiled: re.Pattern | None = None
+        self.source_list = source_list
 
     @property
     def pattern(self) -> str:

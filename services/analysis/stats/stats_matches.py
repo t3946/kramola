@@ -50,7 +50,11 @@ class StatsMatches(Stats):
             else:
                 text = match.get("phrase", {}).get("phrase_original") or match.get("form", "")
 
-            sublist = f"{match['kind']}s"
+            if match['kind'] == 'phrase':
+                sublist = ESublist.PHRASES.value
+            else:
+                sublist = ESublist.WORDS.value
+
             key = (list_key, sublist, text)
 
             if key not in raw:
