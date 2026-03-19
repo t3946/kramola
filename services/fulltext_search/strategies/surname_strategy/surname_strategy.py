@@ -47,6 +47,9 @@ class SurnameStrategy(BaseSearchStrategy):
             return []
 
         search_norm: str = self._norm_surname(search_tokens[0].text)
+        if not search_norm:
+            return []
+
         prefix_len = min(len(search_norm), 3)
         search_prefix: str = search_norm[:prefix_len]
         matches: List[Tuple[int, int]] = []
@@ -81,6 +84,9 @@ class SurnameStrategy(BaseSearchStrategy):
 
         for idx, token in enumerate(source_tokens):
             token_norm: str = self._norm_surname(token.text)
+            if not token_norm:
+                continue
+
             candidates: list[str] = self._search_candidate_surnames(
                 token_norm,
                 sorted_norm_surnames,
