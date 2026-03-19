@@ -204,7 +204,7 @@ class AnalyserDocx(Analyser):
 
         phrase_results = fulltext_search.search_all(
             search_phrases=search_phrases_for_search,
-            strategy=SearchStrategy.FUZZY_WORDS_PUNCT,
+            text_strategy=SearchStrategy.FUZZY_WORDS_PUNCT,
             search_patterns=regex_patterns_dict
         )
 
