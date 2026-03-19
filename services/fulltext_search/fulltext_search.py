@@ -184,6 +184,7 @@ class FulltextSearch:
                         surname_phrases_tokens,
                     )
                 )
+
                 for phrase, matches in surname_results:
                     phrase_to_matches[id(phrase)] = (phrase, matches)
 

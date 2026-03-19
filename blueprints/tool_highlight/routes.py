@@ -120,7 +120,6 @@ def _perform_highlight_processing(
         if os.path.exists(output_path) and os.path.isfile(output_path):
             task_result_data['result_filename'] = result_filename_task
 
-        current_app.logger.debug(analysis_results)
         task_result_data.update(analysis_results)
         final_status_for_redis = TaskStatus.COMPLETED
 
