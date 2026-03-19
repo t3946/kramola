@@ -1,4 +1,4 @@
-from declension import (
+from .declension import (
     EXCEPTION_FORMS,
     decline_surname_forms,
     normalize_text,
@@ -9,6 +9,7 @@ PADEZHI: tuple[str, ...] = ("nom", "gen", "dat", "acc", "ins", "pre")
 
 class Surname:
     """Nominative-base surname: precomputed declension surfaces for check()."""
+    surname: str
 
     def __init__(self, surname: str) -> None:
         stripped: str = surname.strip()
