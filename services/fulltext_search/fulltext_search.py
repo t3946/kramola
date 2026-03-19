@@ -3,14 +3,15 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple, Union, Dict
 
-from services.fulltext_search.phrase import Phrase
+from services.fulltext_search.phrase import EType, Phrase
 from services.pymorphy_service import CYRILLIC_PATTERN
 from services.tokenization import Token, TokenType, TokenDictionary, tokenize_text as tokenize_text_fn
 from services.utils.regex_pattern import RegexPattern
 from services.fulltext_search.search_match import FTSMatch, FTSTextMatch, FTSRegexMatch
 from services.fulltext_search.strategies import (
     FuzzyWordsStrategy,
-    FuzzyWordsPunctStrategy
+    FuzzyWordsPunctStrategy,
+    SurnameStrategy,
 )
 
 USE_STEM_FALLBACK = True
@@ -49,6 +50,7 @@ class SearchStrategy(Enum):
     """Search strategy enum."""
     FUZZY_WORDS = "fuzzy_words"
     FUZZY_WORDS_PUNCT = "fuzzy_words_punct"
+    SURNAME = "surname"
 
 
 class FulltextSearch:
@@ -85,6 +87,8 @@ class FulltextSearch:
             return FuzzyWordsStrategy()
         elif strategy == SearchStrategy.FUZZY_WORDS_PUNCT:
             return FuzzyWordsPunctStrategy()
+        elif strategy == SearchStrategy.SURNAME:
+            return SurnameStrategy()
 
         return FulltextSearch._default_strategy
 
@@ -132,34 +136,69 @@ class FulltextSearch:
         Returns:
             List of (phrase or str, matches) tuples where matches is list of FTSMatch objects
         """
-        strategy_instance = FulltextSearch._get_strategy(text_strategy)
+        text_strategy_instance = FulltextSearch._get_strategy(text_strategy)
+        surname_strategy_instance = FulltextSearch._get_strategy(SearchStrategy.SURNAME)
 
         # [start] Optimized path: use dictionary-based search_all_phrases if available
-        if hasattr(strategy_instance, 'search_all_phrases'):
-            search_phrases_tokens: List[Tuple[Phrase, List[Token]]] = []
+        text_phrases_tokens: List[Tuple[Phrase, List[Token]]] = []
+        surname_phrases_tokens: List[Tuple[Phrase, List[Token]]] = []
 
-            for phrase, text_or_tokens in search_phrases:
-                if isinstance(text_or_tokens, str):
-                    search_tokens = tokenize_text_fn(text_or_tokens)
-                else:
-                    search_tokens = text_or_tokens
-
-                search_phrases_tokens.append((phrase, search_tokens))
-
-            return strategy_instance.search_all_phrases(
-                self.source_tokens,
-                search_phrases_tokens,
-                self.dictionary,
-                regex_patterns=search_patterns
+        for phrase, text_or_tokens in search_phrases:
+            search_tokens = (
+                tokenize_text_fn(text_or_tokens)
+                if isinstance(text_or_tokens, str)
+                else text_or_tokens
             )
+            pair: Tuple[Phrase, List[Token]] = (phrase, search_tokens)
+
+            if phrase.phrase_type == EType.TEXT:
+                text_phrases_tokens.append(pair)
+            else:
+                surname_phrases_tokens.append(pair)
+
+        use_text_optimized = (
+            len(text_phrases_tokens) > 0
+            and hasattr(text_strategy_instance, "search_all_phrases")
+        )
+        use_surname_optimized = len(surname_phrases_tokens) > 0
+
+        if use_text_optimized or use_surname_optimized:
+            phrase_to_matches: Dict[int, Tuple[Union[Phrase, str], List[FTSMatch]]] = {}
+
+            if use_text_optimized:
+                text_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
+                    text_strategy_instance.search_all_phrases(
+                        self.source_tokens,
+                        text_phrases_tokens,
+                        self.dictionary,
+                        regex_patterns=search_patterns,
+                    )
+                )
+                for phrase, matches in text_results:
+                    phrase_to_matches[id(phrase)] = (phrase, matches)
+
+            if use_surname_optimized:
+                surname_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
+                    surname_strategy_instance.search_all_phrases(
+                        self.source_tokens,
+                        surname_phrases_tokens,
+                    )
+                )
+                for phrase, matches in surname_results:
+                    phrase_to_matches[id(phrase)] = (phrase, matches)
+
+            return [
+                phrase_to_matches.get(id(phrase), (phrase, []))
+                for phrase, _ in search_phrases
+            ]
         # [end]
 
         # [start] Fallback: search each phrase separately with full text scan
         results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
         regex_matches_map: Dict[Tuple[int, int], RegexPattern] = {}
 
-        if hasattr(strategy_instance, 'search_regex_matches') and search_patterns:
-            regex_matches = strategy_instance.search_regex_matches(
+        if hasattr(text_strategy_instance, 'search_regex_matches') and search_patterns:
+            regex_matches = text_strategy_instance.search_regex_matches(
                 self.source_tokens,
                 regex_patterns=search_patterns
             )
