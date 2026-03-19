@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from models import Inagent
 from models.inagents import AgentType
 from services.enum import WordsListKey
-from services.fulltext_search.phrase import Phrase
+from services.fulltext_search.phrase import EType, Phrase
 from services.words_list import WordsList
 
 
@@ -48,7 +48,8 @@ class ListInagents(WordsList):
                 phrase = Phrase(
                     phrase=text,
                     source_list=self,
-                    phrase_original=full_name
+                    phrase_original=full_name,
+                    phrase_type=EType(item.get("type"))
                 )
                 phrases.append(phrase)
 

@@ -4,7 +4,7 @@ from typing import ClassVar, List, Optional
 from models import ExtremistTerrorist
 from models.extremists_terrorists import ExtremistArea, ExtremistType
 from services.enum import WordsListKey
-from services.fulltext_search.phrase import Phrase
+from services.fulltext_search.phrase import EType, Phrase
 from services.words_list.words_list import WordsList
 
 
@@ -42,7 +42,8 @@ class ListExtremistsTerroristsBase(WordsList, ABC):
                 phrase = Phrase(
                     phrase=text,
                     source_list=self,
-                    phrase_original=raw_source
+                    phrase_original=raw_source,
+                    phrase_type=EType(item.get("type"))
                 )
                 phrases.append(phrase)
 
