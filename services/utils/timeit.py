@@ -1,5 +1,7 @@
 import time
 
+from flask import current_app
+
 
 def timeit(func):
     def wrapper(*args, **kwargs):
@@ -8,6 +10,7 @@ def timeit(func):
         end = time.time()
         elapsed = end - start
         print(f"Время выполнения функции '{func.__name__}': {elapsed:.6f} секунд")
+        current_app.logger.debug(f"Время выполнения функции '{func.__name__}': {elapsed:.6f} секунд")
         return result
 
     return wrapper
