@@ -1,6 +1,6 @@
 """Shared logic for annotation/comment title and content from AnalysisMatch."""
 
-from typing import Tuple, List
+from typing import Tuple, List,Union
 
 from models import Inagent
 from models.inagents import AgentType
@@ -23,11 +23,9 @@ def get_annot_title_content(match: AnalysisMatch) -> Tuple[str, str]:
 
         if phrase.source_list.key.name == ESearchSourceAnnotTitle.INAGENTS.name:
             content = ''
-            inagents: list[Inagent] = Inagent.get_by_term(phrase.phrase)
+            inagent: Union[Inagent, None] = phrase.model
 
-            if inagents and inagents[0]:
-                inagent = inagents[0]
-
+            if inagent:
                 if inagent.agent_type == AgentType.FIZ.value:
                     content = "\n".join([
                         "Иноагент",

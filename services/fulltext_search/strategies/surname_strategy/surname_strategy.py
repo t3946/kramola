@@ -1,6 +1,4 @@
-import uuid
-from collections import defaultdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 from services.fulltext_search.check_id_collection import CheckIdCollection
 from services.fulltext_search.phrase import Phrase
@@ -8,7 +6,6 @@ from services.fulltext_search.search_match import FTSMatch, FTSTextMatch
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 from services.fulltext_search.strategies.surname_strategy.surname import Surname
 from services.tokenization import Token, TokenDictionary
-from services.utils.timeit import timeit
 
 
 class SurnameStrategy(BaseSearchStrategy):

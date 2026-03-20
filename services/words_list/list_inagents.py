@@ -27,19 +27,18 @@ class ListInagents(WordsList):
     agent_types: ClassVar[List[AgentType]]
 
     def load(self) -> list[Phrase]:
-        query = Inagent.query.with_entities(
-            Inagent.full_name,
-            Inagent.search_terms
-        )
+        query = Inagent.query
 
         if self.agent_types:
             query = query.filter(Inagent.agent_type.in_(self.agent_types))
 
         query = _inagents_active_filter(query)
-        rows = query.all()
+        models: list[Inagent] = query.all()
         phrases = []
 
-        for (full_name, terms) in rows:
+        for inagent in models:
+            terms = inagent.search_terms
+
             if not isinstance(terms, list):
                 terms = []
 
@@ -48,8 +47,9 @@ class ListInagents(WordsList):
                 phrase = Phrase(
                     phrase=text,
                     source_list=self,
-                    phrase_original=full_name,
-                    phrase_type=EType(item.get("type"))
+                    phrase_original=inagent.full_name,
+                    phrase_type=EType(item.get("type")),
+                    model=inagent,
                 )
                 phrases.append(phrase)
 
