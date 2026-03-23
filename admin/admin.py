@@ -680,6 +680,20 @@ class AutoloadView(BaseView):
         return self.render("admin/autoload.html")
 
 
+class MonitoringTasksView(BaseView):
+    """Admin page: background tasks monitoring."""
+
+    def is_accessible(self) -> bool:
+        return current_user.is_authenticated and current_user.has_role("admin")
+
+    def inaccessible_callback(self, name: str, **kwargs) -> redirect:
+        return redirect(url_for("admin_auth.login", next=request.url))
+
+    @expose("/")
+    def index(self):
+        return self.render("admin/monitoring_tasks.html")
+
+
 class SecureAdminIndexView(AdminIndexView):
     def is_accessible(self) -> bool:
         return current_user.is_authenticated and current_user.has_role("admin")
@@ -726,6 +740,7 @@ VIEW_CLASS_MAP: dict[str, type] = {
     "WordsListView": WordsListView,
     "SearchSettingsView": SearchSettingsView,
     "AutoloadView": AutoloadView,
+    "MonitoringTasksView": MonitoringTasksView,
 }
 
 

@@ -98,6 +98,17 @@ MENU_SPEC: list[dict] = [
         ],
     },
     {
+        "category": "Мониторинг",
+        "views": [
+            {
+                "view_class": "MonitoringTasksView",
+                "name": "Задачи",
+                "url": "monitoring/tasks",
+                "endpoint": "monitoring_tasks",
+            },
+        ],
+    },
+    {
         "category": "Настройки",
         "views": [
             {
