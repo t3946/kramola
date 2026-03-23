@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from redis import Redis
 
 from services.task.redis_fields import (
@@ -79,9 +79,32 @@ def _source_label_from_fields(fields: dict[str, str]) -> str:
     return "—"
 
 
+def _expires_at_for_display(
+    created_at: datetime | None,
+    task_ttl_seconds: int,
+    redis_client: Redis,
+    task_key: str,
+) -> datetime | None:
+    """Policy-based expiry: created_at + task_ttl. Fallback: Redis TTL when created_at is unknown."""
+    if created_at is not None:
+        start: datetime = created_at
+
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+
+        return start + timedelta(seconds=task_ttl_seconds)
+
+    ttl_raw: int = int(redis_client.ttl(task_key))
+
+    if ttl_raw > 0:
+        return datetime.now(timezone.utc) + timedelta(seconds=ttl_raw)
+
+    return None
+
+
 class Tasks:
     @staticmethod
-    def get_all(redis_client: Redis) -> list[Task]:
+    def get_all(redis_client: Redis, task_ttl_seconds: int) -> list[Task]:
         ids: set[str] = set()
 
         for raw_key in redis_client.scan_iter(match=f"{_TASK_KEY_PREFIX}*", count=500):
@@ -108,6 +131,13 @@ class Tasks:
             has_archive: bool = bool(archived)
             created: datetime | None = _created_at_from_fields(fields)
             label: str = _source_label_from_fields(fields)
+            main_key: str = f"task:{tid}"
+            expires_at: datetime | None = _expires_at_for_display(
+                created,
+                task_ttl_seconds,
+                redis_client,
+                main_key,
+            )
 
             tasks.append(
                 Task(
@@ -115,6 +145,7 @@ class Tasks:
                     status=_status_from_redis_state(state_raw),
                     source_label=label,
                     created_at=created,
+                    expires_at=expires_at,
                     has_source_archive=has_archive,
                 )
             )

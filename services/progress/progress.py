@@ -2,8 +2,11 @@ import time
 from flask import current_app
 import logging
 
-PROGRESS_TTL = 60 * 60 * 24
 PROGRESS_UPDATE_INTERVAL = 0.5  # Минимум 0.5 секунды между обновлениями (2 раза в секунду)
+
+
+def task_redis_ttl_seconds() -> int:
+    return int(current_app.config["REDIS_TASK_TTL"])
 
 
 class Progress:
@@ -15,7 +18,7 @@ class Progress:
         redis_client = current_app.redis_client_tasks
         redis_key = self._get_redis_key()
         redis_client.hset(redis_key, "max_value", max_value)
-        redis_client.expire(redis_key, PROGRESS_TTL)
+        redis_client.expire(redis_key, task_redis_ttl_seconds())
 
     def _get_redis_key(self) -> str:
         """Get Redis key for this progress instance. Can be overridden in subclasses."""
@@ -34,7 +37,7 @@ class Progress:
                 redis_client = current_app.redis_client_tasks
                 redis_key = self._get_redis_key()
                 redis_client.hincrbyfloat(redis_key, "progress", self._pending_delta)
-                redis_client.expire(redis_key, PROGRESS_TTL)
+                redis_client.expire(redis_key, task_redis_ttl_seconds())
                 self._pending_delta = 0
                 self._last_update_time = current_time
 
@@ -67,7 +70,7 @@ class Progress:
             redis_client = current_app.redis_client_tasks
             redis_key = self._get_redis_key()
             redis_client.hincrbyfloat(redis_key, "progress", self._pending_delta)
-            redis_client.expire(redis_key, PROGRESS_TTL)
+            redis_client.expire(redis_key, task_redis_ttl_seconds())
             self._pending_delta = 0
             self._last_update_time = time.time()
 
@@ -81,7 +84,7 @@ class Progress:
         redis_client = current_app.redis_client_tasks
         redis_key = self._get_redis_key()
         redis_client.hset(redis_key, "progress", value)
-        redis_client.expire(redis_key, PROGRESS_TTL)
+        redis_client.expire(redis_key, task_redis_ttl_seconds())
         self._last_update_time = time.time()
 
         # Отправляем событие прогресса через Socket.IO

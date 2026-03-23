@@ -1,4 +1,4 @@
-"""CLI: remove files in results/highlight older than N days (results + paired source archives)."""
+"""CLI: remove files in results/highlight older than N days (results + paired source archives; default 7 = Redis task TTL)."""
 
 import os
 import re
@@ -91,8 +91,8 @@ def _clean_highlight_results(dir_path: str, max_age_days: int, dry_run: bool) ->
 @click.option(
     "--days",
     type=int,
-    default=3,
-    help="Remove files older than this many days (default: 3).",
+    default=7,
+    help="Remove files older than this many days (default: 7, same as Redis task TTL).",
 )
 @click.option(
     "--dry-run",

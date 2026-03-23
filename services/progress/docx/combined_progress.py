@@ -1,7 +1,7 @@
 import time
 from enum import Enum
 from flask import current_app
-from services.progress.progress import PROGRESS_TTL, PROGRESS_UPDATE_INTERVAL
+from services.progress.progress import PROGRESS_UPDATE_INTERVAL, task_redis_ttl_seconds
 from services.progress.docx.preparation_progress import PreparationProgress
 from services.progress.docx.search_progress import SearchProgress
 
@@ -24,7 +24,7 @@ class CombinedProgress:
         redis_client = current_app.redis_client_tasks
         redis_key = f"task:{self.task_id}"
         redis_client.hset(redis_key, "max_value", 100)
-        redis_client.expire(redis_key, PROGRESS_TTL)
+        redis_client.expire(redis_key, task_redis_ttl_seconds())
 
     def _update_combined_progress(self):
         """Update combined progress in Redis (50% preparation + 50% search)."""
@@ -39,7 +39,7 @@ class CombinedProgress:
                 redis_client = current_app.redis_client_tasks
                 redis_key = f"task:{self.task_id}"
                 redis_client.hset(redis_key, "progress", combined_percent)
-                redis_client.expire(redis_key, PROGRESS_TTL)
+                redis_client.expire(redis_key, task_redis_ttl_seconds())
                 self._last_update_time = current_time
 
                 self._send_progress_event(combined_percent)
@@ -96,13 +96,13 @@ class CombinedProgress:
             redis_client = current_app.redis_client_tasks
             redis_key = self.preparation_progress._get_redis_key()
             redis_client.hset(redis_key, "max_value", max_value)
-            redis_client.expire(redis_key, PROGRESS_TTL)
+            redis_client.expire(redis_key, task_redis_ttl_seconds())
         elif progress_type == ProgressType.SEARCH:
             self.search_progress.max_value = max_value
             redis_client = current_app.redis_client_tasks
             redis_key = self.search_progress._get_redis_key()
             redis_client.hset(redis_key, "max_value", max_value)
-            redis_client.expire(redis_key, PROGRESS_TTL)
+            redis_client.expire(redis_key, task_redis_ttl_seconds())
 
     def flush(self):
         """Force flush all pending changes."""

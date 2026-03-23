@@ -23,11 +23,26 @@ _TASK_STATUS_LABEL_RU: dict[TaskStatus, str] = {
 }
 
 
+def _datetime_display_moscow(dt: datetime | None) -> str:
+    if not dt:
+        return "—"
+
+    dt_utc: datetime = dt
+
+    if dt_utc.tzinfo is None:
+        dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+
+    msk: datetime = dt_utc.astimezone(_MSK_TZ)
+
+    return msk.strftime("%d.%m.%Y %H:%M") + " МСК"
+
+
 class Task:
     task_id: str
     status: TaskStatus
     source_label: str
     created_at: datetime | None
+    expires_at: datetime | None
     has_source_archive: bool
 
     def __init__(
@@ -36,26 +51,21 @@ class Task:
         status: TaskStatus,
         source_label: str,
         created_at: datetime | None,
+        expires_at: datetime | None,
         has_source_archive: bool,
     ) -> None:
         self.task_id = task_id
         self.status = status
         self.source_label = source_label
         self.created_at = created_at
+        self.expires_at = expires_at
         self.has_source_archive = has_source_archive
 
     def status_display_ru(self) -> str:
         return _TASK_STATUS_LABEL_RU.get(self.status, self.status.value)
 
     def created_at_display_moscow(self) -> str:
-        if not self.created_at:
-            return "—"
+        return _datetime_display_moscow(self.created_at)
 
-        dt_utc: datetime = self.created_at
-
-        if dt_utc.tzinfo is None:
-            dt_utc = dt_utc.replace(tzinfo=timezone.utc)
-
-        msk: datetime = dt_utc.astimezone(_MSK_TZ)
-
-        return msk.strftime("%d.%m.%Y %H:%M") + " МСК"
+    def expires_at_display_moscow(self) -> str:
+        return _datetime_display_moscow(self.expires_at)

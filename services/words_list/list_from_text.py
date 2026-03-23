@@ -40,7 +40,7 @@ class ListFromText(ListUserCustom):
     def _write_lines_to_redis(self, lines: List[str]) -> None:
         redis_client = getattr(current_app, 'redis_client_tasks', None)
         redis_client.hset(self._redis_name, self._redis_key, json.dumps(lines))
-        redis_client.expire(self._redis_name, current_app.config.get("REDIS_TASK_TTL", 3600))
+        redis_client.expire(self._redis_name, int(current_app.config["REDIS_TASK_TTL"]))
 
     def save_from_text(self, lines: List[str]) -> None:
         self._write_lines_to_redis(lines)

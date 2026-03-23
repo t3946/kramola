@@ -163,7 +163,7 @@ class WordsListView(BaseView):
         return redirect(url_for("admin_auth.login", next=request.url))
 
     @expose("/")
-    def index(self):
+    def index(self, **kwargs):
         list_record = ListRecord.query.filter_by(slug=self.list_slug).first()
         if self.list_slug == SLUG_EXTREMISTS_TERRORISTS:
             total_count = _extremists_terrorists_count()
@@ -424,7 +424,7 @@ class InagentsListView(BaseView):
         return redirect(url_for("admin_auth.login", next=request.url))
 
     @expose("/")
-    def index(self):
+    def index(self, **kwargs):
         total_count: int = db.session.query(Inagent).count()
         agent_type_choices: list[tuple[str, str]] = list(AGENT_TYPE_SHORT_LABELS.items())
         return self.render(
@@ -650,7 +650,7 @@ class SearchSettingsView(BaseView):
         ]
 
     @expose("/", methods=["GET", "POST"])
-    def index(self):
+    def index(self, **kwargs):
         if request.method == "POST":
             for _name, slug, _title in SEARCH_LISTS:
                 key = f"color_{slug}"
@@ -678,7 +678,7 @@ class AutoloadView(BaseView):
         return redirect(url_for("admin_auth.login", next=request.url))
 
     @expose("/")
-    def index(self):
+    def index(self, **kwargs):
         return self.render("admin/autoload.html")
 
 
@@ -692,12 +692,17 @@ class MonitoringTasksView(BaseView):
         return redirect(url_for("admin_auth.login", next=request.url))
 
     @expose("/")
-    def index(self):
+    def index(self, **kwargs):
         admin = self.admin
         app = admin.app if admin is not None else None
         redis_client = getattr(app, "redis_client_tasks", None) if app is not None else None
         redis_unavailable: bool = redis_client is None
-        tasks: list[Task] = [] if redis_unavailable else Tasks.get_all(redis_client)
+        task_ttl_seconds: int = 7 * 24 * 60 * 60
+        tasks: list[Task] = (
+            []
+            if redis_unavailable
+            else Tasks.get_all(redis_client, task_ttl_seconds)
+        )
 
         return self.render(
             "admin/monitoring_tasks.html",

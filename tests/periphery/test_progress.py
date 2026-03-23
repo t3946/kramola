@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from flask import Flask
 from services.progress.progress import Progress
 
-PROGRESS_TTL = 60 * 60 * 24
+EXPECTED_REDIS_TASK_TTL: int = 7 * 24 * 60 * 60
 
 
 @pytest.fixture
@@ -24,6 +24,8 @@ def flask_app(mock_redis_client):
     """Create Flask app with mocked Redis client"""
     app = Flask(__name__)
     app.redis_client_tasks = mock_redis_client
+    app.config["REDIS_TASK_TTL"] = EXPECTED_REDIS_TASK_TTL
+
     return app
 
 
@@ -40,7 +42,7 @@ class TestProgress:
         progress = Progress("test_task", max_value=200)
         
         mock_redis_client.hset.assert_called_once_with("task:test_task", "max_value", 200)
-        mock_redis_client.expire.assert_called_once_with("task:test_task", PROGRESS_TTL)
+        mock_redis_client.expire.assert_called_once_with("task:test_task", EXPECTED_REDIS_TASK_TTL)
         assert progress.task_id == "test_task"
         assert progress.max_value == 200
 
@@ -57,7 +59,7 @@ class TestProgress:
         progress.add(25.5)
         
         mock_redis_client.hincrbyfloat.assert_called_once_with("task:test_task", "progress", 25.5)
-        mock_redis_client.expire.assert_called_with("task:test_task", PROGRESS_TTL)
+        mock_redis_client.expire.assert_called_with("task:test_task", EXPECTED_REDIS_TASK_TTL)
 
     def test_setValue_sets_progress(self, app_context, mock_redis_client):
         """Test that setValue() sets progress value"""
@@ -65,7 +67,7 @@ class TestProgress:
         progress.setValue(50)
         
         mock_redis_client.hset.assert_any_call("task:test_task", "progress", 50)
-        mock_redis_client.expire.assert_called_with("task:test_task", PROGRESS_TTL)
+        mock_redis_client.expire.assert_called_with("task:test_task", EXPECTED_REDIS_TASK_TTL)
 
     def test_getValue_returns_progress(self, app_context, mock_redis_client):
         """Test that getValue() returns progress value"""
