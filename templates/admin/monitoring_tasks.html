@@ -1,7 +1,66 @@
 {% extends 'admin/master.html' %}
+{% import 'admin/layout.html' as layout with context %}
+
+{% block page_title %}
+<h1 class="text-xl font-semibold text-gray-800 mb-4">
+    {{ layout.menu_icon(admin_view.menu) }}
+    Анализ документов от пользователей
+</h1>
+{% endblock %}
 
 {% block body %}
 <div class="rounded-lg border border-gray-200 bg-white p-6">
-    <p class="text-gray-600">Здесь будет отображаться мониторинг задач.</p>
+    {% if redis_unavailable %}
+    <p class="text-red-700">Redis для задач недоступен (клиент не подключён при старте приложения).</p>
+    {% elif tasks | length == 0 %}
+    <p class="text-gray-600">В Redis нет ключей с префиксом <code class="text-sm bg-gray-100 px-1 rounded">task:</code>.</p>
+    {% else %}
+    <table class="w-full border-collapse text-sm">
+        <thead>
+            <tr class="border-b border-gray-200">
+                <th class="pb-3 pr-4 text-left font-medium text-gray-700">ID Задачи</th>
+
+                <th class="pb-3 pr-4 text-left font-medium text-gray-700">Источник</th>
+
+                <th class="pb-3 pr-4 text-left font-medium text-gray-700">Страница результат</th>
+
+                <th class="pb-3 pr-4 text-left font-medium text-gray-700">Статус</th>
+
+                <th class="pb-3 text-left font-medium text-gray-700">Создана</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for task in tasks %}
+            <tr class="border-b border-gray-100">
+                <td class="py-2 pr-4 font-mono text-gray-800 break-all text-xs">{{ task.task_id }}</td>
+
+                <td class="py-2 pr-4 text-gray-800 break-all">
+                    {% if task.has_source_archive %}
+                    <a
+                        class="text-blue-600 hover:underline"
+                        href="{{ url_for('highlight.download_source', task_id=task.task_id) }}"
+                    >{{ task.source_label }}</a>
+                    {% else %}
+                    <span class="text-gray-600" title="Файл появится после обработки или недоступен">{{ task.source_label }}</span>
+                    {% endif %}
+                </td>
+
+                <td class="py-2 pr-4">
+                    <a
+                        class="text-blue-600 hover:underline"
+                        href="{{ url_for('highlight.results', task_id=task.task_id) }}"
+                        target="_blank"
+                    >Открыть</a>
+                </td>
+
+                <td class="py-2 pr-4 text-gray-800">{{ task.status_display_ru() }}</td>
+
+                <td class="py-2 text-gray-700 whitespace-nowrap">{{ task.created_at_display_moscow() }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
 </div>
 {% endblock %}

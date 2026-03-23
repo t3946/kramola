@@ -11,6 +11,8 @@ from wtforms import PasswordField
 
 from admin.menu_config import MENU_SPEC
 from models import Inagent, User, Role
+from services.task.task import Task
+from services.task.tasks import Tasks
 from models.extremists_terrorists import (
     EXTREMIST_AREA_LABELS,
     EXTREMIST_TYPE_LABELS,
@@ -691,7 +693,17 @@ class MonitoringTasksView(BaseView):
 
     @expose("/")
     def index(self):
-        return self.render("admin/monitoring_tasks.html")
+        admin = self.admin
+        app = admin.app if admin is not None else None
+        redis_client = getattr(app, "redis_client_tasks", None) if app is not None else None
+        redis_unavailable: bool = redis_client is None
+        tasks: list[Task] = [] if redis_unavailable else Tasks.get_all(redis_client)
+
+        return self.render(
+            "admin/monitoring_tasks.html",
+            tasks=tasks,
+            redis_unavailable=redis_unavailable,
+        )
 
 
 class SecureAdminIndexView(AdminIndexView):

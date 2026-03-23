@@ -1,7 +1,9 @@
 import os
+import shutil
 import time
 import uuid
 import json
+from datetime import datetime, timezone
 from typing import List
 
 from utils.decorators import require_query_params
@@ -9,6 +11,12 @@ from utils.decorators import require_query_params
 from application.controllers import ResultsController, InagentDetailsController
 from services.analysis import AnalysisData, AnalyserDocx
 from services.task import TaskStatus
+from services.task.redis_fields import (
+    REDIS_TASK_CREATED_AT,
+    REDIS_TASK_SOURCE_ARCHIVED_FILENAME,
+    REDIS_TASK_SOURCE_FILENAME,
+    REDIS_TASK_SOURCE_FILE_EXT,
+)
 from services.task.result import TaskResult
 
 
@@ -54,6 +62,7 @@ def _perform_highlight_processing(
         file_ext,
         used_predefined_list_names_for_session,
         app_config_dict,
+        task_created_at_iso: str,
         exclude_path: str = None
 ):
     logger = current_app.logger
@@ -79,7 +88,8 @@ def _perform_highlight_processing(
         'words_filename': words_filename_original,
         'result_filename': None, 'stats': [], 'total_matches': 0,
         'processing_time': 0, 'used_predefined_lists': used_predefined_list_names_for_session,
-        'error': None, '_task_id_ref': task_id
+        'error': None, '_task_id_ref': task_id,
+        'created_at': task_created_at_iso,
     }
     output_path = None
     final_status_for_redis = TaskStatus.COMPLETED
@@ -130,6 +140,18 @@ def _perform_highlight_processing(
     finally:
         task_result_data['processing_time'] = round(time.time() - start_time_task, 2)
 
+        source_archived_filename: str | None = None
+
+        if RESULT_DIR and source_path and os.path.isfile(source_path):
+            archive_name: str = f"source_{task_id}{file_ext}"
+            archive_path: str = os.path.join(RESULT_DIR, archive_name)
+
+            try:
+                shutil.copy2(source_path, archive_path)
+                source_archived_filename = archive_name
+            except OSError as e_copy:
+                logger.warning(f"[Task {task_id}] Failed to archive source to '{archive_path}': {e_copy}")
+
         if redis_client:
             try:
                 status_message = "Обработка успешно завершена." if not task_result_data.get('error') else task_result_data.get(
@@ -137,8 +159,13 @@ def _perform_highlight_processing(
                 redis_payload = {
                     "state": final_status_for_redis.value,
                     "status_message": status_message,
-                    "result_data_json": json.dumps(task_result_data)
+                    "result_data_json": json.dumps(task_result_data),
+                    REDIS_TASK_CREATED_AT: task_created_at_iso,
                 }
+
+                if source_archived_filename:
+                    redis_payload[REDIS_TASK_SOURCE_ARCHIVED_FILENAME] = source_archived_filename
+
                 redis_client.hmset(f"task:{task_id}", redis_payload)
                 redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
 
@@ -204,6 +231,7 @@ def process_async():
         return jsonify({'error': 'Сервис инициализируется, попробуйте позже.'}), 503
 
     task_id = str(uuid.uuid4())
+    task_created_at_iso: str | None = None
     source_path, words_path = None, None
     source_filename_original, words_filename_original = None, None
     exclude_path = None
@@ -244,13 +272,17 @@ def process_async():
             return jsonify({'error': 'Ошибка при обработке загруженных файлов.'}), 500
 
         perform_ocr = request.form.get('use_ocr') == 'true'
+        task_created_at_iso = datetime.now(timezone.utc).isoformat()
 
         # --- CRITICAL: Initial Redis PENDING state write ---
         if redis_client:
             try:
                 redis_client.hmset(f"task:{task_id}", {
-                    "state": TaskStatus.PENDING.value, "status_message": "Задача принята в очередь",
-                    "source_filename": source_filename_original or "Документ"
+                    "state": TaskStatus.PENDING.value,
+                    "status_message": "Задача принята в очередь",
+                    REDIS_TASK_SOURCE_FILENAME: source_filename_original or "Документ",
+                    REDIS_TASK_SOURCE_FILE_EXT: file_ext,
+                    REDIS_TASK_CREATED_AT: task_created_at_iso,
                 })
                 redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
 
@@ -307,6 +339,7 @@ def process_async():
             file_ext,
             used_predefined_list_names_for_session,
             app_config_dict,
+            task_created_at_iso,
             exclude_path
         )
         _EXECUTOR_FUTURES_REGISTRY[task_id] = future
@@ -325,10 +358,20 @@ def process_async():
         # Attempt to update Redis to COMPLETED if task_id was generated and Redis client available
         if redis_client and current_task_id_in_exc != 'N/A_in_exception':
             try:
+                created_at_on_error: str = (
+                    task_created_at_iso
+                    if task_created_at_iso
+                    else datetime.now(timezone.utc).isoformat()
+                )
                 redis_client.hmset(f"task:{current_task_id_in_exc}", {
-                    "state": TaskStatus.COMPLETED.value, "status_message": f'Ошибка при постановке задачи: {str(e)}',
-                    "result_data_json": json.dumps(
-                        {'error': f'Ошибка при постановке задачи: {str(e)}', '_task_id_ref': current_task_id_in_exc})
+                    "state": TaskStatus.COMPLETED.value,
+                    "status_message": f'Ошибка при постановке задачи: {str(e)}',
+                    "result_data_json": json.dumps({
+                        'error': f'Ошибка при постановке задачи: {str(e)}',
+                        '_task_id_ref': current_task_id_in_exc,
+                        'created_at': created_at_on_error,
+                    }),
+                    REDIS_TASK_CREATED_AT: created_at_on_error,
                 })
                 redis_client.expire(f"task:{current_task_id_in_exc}", current_app.config["REDIS_TASK_TTL"])
             except Exception as e_redis_fail:
@@ -377,6 +420,63 @@ def results():
 def inagent_details_fragment():
     phrase = request.args.get("phrase", "").strip()
     return InagentDetailsController.render_fragment(phrase)
+
+
+@highlight_bp.route('/download-source/<task_id>')
+def download_source(task_id: str):
+    logger = current_app.logger
+    redis_client = _get_redis_client()
+
+    if not redis_client:
+        return "Хранилище задач недоступно.", 503
+
+    raw_fields = redis_client.hgetall(f"task:{task_id}")
+
+    if not raw_fields:
+        return "Задача не найдена.", 404
+
+    fields: dict[str, str] = {}
+
+    for rk, rv in raw_fields.items():
+        ks: str = rk.decode() if isinstance(rk, bytes) else rk
+        vs: str = rv.decode() if isinstance(rv, bytes) else rv
+        fields[ks] = vs
+
+    archived: str | None = fields.get(REDIS_TASK_SOURCE_ARCHIVED_FILENAME)
+
+    if not archived:
+        return "Исходный файл не сохранён (задача ещё в очереди или архив недоступен).", 404
+
+    expected_prefix: str = f"source_{task_id}"
+
+    if ".." in archived or "/" in archived or "\\" in archived:
+        logger.error(f"Invalid source archive name for task {task_id}: {archived}")
+        return "Некорректное имя файла.", 400
+
+    if not archived.startswith(expected_prefix):
+        logger.error(f"Source archive name mismatch for task {task_id}: {archived}")
+        return "Некорректное имя файла.", 400
+
+    RESULT_DIR = current_app.config.get('RESULT_DIR_HIGHLIGHT', current_app.config.get('RESULT_DIR'))
+
+    if not RESULT_DIR:
+        logger.error("RESULT_DIR is not configured; cannot serve source archive.")
+        return "Каталог результатов не настроен.", 500
+
+    filepath_abs: str = os.path.join(RESULT_DIR, archived)
+
+    if not os.path.normpath(filepath_abs).startswith(os.path.normpath(RESULT_DIR)):
+        return "Ошибка: неверный путь к файлу.", 400
+
+    if os.path.exists(filepath_abs) and os.path.isfile(filepath_abs):
+        return send_file(
+            filepath_abs,
+            as_attachment=True,
+            download_name=fields.get(REDIS_TASK_SOURCE_FILENAME) or archived,
+        )
+
+    logger.error(f"Source archive missing on disk: {filepath_abs}")
+    return "Файл источника не найден на сервере.", 404
 
 
 @highlight_bp.route('/download-result/<path:filename>')
