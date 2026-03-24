@@ -153,7 +153,7 @@ class FulltextSearch:
 
             if phrase.phrase_type == EType.TEXT:
                 text_phrases_tokens.append(pair)
-            else:
+            elif phrase.phrase_type == EType.SURNAME:
                 surname_phrases_tokens.append(pair)
 
         use_text_optimized = (
@@ -165,6 +165,16 @@ class FulltextSearch:
         if use_text_optimized or use_surname_optimized:
             phrase_to_matches: Dict[int, Tuple[Union[Phrase, str], List[FTSMatch]]] = {}
 
+            def _add_matches(phrase: Phrase, matches: List[FTSMatch]):
+                phrase_id = id(phrase)
+
+                if phrase_to_matches.get(phrase_id) is None:
+                    phrase_to_matches[phrase_id] = (phrase, [])
+
+                _, prev_matches = phrase_to_matches[phrase_id]
+                prev_matches.extend(matches)
+                phrase_to_matches[phrase_id] = (phrase, prev_matches)
+
             if use_text_optimized:
                 text_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
                     text_strategy_instance.search_all_phrases(
@@ -175,7 +185,7 @@ class FulltextSearch:
                     )
                 )
                 for phrase, matches in text_results:
-                    phrase_to_matches[id(phrase)] = (phrase, matches)
+                    _add_matches(phrase, matches)
 
             if use_surname_optimized:
                 surname_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
@@ -186,12 +196,18 @@ class FulltextSearch:
                 )
 
                 for phrase, matches in surname_results:
-                    phrase_to_matches[id(phrase)] = (phrase, matches)
+                    _add_matches(phrase, matches)
 
-            return [
-                phrase_to_matches.get(id(phrase), (phrase, []))
-                for phrase, _ in search_phrases
-            ]
+            result: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
+
+            for phrase, _ in search_phrases:
+                if phrase_to_matches.get(id(phrase)) is None:
+                    continue
+
+                _, matches = phrase_to_matches.get(id(phrase))
+                result.append((phrase, matches))
+
+            return result
         # [end]
 
         # [start] Fallback: search each phrase separately with full text scan
