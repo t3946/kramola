@@ -22,7 +22,7 @@
 
                 <th class="pb-3 pr-4 text-left font-medium text-gray-700">Источник</th>
 
-                <th class="pb-3 pr-4 text-left font-medium text-gray-700">Страница результат</th>
+                <th class="pb-3 pr-4 text-left font-medium text-gray-700">Результат</th>
 
                 <th class="pb-3 pr-4 text-left font-medium text-gray-700">Время</th>
 
@@ -32,7 +32,7 @@
 
                 <th class="pb-3 pr-4 text-left font-medium text-gray-700">Создана</th>
 
-                <th class="pb-3 text-left font-medium text-gray-700">Истекает в</th>
+                <th class="pb-3 text-left font-medium text-gray-700">Истекает</th>
             </tr>
         </thead>
 
@@ -41,14 +41,18 @@
             <tr class="border-b border-gray-100">
                 <td class="py-2 pr-4 font-mono text-gray-800 break-all text-xs">{{ task.task_id }}</td>
 
-                <td class="py-2 pr-4 text-gray-800 break-all">
+                <td class="py-2 pr-4 max-w-[200px] min-w-0 text-gray-800">
                     {% if task.has_source_archive %}
                     <a
-                        class="text-blue-600 hover:underline"
+                        class="block truncate text-blue-600 hover:underline"
                         href="{{ url_for('highlight.download_source', task_id=task.task_id) }}"
+                        title="{{ task.source_label }}"
                     >{{ task.source_label }}</a>
                     {% else %}
-                    <span class="text-gray-600" title="Файл появится после обработки или недоступен">{{ task.source_label }}</span>
+                    <span
+                        class="block truncate text-gray-600"
+                        title="Файл появится после обработки или недоступен"
+                    >{{ task.source_label }}</span>
                     {% endif %}
                 </td>
 
