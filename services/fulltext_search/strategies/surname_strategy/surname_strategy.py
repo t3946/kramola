@@ -31,9 +31,6 @@ class SurnameStrategy(BaseSearchStrategy):
             if source_prefix == search_prefix:
                 result.append(phrase)
 
-            if source_prefix < search_prefix:
-                break
-
         return result
 
     def search_token_sequences(
