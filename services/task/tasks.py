@@ -102,6 +102,18 @@ def _expires_at_for_display(
     return None
 
 
+def _created_at_sort_key(task: Task) -> datetime:
+    if task.created_at is None:
+        return datetime.min.replace(tzinfo=timezone.utc)
+
+    ca: datetime = task.created_at
+
+    if ca.tzinfo is None:
+        ca = ca.replace(tzinfo=timezone.utc)
+
+    return ca
+
+
 class Tasks:
     @staticmethod
     def get_all(redis_client: Redis, task_ttl_seconds: int) -> list[Task]:
@@ -123,7 +135,7 @@ class Tasks:
 
         tasks: list[Task] = []
 
-        for tid in sorted(ids):
+        for tid in ids:
             raw_hash = redis_client.hgetall(f"task:{tid}")
             fields: dict[str, str] = _normalize_redis_hash(raw_hash) if raw_hash else {}
             state_raw: str | None = fields.get("state")
@@ -149,5 +161,7 @@ class Tasks:
                     has_source_archive=has_archive,
                 )
             )
+
+        tasks.sort(key=_created_at_sort_key, reverse=True)
 
         return tasks
