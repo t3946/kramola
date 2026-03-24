@@ -16,6 +16,7 @@ from services.task.redis_fields import (
     REDIS_TASK_SOURCE_ARCHIVED_FILENAME,
     REDIS_TASK_SOURCE_FILENAME,
     REDIS_TASK_SOURCE_FILE_EXT,
+    REDIS_TASK_SOURCE_FILE_SIZE_BYTES,
 )
 from services.task.result import TaskResult
 
@@ -91,6 +92,10 @@ def _perform_highlight_processing(
         'error': None, '_task_id_ref': task_id,
         'created_at': task_created_at_iso,
     }
+
+    if source_path and os.path.isfile(source_path):
+        task_result_data['source_file_size_bytes'] = os.path.getsize(source_path)
+
     output_path = None
     final_status_for_redis = TaskStatus.COMPLETED
 
@@ -165,6 +170,11 @@ def _perform_highlight_processing(
 
                 if source_archived_filename:
                     redis_payload[REDIS_TASK_SOURCE_ARCHIVED_FILENAME] = source_archived_filename
+
+                size_b = task_result_data.get("source_file_size_bytes")
+
+                if size_b is not None:
+                    redis_payload[REDIS_TASK_SOURCE_FILE_SIZE_BYTES] = str(int(size_b))
 
                 redis_client.hmset(f"task:{task_id}", redis_payload)
                 redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
@@ -277,12 +287,14 @@ def process_async():
         # --- CRITICAL: Initial Redis PENDING state write ---
         if redis_client:
             try:
+                source_size_bytes: int = os.path.getsize(source_path)
                 redis_client.hmset(f"task:{task_id}", {
                     "state": TaskStatus.PENDING.value,
                     "status_message": "Задача принята в очередь",
                     REDIS_TASK_SOURCE_FILENAME: source_filename_original or "Документ",
                     REDIS_TASK_SOURCE_FILE_EXT: file_ext,
                     REDIS_TASK_CREATED_AT: task_created_at_iso,
+                    REDIS_TASK_SOURCE_FILE_SIZE_BYTES: str(source_size_bytes),
                 })
                 redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
 

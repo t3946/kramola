@@ -24,6 +24,10 @@
 
                 <th class="pb-3 pr-4 text-left font-medium text-gray-700">Страница результат</th>
 
+                <th class="pb-3 pr-4 text-left font-medium text-gray-700">Время</th>
+
+                <th class="pb-3 pr-4 text-left font-medium text-gray-700">Размер</th>
+
                 <th class="pb-3 pr-4 text-left font-medium text-gray-700">Статус</th>
 
                 <th class="pb-3 pr-4 text-left font-medium text-gray-700">Создана</th>
@@ -55,6 +59,10 @@
                         target="_blank"
                     >Открыть</a>
                 </td>
+
+                <td class="py-2 pr-4 text-gray-800 whitespace-nowrap">{{ task.processing_time_display() }}</td>
+
+                <td class="py-2 pr-4 text-gray-800 whitespace-nowrap">{{ task.source_size_display() }}</td>
 
                 <td class="py-2 pr-4 text-gray-800">{{ task.status_display_ru() }}</td>
 

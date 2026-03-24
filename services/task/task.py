@@ -2,6 +2,8 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 _MSK_TZ = timezone(timedelta(hours=3))
+_KIB: int = 1024
+_MIB: int = 1024 * 1024
 
 
 class TaskStatus(str, Enum):
@@ -37,6 +39,20 @@ def _datetime_display_moscow(dt: datetime | None) -> str:
     return msk.strftime("%d.%m.%Y %H:%M") + " МСК"
 
 
+def _format_file_size_display(size_bytes: int) -> str:
+    if size_bytes < _KIB:
+        return f"{size_bytes} B"
+
+    if size_bytes < _MIB:
+        kb: float = size_bytes / _KIB
+
+        return f"{kb:.1f} KB"
+
+    mb: float = size_bytes / _MIB
+
+    return f"{mb:.1f} MB"
+
+
 class Task:
     task_id: str
     status: TaskStatus
@@ -44,6 +60,8 @@ class Task:
     created_at: datetime | None
     expires_at: datetime | None
     has_source_archive: bool
+    processing_time_seconds: float | None
+    source_file_size_bytes: int | None
 
     def __init__(
         self,
@@ -53,6 +71,8 @@ class Task:
         created_at: datetime | None,
         expires_at: datetime | None,
         has_source_archive: bool,
+        processing_time_seconds: float | None,
+        source_file_size_bytes: int | None,
     ) -> None:
         self.task_id = task_id
         self.status = status
@@ -60,6 +80,20 @@ class Task:
         self.created_at = created_at
         self.expires_at = expires_at
         self.has_source_archive = has_source_archive
+        self.processing_time_seconds = processing_time_seconds
+        self.source_file_size_bytes = source_file_size_bytes
+
+    def processing_time_display(self) -> str:
+        if self.processing_time_seconds is None:
+            return "—"
+
+        return f"{self.processing_time_seconds:.2f} с"
+
+    def source_size_display(self) -> str:
+        if self.source_file_size_bytes is None:
+            return "—"
+
+        return _format_file_size_display(self.source_file_size_bytes)
 
     def status_display_ru(self) -> str:
         return _TASK_STATUS_LABEL_RU.get(self.status, self.status.value)

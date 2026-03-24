@@ -6,6 +6,7 @@ from services.task.redis_fields import (
     REDIS_TASK_CREATED_AT,
     REDIS_TASK_SOURCE_ARCHIVED_FILENAME,
     REDIS_TASK_SOURCE_FILENAME,
+    REDIS_TASK_SOURCE_FILE_SIZE_BYTES,
 )
 from services.task.task import Task, TaskStatus
 
@@ -77,6 +78,53 @@ def _source_label_from_fields(fields: dict[str, str]) -> str:
             return from_result
 
     return "—"
+
+
+def _source_file_size_bytes_from_fields(fields: dict[str, str]) -> int | None:
+    top: str | None = fields.get(REDIS_TASK_SOURCE_FILE_SIZE_BYTES)
+
+    if top:
+        try:
+            return int(top)
+        except ValueError:
+            pass
+
+    raw_json: str | None = fields.get("result_data_json")
+
+    if raw_json:
+        payload: dict = json.loads(raw_json)
+        raw_sz = payload.get("source_file_size_bytes")
+
+        if raw_sz is not None:
+            try:
+                return int(raw_sz)
+            except (TypeError, ValueError):
+                pass
+
+    return None
+
+
+def _processing_time_seconds_from_fields(fields: dict[str, str]) -> float | None:
+    raw_json: str | None = fields.get("result_data_json")
+
+    if not raw_json:
+        return None
+
+    payload: dict = json.loads(raw_json)
+    raw_pt = payload.get("processing_time")
+
+    if raw_pt is None:
+        return None
+
+    try:
+        value: float = float(raw_pt)
+    except (TypeError, ValueError):
+        return None
+
+    if value < 0:
+        return None
+
+    return value
 
 
 def _expires_at_for_display(
@@ -151,6 +199,9 @@ class Tasks:
                 main_key,
             )
 
+            proc_sec: float | None = _processing_time_seconds_from_fields(fields)
+            size_b: int | None = _source_file_size_bytes_from_fields(fields)
+
             tasks.append(
                 Task(
                     task_id=tid,
@@ -159,6 +210,8 @@ class Tasks:
                     created_at=created,
                     expires_at=expires_at,
                     has_source_archive=has_archive,
+                    processing_time_seconds=proc_sec,
+                    source_file_size_bytes=size_b,
                 )
             )
 
