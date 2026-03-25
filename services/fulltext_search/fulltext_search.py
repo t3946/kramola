@@ -163,10 +163,13 @@ class FulltextSearch:
         use_surname_optimized = len(surname_phrases_tokens) > 0
 
         if use_text_optimized or use_surname_optimized:
-            phrase_to_matches: Dict[int, Tuple[Union[Phrase, str], List[FTSMatch]]] = {}
+            phrase_to_matches: Dict[Union[int, str], Tuple[Union[Phrase, str], List[FTSMatch]]] = {}
 
-            def _add_matches(phrase: Phrase, matches: List[FTSMatch]):
-                phrase_id = id(phrase)
+            def _add_matches(phrase: Union[Phrase, str], matches: List[FTSMatch]):
+                if isinstance(phrase, Phrase):
+                    phrase_id = id(phrase)
+                else:
+                    phrase_id = phrase
 
                 if phrase_to_matches.get(phrase_id) is None:
                     phrase_to_matches[phrase_id] = (phrase, [])
@@ -205,6 +208,24 @@ class FulltextSearch:
                     continue
 
                 _, matches = phrase_to_matches.get(id(phrase))
+                result.append((phrase, matches))
+
+            # convert regex matches to phrase matches
+            for _, pattern in search_patterns.items():
+                key = 'regex ' + pattern.pattern_name
+
+                if phrase_to_matches.get(key) is None:
+                    continue
+
+                _, matches = phrase_to_matches.get(key)
+                phrase = Phrase(
+                    phrase=pattern.pattern_name,
+                    source_list=pattern.source_list,
+                    phrase_original=None,
+                    phrase_type=EType.TEXT,
+                    model=None,
+                )
+
                 result.append((phrase, matches))
 
             return result
@@ -290,10 +311,10 @@ class FulltextSearch:
             True if sequences match according to strategy, False otherwise
         """
         strategy_instance = FulltextSearch._get_strategy(strategy)
-        
+
         if not isinstance(strategy_instance, FuzzyWordsStrategy):
             raise ValueError("_compare_token_sequences is only available for FUZZY_WORDS strategy")
-        
+
         return strategy_instance._compare_token_sequences(source_tokens, search_tokens)
 
     @staticmethod

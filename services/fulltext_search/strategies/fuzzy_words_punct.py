@@ -247,7 +247,8 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                     text_match.check_id = check_id_collection[(text_match.start_token_idx, text_match.end_token_idx)]
                     matches.append(text_match)
 
-            result_matches.append((phrase, matches))
+            if len(matches) > 0:
+                result_matches.append((phrase, matches))
 
         # [start] merge text and regex matches
         for start, end in regex_matches_map.keys():
