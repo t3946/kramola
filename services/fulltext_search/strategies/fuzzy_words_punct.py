@@ -113,7 +113,7 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                     match_by_lemma = source_token.lemma == search_token.lemma
                     match_by_stem = source_token.stem == search_token.stem
 
-                    if match_by_text or match_by_lemma or match_by_stem:
+                    if match_by_text or match_by_lemma and match_by_stem:
                         source_i += 1
                         search_j += 1
                         words_matched += 1
@@ -163,19 +163,10 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
                 source_i += 1
                 continue
 
-            search_token = search_words[search_j]
+            search_token: Token = search_words[search_j]
 
             if source_token.type == TokenType.WORD:
-                source_text = source_token.text
-                source_lemma = source_token.lemma
-                source_stem = source_token.stem
-                search_text = search_token.text
-                search_lemma = search_token.lemma
-                search_stem = search_token.stem
-
-                if (source_text == search_text or
-                    source_lemma == search_lemma or
-                    source_stem == search_stem):
+                if source_token.is_equal(search_token):
                     matched_tokens.append(source_token)
                     source_i += 1
                     search_j += 1

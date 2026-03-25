@@ -33,10 +33,16 @@ class Token:
         self.stem = stem
 
     def is_equal(self, t2: 'Token') -> bool:
+        if self.text == t2.text:
+            return True
+
         lemma_match = self.lemma and t2.lemma and self.lemma == t2.lemma
         stem_match = self.stem and t2.stem and self.stem == t2.stem
-        text_match = self.text == t2.text
-        return text_match or (lemma_match and stem_match)
+
+        if lemma_match and stem_match:
+            return True
+
+        return False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
