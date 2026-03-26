@@ -40,17 +40,22 @@ class AnalyserPdf(Analyser):
     def analyse_and_highlight(self, task_id: Optional[str] = None, use_ocr: bool = False) -> dict:
         self.document = pymupdf.open(self.source_path)
 
-        self._progress = CombinedProgress(task_id, [])
+        self._progress = CombinedProgress(task_id, [
+            ProgressParticle(
+                key='collect_pages',
+                description='Индексация страниц',
+            ),
+            ProgressParticle(
+                key='tokenize_test',
+                description='Токенизация',
+            ),
+        ])
 
         # [start] Collect pages
         pages_to_process = len(self.document)
         pua_map = PuaMap()
         pages = []
-        self._progress.add_particle(ProgressParticle(
-            key='collect_pages',
-            description='Индексация страниц',
-            max_value=pages_to_process,
-        ))
+        self._progress.add_particle()
 
         for page_num in range(pages_to_process):
             page = self.document.load_page(page_num)
