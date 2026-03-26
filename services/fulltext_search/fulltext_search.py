@@ -13,6 +13,7 @@ from services.fulltext_search.strategies import (
     FuzzyWordsPunctStrategy,
     SurnameStrategy,
 )
+from services.utils.timeit import timeit
 
 USE_STEM_FALLBACK = True
 STOP_WORDS_RU = {
@@ -280,6 +281,7 @@ class FulltextSearch:
         # [end]
 
     @staticmethod
+    @timeit
     def tokenize_text(text: str) -> List[Token]:
         """Re-export for backward compatibility."""
         return tokenize_text_fn(text)

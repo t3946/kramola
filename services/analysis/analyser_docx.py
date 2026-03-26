@@ -8,7 +8,7 @@ from services.utils.intersects_at import intersects_at
 from services.utils.interval import Interval
 
 if TYPE_CHECKING:
-    from services.progress.docx.combined_progress import CombinedProgress
+    from services.progress.docx.combined_progress import ProgressDOCXAnalyseAndHighlight
 
 from docx.text.paragraph import Paragraph
 from docx.text.run import Run
@@ -25,7 +25,7 @@ from services.tokenization import Token, TokenType, TokenDictionary
 from services.fulltext_search.phrase import Phrase
 from services.utils.timeit import timeit
 from copy import deepcopy
-from services.progress.docx.combined_progress import CombinedProgress, ProgressType
+from services.progress.docx.combined_progress import ProgressDOCXAnalyseAndHighlight, ProgressType
 
 
 class _SearchIntersection(NamedTuple):
@@ -49,7 +49,7 @@ class AnalyserDocx(Analyser):
     _tokenize_time_total: float
     _global_document_dictionary: Optional[TokenDictionary]
     _search_phrases: List[Phrase]
-    _progress: Optional['CombinedProgress']
+    _progress: Optional['ProgressDOCXAnalyseAndHighlight']
 
     def __init__(self, document: Union[docx.Document, str]):
         super().__init__()
@@ -458,7 +458,7 @@ class AnalyserDocx(Analyser):
                         total_table_paragraphs += len(cell.paragraphs)
 
             search_max_value = len(paragraphs) + total_table_paragraphs
-            self._progress = CombinedProgress(task_id, preparation_max_value, search_max_value)
+            self._progress = ProgressDOCXAnalyseAndHighlight(task_id, preparation_max_value, search_max_value)
         # [end]
 
         # [start] build global dictionary and filter search phrases by it

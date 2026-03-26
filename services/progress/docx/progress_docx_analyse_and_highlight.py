@@ -12,7 +12,7 @@ class ProgressType(Enum):
     SEARCH = "search"
 
 
-class CombinedProgress:
+class ProgressDOCXAnalyseAndHighlight:
     """Combines two progress trackers into one overall progress (50% each)."""
 
     def __init__(self, task_id: str, preparation_max_value: int, search_max_value: int):

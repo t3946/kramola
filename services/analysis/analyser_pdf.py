@@ -37,6 +37,7 @@ class AnalyserPdf(Analyser):
     @timeit
     def analyse_and_highlight(self, task_id: Optional[str] = None, use_ocr: bool = False) -> dict:
         self.document = pymupdf.open(self.source_path)
+        # self._progress = CombinedProgress(task_id, preparation_max_value, search_max_value)
 
         pages_to_process = len(self.document)
 
