@@ -1,7 +1,7 @@
-from services.progress.progress import Progress
+from services.progress.task_progress import TaskProgress
 
 
-class SearchProgress(Progress):
+class SearchProgress(TaskProgress):
     """Progress tracker for search phase (analyzing paragraphs and tables)."""
     
     def _get_redis_key(self) -> str:

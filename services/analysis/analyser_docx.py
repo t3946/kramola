@@ -1,22 +1,18 @@
 import docx
 import time
 from dataclasses import dataclass
-from typing import List, Union, Optional, Tuple, NamedTuple, TYPE_CHECKING, Dict
+from typing import List, Union, Optional, Tuple, NamedTuple
 from functools import cmp_to_key
-
-from services.utils.intersects_at import intersects_at
-from services.utils.interval import Interval
-
-if TYPE_CHECKING:
-    from services.progress.docx.combined_progress import ProgressDOCXAnalyseAndHighlight
-
 from docx.text.paragraph import Paragraph
 from docx.text.run import Run
 from docx.text.hyperlink import Hyperlink
 from docx.table import Table
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
+from copy import deepcopy
 
+from services.utils.intersects_at import intersects_at
+from services.utils.interval import Interval
 from services.analysis.analyser import Analyser
 from services.analysis.analysis_match import AnalysisMatch
 from services.analysis.annot_content import get_annot_title_content, get_multiple_get_annot_title_content
@@ -24,8 +20,10 @@ from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrat
 from services.tokenization import Token, TokenType, TokenDictionary
 from services.fulltext_search.phrase import Phrase
 from services.utils.timeit import timeit
-from copy import deepcopy
-from services.progress.docx.combined_progress import ProgressDOCXAnalyseAndHighlight, ProgressType
+from services.progress.docx.progress_docx_analyse_and_highlight import (
+    ProgressDOCXAnalyseAndHighlight,
+    ProgressType,
+)
 
 
 class _SearchIntersection(NamedTuple):
@@ -49,7 +47,7 @@ class AnalyserDocx(Analyser):
     _tokenize_time_total: float
     _global_document_dictionary: Optional[TokenDictionary]
     _search_phrases: List[Phrase]
-    _progress: Optional['ProgressDOCXAnalyseAndHighlight']
+    _progress: Optional[ProgressDOCXAnalyseAndHighlight]
 
     def __init__(self, document: Union[docx.Document, str]):
         super().__init__()
@@ -363,7 +361,7 @@ class AnalyserDocx(Analyser):
     def __build_global_dictionary(self) -> TokenDictionary:
         """Build dictionary from entire document text."""
         if self._progress:
-            self._progress.setValue(0, ProgressType.PREPARATION)
+            self._progress.update_value(0, ProgressType.PREPARATION)
 
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables

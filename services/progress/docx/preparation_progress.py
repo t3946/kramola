@@ -1,7 +1,7 @@
-from services.progress.progress import Progress
+from services.progress.task_progress import TaskProgress
 
 
-class PreparationProgress(Progress):
+class PreparationProgress(TaskProgress):
     """Progress tracker for document preparation phase (building dictionary and filtering phrases)."""
     
     def _get_redis_key(self) -> str:

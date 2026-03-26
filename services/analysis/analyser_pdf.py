@@ -6,6 +6,8 @@ from typing import List, Optional, Tuple, Dict
 from services.analysis import AnalysisMatch
 from services.analysis.analyser import Analyser
 from services.fulltext_search.phrase import Phrase
+from services.progress.combined_progress.combined_progress import CombinedProgress
+from services.progress.combined_progress.process_particle import ProgressParticle
 from services.tokenization import Token
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.utils.timeit import timeit
@@ -26,7 +28,7 @@ class AnalyserPdf(Analyser):
     document: Optional[pymupdf.Document]
     source_path: str
 
-    # _progress: Optional['CombinedProgress']
+    _progress: Optional['CombinedProgress']
 
     def __init__(self, source_path: str):
         super().__init__()
@@ -37,19 +39,25 @@ class AnalyserPdf(Analyser):
     @timeit
     def analyse_and_highlight(self, task_id: Optional[str] = None, use_ocr: bool = False) -> dict:
         self.document = pymupdf.open(self.source_path)
-        # self._progress = CombinedProgress(task_id, preparation_max_value, search_max_value)
 
-        pages_to_process = len(self.document)
+        self._progress = CombinedProgress(task_id, [])
 
         # [start] Collect pages
+        pages_to_process = len(self.document)
         pua_map = PuaMap()
         pages = []
+        self._progress.add_particle(ProgressParticle(
+            key='collect_pages',
+            description='Индексация страниц',
+            max_value=pages_to_process,
+        ))
 
         for page_num in range(pages_to_process):
             page = self.document.load_page(page_num)
             page_analyser = PageAnalyser(page=page, pua_map=pua_map, highlight_color=self.get_highlight_color_pdf())
             page_analyser.collect()
             pages.append(page_analyser)
+            self._progress.set_particle_value('collect_pages', page_num)
         # [end]
 
         # [start] tokenize document and run search

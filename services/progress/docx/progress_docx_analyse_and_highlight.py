@@ -1,7 +1,9 @@
 import time
 from enum import Enum
 from flask import current_app
-from services.progress.progress import PROGRESS_UPDATE_INTERVAL, task_redis_ttl_seconds
+
+from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
+from services.progress.task_progress import PROGRESS_UPDATE_INTERVAL, task_redis_ttl_seconds
 from services.progress.docx.preparation_progress import PreparationProgress
 from services.progress.docx.search_progress import SearchProgress
 
@@ -50,7 +52,6 @@ class ProgressDOCXAnalyseAndHighlight:
     def _send_progress_event(self, progress_value: float):
         """Send progress event through Socket.IO."""
         try:
-            from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
             TaskProgressRoom.send_progress(self.task_id, progress_value)
         except Exception as e:
             import logging
@@ -78,9 +79,9 @@ class ProgressDOCXAnalyseAndHighlight:
             progress_type (ProgressType): Type of progress to update
         """
         if progress_type == ProgressType.PREPARATION:
-            self.preparation_progress.setValue(value)
+            self.preparation_progress.update_value(value)
         elif progress_type == ProgressType.SEARCH:
-            self.search_progress.setValue(value)
+            self.search_progress.update_value(value)
         
         self._update_combined_progress()
     

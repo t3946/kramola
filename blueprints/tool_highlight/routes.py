@@ -36,18 +36,12 @@ from services.analysis.analyser_pdf import AnalyserPdf
 
 from services.words_list import ListFromText, ListFromTextExclude
 
+from .redis_tasks import get_redis_tasks_client as _get_redis_client
+
 
 highlight_bp = Blueprint('highlight', __name__, template_folder='templates')
 
 _EXECUTOR_FUTURES_REGISTRY = {}
-
-
-def _get_redis_client():
-    if hasattr(current_app, 'redis_client_tasks') and current_app.redis_client_tasks:
-        return current_app.redis_client_tasks
-    current_app.logger.warning(
-        "Redis client 'redis_client_tasks' not found in current_app. Task persistence to Redis disabled.")
-    return None
 
 
 def _perform_highlight_processing(
@@ -77,9 +71,6 @@ def _perform_highlight_processing(
                 "state": TaskStatus.PROCESSING.value, "status_message": status_message
             })
             redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
-
-            from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
-            TaskProgressRoom.send_status(task_id, TaskStatus.PROCESSING.value, status_message)
         except Exception as e_redis:
             logger.error(f"[Task {task_id}] Redis error (set PROCESSING): {e_redis}", exc_info=True)
 
@@ -178,9 +169,6 @@ def _perform_highlight_processing(
 
                 redis_client.hmset(f"task:{task_id}", redis_payload)
                 redis_client.expire(f"task:{task_id}", current_app.config["REDIS_TASK_TTL"])
-
-                from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
-                TaskProgressRoom.send_status(task_id, final_status_for_redis.value, status_message)
             except Exception as e_redis:
                 logger.error(f"[Task {task_id}] Redis error (final update): {e_redis}", exc_info=True)
 
@@ -309,9 +297,6 @@ def process_async():
                 elif exclude_lines:
                     ListFromTextExclude(task_id).save_from_text(exclude_lines)
                 # [end]
-
-                from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
-                TaskProgressRoom.send_status(task_id, TaskStatus.PENDING.value, "Задача принята в очередь")
             except Exception as e_redis:
                 logger.error(f"[Req {task_id}] Redis error (initial save PENDING): {e_redis}", exc_info=True)
                 # Fail fast if Redis can't save initial state. Cleanup handled by outer except.

@@ -5,9 +5,9 @@ from flask import current_app, jsonify
 from services.task.result import TaskResult
 from services.task import TaskStatus
 
+from ..redis_tasks import get_redis_tasks_client
 from ..routes import (
     highlight_bp,
-    _get_redis_client,
     _EXECUTOR_FUTURES_REGISTRY,
 )
 
@@ -15,7 +15,7 @@ from ..routes import (
 @highlight_bp.route('/task_status/<task_id>', methods=['GET'])
 def check_task_status(task_id):
     logger = current_app.logger
-    redis_client = _get_redis_client()
+    redis_client = get_redis_tasks_client()
     task_info_from_redis_initial = None
 
     try:

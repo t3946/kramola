@@ -1,6 +1,7 @@
 import time
 from flask import current_app
-import logging
+
+from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
 
 PROGRESS_UPDATE_INTERVAL = 0.5  # Минимум 0.5 секунды между обновлениями (2 раза в секунду)
 
@@ -9,7 +10,7 @@ def task_redis_ttl_seconds() -> int:
     return int(current_app.config["REDIS_TASK_TTL"])
 
 
-class Progress:
+class TaskProgress:
     def __init__(self, task_id: str, max_value: int = 100):
         self.task_id = task_id
         self.max_value = max_value
@@ -49,15 +50,9 @@ class Progress:
                 logging.warning(f"Failed to update progress for task {self.task_id}: {e}")
 
     def _send_progress_event(self):
-        """Отправляет событие прогресса через Socket.IO"""
-        try:
-            from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
-            progress_value = self.getProgress()
-            TaskProgressRoom.send_progress(self.task_id, progress_value)
-        except Exception as e:
-            # Логируем ошибку, но не прерываем выполнение
-            import logging
-            logging.warning(f"Failed to send progress event for task {self.task_id}: {e}")
+        """send progress in Socket.IO room"""
+        progress_value = self.getProgress()
+        TaskProgressRoom.send_progress(self.task_id, progress_value)
 
     def add(self, delta: float):
         """Add to current progress (with automatic throttling)"""
@@ -77,7 +72,7 @@ class Progress:
             # Отправляем событие прогресса через Socket.IO
             self._send_progress_event()
 
-    def setValue(self, value: float):
+    def _set_value(self, value: float):
         """Set progress value (bypasses throttling, applies immediately)"""
         # setValue применяется сразу, так как это установка конкретного значения, а не инкремент
         self._pending_delta = 0  # Сбрасываем накопленные изменения
@@ -87,7 +82,20 @@ class Progress:
         redis_client.expire(redis_key, task_redis_ttl_seconds())
         self._last_update_time = time.time()
 
-        # Отправляем событие прогресса через Socket.IO
+    def update_value(self, value: float):
+        self._set_value(value)
+        self._send_progress_event()
+
+    def _set_max_value(self, max_value: int):
+        """Update max value for percentage calculation (Redis + instance)."""
+        self.max_value = max_value
+        redis_client = current_app.redis_client_tasks
+        redis_key = self._get_redis_key()
+        redis_client.hset(redis_key, "max_value", max_value)
+        redis_client.expire(redis_key, task_redis_ttl_seconds())
+
+    def update_max_value(self, max_value: int) -> None:
+        self._set_max_value()
         self._send_progress_event()
 
     def getValue(self) -> float:

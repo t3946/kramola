@@ -1,7 +1,7 @@
 from flask_socketio import emit, join_room, leave_room
 from flask import current_app
-from services.progress.progress import Progress
-from blueprints.tool_highlight.routes import _get_redis_client
+
+from blueprints.tool_highlight.redis_tasks import get_redis_tasks_client
 
 class TaskProgressRoom:
     """Room for task progress updates"""
@@ -15,16 +15,18 @@ class TaskProgressRoom:
     
     @staticmethod
     def on_join(data):
+        from services.progress.task_progress import TaskProgress
+
         """Handle client joining progress room"""
         task_id = data.get('task_id')
         room_name = TaskProgressRoom.get_room_name(task_id)
         join_room(room_name)
         
-        progress = Progress(task_id)
+        progress = TaskProgress(task_id)
         emit('progress', {'task_id': task_id, 'progress': progress.getProgress()})
         emit('joined', {'task_id': task_id})
         
-        redis_client = _get_redis_client()
+        redis_client = get_redis_tasks_client()
         if redis_client:
             try:
                 raw_redis_data = redis_client.hgetall(f"task:{task_id}")
@@ -52,10 +54,6 @@ class TaskProgressRoom:
     @staticmethod
     def send_progress(task_id, progress_value=None):
         """Send progress update to room"""
-        if progress_value is None:
-            progress = Progress(task_id)
-            progress_value = progress.getProgress()
-        
         socketio = current_app.extensions.get('socketio')
         socketio.emit('progress', {
             'task_id': task_id,
