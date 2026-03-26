@@ -210,7 +210,10 @@ class FulltextSearch:
                 _, matches = phrase_to_matches.get(id(phrase))
                 result.append((phrase, matches))
 
-            # convert regex matches to phrase matches
+            # [start] convert regex matches to phrase matches
+            if search_patterns is None:
+                search_patterns = {}
+
             for _, pattern in search_patterns.items():
                 key = 'regex ' + pattern.pattern_name
 
@@ -227,6 +230,7 @@ class FulltextSearch:
                 )
 
                 result.append((phrase, matches))
+            # [end]
 
             return result
         # [end]
