@@ -17,7 +17,7 @@ from services.analysis.analyser import Analyser
 from services.analysis.analysis_match import AnalysisMatch
 from services.analysis.annot_content import get_annot_title_content, get_multiple_get_annot_title_content
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
-from services.tokenization import Token, TokenType, TokenDictionary
+from services.tokenization import Token, TokenType, TokenDictionary, Tokenizer
 from services.fulltext_search.phrase import Phrase
 from services.utils.timeit import timeit
 from services.progress.docx.progress_docx_analyse_and_highlight import (
@@ -228,7 +228,7 @@ class AnalyserDocx(Analyser):
         # [start] find matches in concatenated batch text
         text = ''.join([run.text for run in batch])
         start_time = time.time()
-        source_tokens: List[Token] = FulltextSearch.tokenize_text(text)
+        source_tokens: List[Token] = Tokenizer(None).tokenize_text(text)
         self._tokenize_time_total += time.time() - start_time
 
         matches: List[AnalysisMatch] = self.__search_all_phrases(
@@ -382,7 +382,7 @@ class AnalyserDocx(Analyser):
         all_tokens: List[Token] = []
 
         for paragraph in paragraphs:
-            paragraph_tokens = FulltextSearch.tokenize_text(paragraph.text)
+            paragraph_tokens = Tokenizer(None).tokenize_text(paragraph.text)
             all_tokens.extend(paragraph_tokens)
 
             if self._progress:
@@ -392,7 +392,7 @@ class AnalyserDocx(Analyser):
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
-                        paragraph_tokens = FulltextSearch.tokenize_text(paragraph.text)
+                        paragraph_tokens = Tokenizer(None).tokenize_text(paragraph.text)
                         all_tokens.extend(paragraph_tokens)
 
                         if self._progress:

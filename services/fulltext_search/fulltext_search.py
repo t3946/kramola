@@ -4,8 +4,10 @@ from enum import Enum
 from typing import List, Optional, Tuple, Union, Dict
 
 from services.fulltext_search.phrase import EType, Phrase
+from services.progress.combined_progress.combined_progress import CombinedProgress
 from services.pymorphy_service import CYRILLIC_PATTERN
-from services.tokenization import Token, TokenType, TokenDictionary, tokenize_text as tokenize_text_fn
+from services.tokenization import Token, TokenType, TokenDictionary
+from services.tokenization.tokenizer import Tokenizer
 from services.utils.regex_pattern import RegexPattern
 from services.fulltext_search.search_match import FTSMatch, FTSTextMatch, FTSRegexMatch
 from services.fulltext_search.strategies import (
@@ -64,15 +66,22 @@ class FulltextSearch:
 
     _default_strategy = FuzzyWordsStrategy()
 
-    def __init__(self, source: Union[str, List[Token]]):
+    def __init__(
+        self,
+        source: Union[str, List[Token]],
+        combined_progress: Optional[CombinedProgress] = None,
+    ):
         """
         Initialize FulltextSearch with source text or tokens.
-        
+
         Args:
             source: Source text (str) or list of tokens to search in
+            combined_progress: When source is str, passed to Tokenizer for particle progress
         """
+        self._tokenizer: Tokenizer = Tokenizer(combined_progress)
+
         if isinstance(source, str):
-            self.source_tokens: List[Token] = tokenize_text_fn(source)
+            self.source_tokens: List[Token] = self._tokenizer.tokenize_text(source)
         else:
             self.source_tokens: List[Token] = source
 
@@ -109,7 +118,7 @@ class FulltextSearch:
             List of tuples (start, end) where start and end are source tokens indices.
         """
         if isinstance(text, str):
-            search_tokens: List[Token] = tokenize_text_fn(text)
+            search_tokens: List[Token] = self._tokenizer.tokenize_text(text)
         else:
             search_tokens: List[Token] = text
 
@@ -146,7 +155,7 @@ class FulltextSearch:
 
         for phrase, text_or_tokens in search_phrases:
             search_tokens = (
-                tokenize_text_fn(text_or_tokens)
+                self._tokenizer.tokenize_text(text_or_tokens)
                 if isinstance(text_or_tokens, str)
                 else text_or_tokens
             )
@@ -279,11 +288,6 @@ class FulltextSearch:
 
         return results
         # [end]
-
-    @staticmethod
-    def tokenize_text(text: str) -> List[Token]:
-        """Re-export for backward compatibility."""
-        return tokenize_text_fn(text)
 
     @staticmethod
     def _is_stop_word(lemma: str) -> bool:

@@ -1,17 +1,42 @@
 import re
-from typing import List
+from typing import List, Optional
 
 from services import pymorphy_service
 from services.pymorphy_service import ensure_models_loaded
+from services.progress.combined_progress.combined_progress import CombinedProgress
 
 from services.tokenization.token import Token, TokenType
 
 
 class Tokenizer:
-    TOKENIZE_PATTERN = re.compile(r"(\w+)|([^\w\s]+)|(\s+)", re.UNICODE)
+    """
+    Text tokenizer; reports tokenization progress as 0–100% on CombinedProgress when provided.
+    Intermediate updates are throttled (every PROGRESS_REPORT_EVERY_N_WORDS words); final % is always sent.
+    """
 
-    @staticmethod
-    def tokenize_text(text: str) -> List[Token]:
+    TOKENIZE_PATTERN = re.compile(r"(\w+)|([^\w\s]+)|(\s+)", re.UNICODE)
+    PARTICLE_KEY: str = "tokenization"
+    PROGRESS_REPORT_EVERY_N_WORDS: int = 1000 * 10
+
+    def __init__(self, combined_progress: Optional[CombinedProgress] = None) -> None:
+        self._combined_progress: Optional[CombinedProgress] = combined_progress
+
+    def _report_tokenize_progress(self, end_exclusive: int, text_len: int) -> None:
+        if self._combined_progress is None:
+            return
+
+        if text_len <= 0:
+            percent: float = 100.0
+        else:
+            covered: int = min(end_exclusive, text_len)
+            percent = 100.0 * float(covered) / float(text_len)
+
+        self._combined_progress.set_particle_value(
+            Tokenizer.PARTICLE_KEY,
+            percent,
+        )
+
+    def tokenize_text(self, text: str) -> List[Token]:
         """
         Universal text tokenization.
 
@@ -21,10 +46,16 @@ class Tokenizer:
         ensure_models_loaded()
 
         tokens: List[Token] = []
+
         if not text:
+            self._report_tokenize_progress(0, 0)
+
             return tokens
 
+        text_len: int = len(text)
+
         current_pos = 0
+        words_processed: int = 0
 
         for match in Tokenizer.TOKENIZE_PATTERN.finditer(text):
             start, end = match.span()
@@ -63,6 +94,15 @@ class Tokenizer:
             ))
             current_pos = end
 
+            if token_type == TokenType.WORD:
+                words_processed += 1
+
+                if (
+                    self._combined_progress is not None
+                    and words_processed % Tokenizer.PROGRESS_REPORT_EVERY_N_WORDS == 0
+                ):
+                    self._report_tokenize_progress(current_pos, text_len)
+
         if current_pos < len(text):
             remaining_text = text[current_pos:]
             tokens.append(Token(
@@ -73,8 +113,9 @@ class Tokenizer:
                 lemma=None,
                 stem=None
             ))
+            current_pos = len(text)
+
+        if self._combined_progress is not None:
+            self._report_tokenize_progress(current_pos, text_len)
 
         return tokens
-
-
-tokenize_text = Tokenizer.tokenize_text

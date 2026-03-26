@@ -9,6 +9,7 @@ from services.fulltext_search.phrase import Phrase
 from services.progress.combined_progress.combined_progress import CombinedProgress
 from services.progress.combined_progress.process_particle import ProgressParticle
 from services.tokenization import Token
+from services.tokenization.tokenizer import Tokenizer
 from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrategy
 from services.utils.timeit import timeit
 from services.analysis.pdf.pua_map import PuaMap, logger
@@ -46,24 +47,27 @@ class AnalyserPdf(Analyser):
                 description='Индексация страниц',
             ),
             ProgressParticle(
-                key='tokenize_test',
+                key=Tokenizer.PARTICLE_KEY,
                 description='Токенизация',
-            ),
+            )
         ])
 
         # [start] Collect pages
         pages_to_process = len(self.document)
         pua_map = PuaMap()
         pages = []
-        self._progress.add_particle()
 
         for page_num in range(pages_to_process):
             page = self.document.load_page(page_num)
             page_analyser = PageAnalyser(page=page, pua_map=pua_map, highlight_color=self.get_highlight_color_pdf())
             page_analyser.collect()
             pages.append(page_analyser)
-            self._progress.set_particle_value('collect_pages', page_num)
+
+            if page_num % 50 == 0:
+                self._progress.set_particle_value('collect_pages', page_num / pages_to_process * 100)
         # [end]
+
+        self._progress.set_particle_value('collect_pages', 100)
 
         # [start] tokenize document and run search
         whole_document_text = ''
@@ -84,7 +88,7 @@ class AnalyserPdf(Analyser):
             page_offsets.append(current_offset)
         # [end]
 
-        all_tokens: List[Token] = FulltextSearch.tokenize_text(whole_document_text)
+        all_tokens: List[Token] = Tokenizer(self._progress).tokenize_text(whole_document_text)
         phrases_list = self.analyse_data.phrases
         search_phrases_for_search: List[Tuple[Phrase, List[Token]]] = [
             (phrase, phrase.tokens) for phrase in phrases_list

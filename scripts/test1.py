@@ -4,7 +4,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from services.fulltext_search.fulltext_search import FulltextSearch
+from services.tokenization import Tokenizer
 
 
 # 17. Местная организация города Краснодара – «Пит Буль» («Pit Bull»)
@@ -18,7 +18,7 @@ from services.fulltext_search.fulltext_search import FulltextSearch
 
 phrase = "яблоки"
 
-tokens = FulltextSearch.tokenize_text(phrase)
+tokens = Tokenizer(None).tokenize_text(phrase)
 
 for token in tokens:
     if token['type'] == 'word':

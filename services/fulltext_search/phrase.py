@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List, Dict, Any, Optional
 from extensions import db
 
-from services.tokenization import Token, tokenize_text
+from services.tokenization import Token, Tokenizer
 
 class EType(Enum):
     TEXT = 'text'
@@ -28,7 +28,7 @@ class Phrase:
         self.source_list = source_list
         self.phrase = phrase
         self.phrase_original = phrase_original
-        self.tokens = tokenize_text(phrase)
+        self.tokens = Tokenizer(None).tokenize_text(phrase)
         self.phrase_type = phrase_type
         self.model = model
 

@@ -4,7 +4,7 @@ from typing import Optional
 from docx.shared import RGBColor, Pt
 from docx.text.paragraph import ParagraphFormat
 from docx.text.run import Run
-from services.fulltext_search.fulltext_search import FulltextSearch
+from services.tokenization import Tokenizer
 
 logger_cd = logging.getLogger(__name__)
 
@@ -156,8 +156,8 @@ def _apply_run_style(source_run: Optional[Run], target_run: Optional[Run], docum
 
 def tokenize_paragraph_universal(paragraph) -> list:
     """
-    Tokenizes paragraph text using FulltextSearch.
+    Tokenizes paragraph text using Tokenizer.
     """
     text = paragraph.text if paragraph else ""
 
-    return FulltextSearch.tokenize_text(text)   
+    return Tokenizer(None).tokenize_text(text)

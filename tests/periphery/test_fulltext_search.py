@@ -1,5 +1,5 @@
 from services.fulltext_search.fulltext_search import FulltextSearch
-from services.tokenization import TokenType
+from services.tokenization import TokenType, Tokenizer
 
 
 class TestFulltextSearch:
@@ -62,8 +62,8 @@ class TestFulltextSearch:
             search_text = test_case['search']
             expected_result = test_case['result']
 
-            source_tokens = FulltextSearch.tokenize_text(source_text)
-            search_tokens = FulltextSearch.tokenize_text(search_text)
+            source_tokens = Tokenizer(None).tokenize_text(source_text)
+            search_tokens = Tokenizer(None).tokenize_text(search_text)
 
             result = FulltextSearch._compare_token_sequences(source_tokens, search_tokens)
 
@@ -138,7 +138,7 @@ class TestFulltextSearch:
             text = test_case['text']
             description = test_case.get('description', f'Test case {i + 1}')
 
-            tokens = FulltextSearch.tokenize_text(text)
+            tokens = Tokenizer(None).tokenize_text(text)
 
             assert len(tokens) > 0, (
                 f"Test case {i + 1} failed ({description}):\n"
@@ -305,8 +305,8 @@ class TestFulltextSearch:
             expected_matches_count = test_case['expected_matches']
             expected_indices = test_case['expected_indices']
 
-            source_tokens = FulltextSearch.tokenize_text(source_text)
-            search_tokens = FulltextSearch.tokenize_text(search_text)
+            source_tokens = Tokenizer(None).tokenize_text(source_text)
+            search_tokens = Tokenizer(None).tokenize_text(search_text)
 
             matches = FulltextSearch.search_token_sequences(source_tokens, search_tokens)
 

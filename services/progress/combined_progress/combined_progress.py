@@ -5,27 +5,47 @@ from services.progress.combined_progress.process_particle import ProgressParticl
 
 class CombinedProgress(TaskProgress):
     task_id: str
-    _particle_progresses: dict[str, ParticleProgress] = {}
+    _particle_progresses: dict[str, ParticleProgress]
 
-    def __init__(self, task_id, particles: list[ProgressParticle]):
+    def __init__(self, task_id: str, particles: list[ProgressParticle]) -> None:
         self.task_id = task_id
-        max_value = 0
+        self._particle_progresses = {}
+        total_max: float = 0.0
 
         for particle in particles:
-            self.add_particle(particle)
-            max_value += particle.max_value
+            if particle.key in self._particle_progresses:
+                raise ValueError('Duplicate progress key.')
 
-        super().__init__(task_id, max_value)
+            particle_max: float = (
+                float(particle.max_value) if particle.max_value is not None else 100.0
+            )
+            total_max += particle_max
+            self._particle_progresses[particle.key] = ParticleProgress(
+                value=0,
+                max_value=particle_max,
+            )
+
+        super().__init__(task_id, int(total_max))
         self._update()
 
-    def add_particle(self, particle: ProgressParticle):
+    def add_particle(self, particle: ProgressParticle) -> None:
         if particle.key in self._particle_progresses:
             raise ValueError('Duplicate progress key.')
 
+        particle_max: float = (
+            float(particle.max_value) if particle.max_value is not None else 100.0
+        )
+
         self._particle_progresses[particle.key] = ParticleProgress(
             value=0,
-            max_value=particle.max_value,
+            max_value=particle_max,
         )
+
+        total_max: int = int(
+            sum(pp.max_value for pp in self._particle_progresses.values())
+        )
+        self._set_max_value(total_max)
+        self._update()
 
     def _update(self):
         # [start] summarize metrics
