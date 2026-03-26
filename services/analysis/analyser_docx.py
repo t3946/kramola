@@ -361,7 +361,7 @@ class AnalyserDocx(Analyser):
     def __build_global_dictionary(self) -> TokenDictionary:
         """Build dictionary from entire document text."""
         if self._progress:
-            self._progress.update_value(0, ProgressType.PREPARATION)
+            self._progress.setValue(0, ProgressType.PREPARATION)
 
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables
