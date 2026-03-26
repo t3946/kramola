@@ -23,6 +23,10 @@ export class Highlight extends Page {
         this.isConnectedToRoom = false;
         this.currentTaskStatus = null;
         this.statusMessage = null;
+        /** Sub-step label from socket progress.phase_description (e.g. particle description) */
+        this.phaseDescription = null;
+        /** Last PROCESSING status text from task_status (base label before " – …") */
+        this.processingBaseLabel = null;
 
         if (!document.app) {
             document.app = {};
@@ -88,14 +92,44 @@ export class Highlight extends Page {
             this.taskId,
             (data) => {
                 this.state.progress = data.progress || 0;
+
+                if (data.phase_description) {
+                    this.phaseDescription = data.phase_description;
+
+                    if (!this.processingBaseLabel) {
+                        this.processingBaseLabel =
+                            this.statusMessage || 'Обработка документа...';
+                    }
+
+                    if (!this.currentTaskStatus) {
+                        this.currentTaskStatus = 'PROCESSING';
+                    }
+                }
+
                 this.updateView();
+                this.updateStatusView();
             },
             null,
             (data) => {
-                if (data.state !== this.currentTaskStatus) {
-                    const oldStatus = this.currentTaskStatus;
+                const stateChanged: boolean = data.state !== this.currentTaskStatus;
+
+                if (stateChanged) {
+                    const oldStatus: string | null = this.currentTaskStatus;
                     this.currentTaskStatus = data.state;
                     this.statusMessage = data.status;
+
+                    if (data.state === 'PROCESSING') {
+                        this.processingBaseLabel =
+                            data.status ||
+                            this.processingBaseLabel ||
+                            'Обработка документа...';
+
+                        if (oldStatus != null && oldStatus !== 'PROCESSING') {
+                            this.phaseDescription = null;
+                        }
+                    } else {
+                        this.phaseDescription = null;
+                    }
 
                     console.log(`Task status changed: ${oldStatus || 'null'} -> ${data.state}`, {
                         taskId: this.taskId,
@@ -105,10 +139,27 @@ export class Highlight extends Page {
 
                     this.updateStatusView();
 
-                    if (data.state === 'COMPLETED' && !data.status?.toLowerCase().includes('ошибка') && !data.status?.toLowerCase().includes('error')) {
+                    if (
+                        data.state === 'COMPLETED' &&
+                        !data.status?.toLowerCase().includes('ошибка') &&
+                        !data.status?.toLowerCase().includes('error')
+                    ) {
                         this.redirectToResults();
                     }
+
+                    return;
                 }
+
+                this.statusMessage = data.status;
+
+                if (data.state === 'PROCESSING') {
+                    this.processingBaseLabel =
+                        data.status ||
+                        this.processingBaseLabel ||
+                        'Обработка документа...';
+                }
+
+                this.updateStatusView();
             }
         );
     }
@@ -161,10 +212,38 @@ export class Highlight extends Page {
             return;
         }
 
-        if (this.currentTaskStatus) {
-            const statusText = this.statusMessage || this.currentTaskStatus;
+        const stateUpper: string = (this.currentTaskStatus || '').toUpperCase();
+        const isTerminal: boolean =
+            stateUpper === 'COMPLETED' ||
+            stateUpper === 'FAILED' ||
+            stateUpper === 'ERROR';
+        const showPhaseDetail: boolean =
+            Boolean(this.phaseDescription) && !isTerminal;
+
+        if (this.currentTaskStatus || showPhaseDetail) {
+            let statusText: string =
+                this.statusMessage || this.currentTaskStatus || 'Ожидание...';
+
+            const isProcessingLike: boolean =
+                stateUpper === 'PROCESSING' ||
+                stateUpper === 'PENDING' ||
+                showPhaseDetail;
+
+            if (showPhaseDetail && isProcessingLike) {
+                const baseRaw: string =
+                    this.processingBaseLabel ||
+                    this.statusMessage ||
+                    'Обработка документа...';
+                const base: string =
+                    baseRaw.replace(/\s*\.\.\.\s*$/, '').trim() || baseRaw.trim();
+                statusText = `${base} – ${this.phaseDescription}`;
+            }
+
             $statusEl.text(statusText);
-            $statusEl.attr('data-state', this.currentTaskStatus);
+            $statusEl.attr(
+                'data-state',
+                this.currentTaskStatus || (showPhaseDetail ? 'PROCESSING' : '')
+            );
         } else {
             $statusEl.text('Ожидание...');
             $statusEl.attr('data-state', '');

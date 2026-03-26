@@ -1,3 +1,9 @@
+from typing import Any, Dict, Optional
+
+from flask import current_app
+
+from blueprints.tool_highlight.socketio.rooms.task_progress import TaskProgressRoom
+
 from services.progress.combined_progress.particle_progress import ParticleProgress
 from services.progress.task_progress import TaskProgress
 from services.progress.combined_progress.process_particle import ProgressParticle
@@ -6,10 +12,14 @@ from services.progress.combined_progress.process_particle import ProgressParticl
 class CombinedProgress(TaskProgress):
     task_id: str
     _particle_progresses: dict[str, ParticleProgress]
+    _particle_descriptions: dict[str, str]
+    _active_particle_key: Optional[str]
 
     def __init__(self, task_id: str, particles: list[ProgressParticle]) -> None:
         self.task_id = task_id
         self._particle_progresses = {}
+        self._particle_descriptions = {}
+        self._active_particle_key = None
         total_max: float = 0.0
 
         for particle in particles:
@@ -23,6 +33,9 @@ class CombinedProgress(TaskProgress):
             self._particle_progresses[particle.key] = ParticleProgress(
                 value=0,
                 max_value=particle_max,
+            )
+            self._particle_descriptions[particle.key] = (
+                (particle.description or '').strip()
             )
 
         super().__init__(task_id, int(total_max))
@@ -39,6 +52,9 @@ class CombinedProgress(TaskProgress):
         self._particle_progresses[particle.key] = ParticleProgress(
             value=0,
             max_value=particle_max,
+        )
+        self._particle_descriptions[particle.key] = (
+            (particle.description or '').strip()
         )
 
         total_max: int = int(
@@ -61,6 +77,33 @@ class CombinedProgress(TaskProgress):
         self._set_max_value(total_max_value)
         self._send_progress_event()
 
+    def _phase_description_for_active_particle(self) -> Optional[str]:
+        if self._active_particle_key is None:
+            return None
+
+        text: str = self._particle_descriptions.get(self._active_particle_key, '')
+
+        return text if text else None
+
+    def _send_progress_event(self) -> None:
+        progress_value: float = self.getProgress()
+        phase_description: Optional[str] = self._phase_description_for_active_particle()
+        payload: Dict[str, Any] = {
+            'task_id': self.task_id,
+            'progress': progress_value,
+        }
+
+        if phase_description is not None:
+            payload['phase_description'] = phase_description
+
+        socketio = current_app.extensions.get('socketio')
+        socketio.emit(
+            'progress',
+            payload,
+            room=TaskProgressRoom.get_room_name(self.task_id),
+        )
+
     def set_particle_value(self, key: str, value: float) -> None:
+        self._active_particle_key = key
         self._particle_progresses[key].value = value
         self._update()

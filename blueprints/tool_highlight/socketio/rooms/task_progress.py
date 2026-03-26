@@ -52,13 +52,18 @@ class TaskProgressRoom:
         leave_room(TaskProgressRoom.get_room_name(task_id))
     
     @staticmethod
-    def send_progress(task_id, progress_value=None):
-        """Send progress update to room"""
+    def send_progress(task_id, progress_value=None, phase_description=None):
+        """Send progress update to room. phase_description: short label for current sub-step (e.g. from ProgressParticle)."""
         socketio = current_app.extensions.get('socketio')
-        socketio.emit('progress', {
+        payload = {
             'task_id': task_id,
-            'progress': progress_value
-        }, room=TaskProgressRoom.get_room_name(task_id))
+            'progress': progress_value,
+        }
+
+        if phase_description is not None:
+            payload['phase_description'] = phase_description
+
+        socketio.emit('progress', payload, room=TaskProgressRoom.get_room_name(task_id))
     
     @staticmethod
     def send_status(task_id, state, status_message):
