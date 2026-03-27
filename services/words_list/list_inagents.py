@@ -32,7 +32,6 @@ class ListInagents(WordsList):
         if self.agent_types:
             query = query.filter(Inagent.agent_type.in_(self.agent_types))
 
-        query = _inagents_active_filter(query)
         models: list[Inagent] = query.all()
         phrases = []
 
