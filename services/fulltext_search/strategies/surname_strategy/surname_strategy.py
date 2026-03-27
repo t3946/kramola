@@ -64,6 +64,13 @@ class SurnameStrategy(BaseSearchStrategy):
             dictionary: Optional[TokenDictionary] = None,
             **kwargs: object,
     ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
+        # [start] create surnames objects
+        phrases_surnames_map: dict[Phrase, Surname] = {}
+
+        for phrase, _ in search_phrases:
+            phrases_surnames_map[phrase] = Surname(phrase.phrase)
+        # [end]
+
         check_id_collection: CheckIdCollection = CheckIdCollection()
         matches = []
 
@@ -75,7 +82,7 @@ class SurnameStrategy(BaseSearchStrategy):
             )
 
             for phrase in phrases_filtered:
-                surname: Surname = Surname(phrase.phrase)
+                surname: Surname = phrases_surnames_map[phrase]
 
                 if surname.check(token_text_norm):
                     match = FTSTextMatch(
