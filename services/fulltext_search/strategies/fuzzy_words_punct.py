@@ -1,5 +1,5 @@
 import uuid
-from typing import List, Tuple, Optional, Dict, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from services.fulltext_search.check_id_collection import CheckIdCollection
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
@@ -223,7 +223,8 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         source_tokens: 'List[Token]',
         search_phrases: List[Tuple[Phrase, List[Token]]],
         dictionary: Optional[TokenDictionary] = None,
-        regex_patterns: Optional[Dict[str, RegexPattern]] = None
+        regex_patterns: Optional[Dict[str, RegexPattern]] = None,
+        on_source_token_proceed: Optional[Callable[[int, int], None]] = None,
     ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
         """
         Search all phrases in one pass using dictionary optimization.
@@ -260,6 +261,8 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
         # [end]
 
         # [start] search text matches
+        proceed = 0
+
         for phrase, search_tokens in search_phrases:
             search_words: list[Token] = [t for t in search_tokens if t.type == TokenType.WORD]
 
@@ -280,6 +283,11 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
 
             if len(matches) > 0:
                 result_matches.append((phrase, matches))
+
+            proceed += 1
+
+            if on_source_token_proceed is not None:
+                on_source_token_proceed(proceed, len(search_phrases))
 
         # [start] merge text and regex matches
         for start, end in regex_matches_map.keys():

@@ -3,6 +3,7 @@ from typing import List, Optional, Tuple, Union, Dict
 
 from services.fulltext_search.phrase import EType, Phrase
 from services.progress.combined_progress.combined_progress import CombinedProgress
+from services.progress.combined_progress.process_particle import ProgressParticle
 from services.pymorphy_service import CYRILLIC_PATTERN
 from services.tokenization import Token, TokenDictionary
 from services.tokenization.tokenizer import Tokenizer
@@ -60,6 +61,8 @@ class FulltextSearch:
     """
 
     _default_strategy = FuzzyWordsPunctStrategy()
+    _progress: Union[ProgressParticle, None] = None
+    PARTICLE_KEY = 'fulltext_search'
 
     def __init__(
         self,
@@ -74,6 +77,7 @@ class FulltextSearch:
             combined_progress: When source is str, passed to Tokenizer for particle progress
         """
         self._tokenizer: Tokenizer = Tokenizer(combined_progress)
+        self._progress: CombinedProgress = combined_progress
 
         if isinstance(source, str):
             self.source_tokens: List[Token] = self._tokenizer.tokenize_text(source)
@@ -122,12 +126,25 @@ class FulltextSearch:
             self.dictionary
         )
 
+    def _update_progress_value(self, value: float):
+        self._progress.set_particle_value(
+            key=FulltextSearch.PARTICLE_KEY,
+            value=value
+        )
+
+    def _update_progress_description(self, description: str):
+        self._progress.set_particle_desciption(
+            key=FulltextSearch.PARTICLE_KEY,
+            description=description
+        )
+
     def search_all(
         self,
         search_phrases: List[Tuple[Phrase, Union[str, List[Token]]]],
         search_patterns: Optional[Dict[str, RegexPattern]] = None,
         text_strategy: Optional[SearchStrategy] = None,
     ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
+        self._update_progress_value(0)
         """
         Search all phrases in one pass.
 
@@ -173,16 +190,35 @@ class FulltextSearch:
             prev_matches.extend(matches)
             phrase_to_matches[phrase_id] = (phrase, prev_matches)
 
+        def _on_source_token_proceed(proceed, total):
+            if total == 0:
+                self._update_progress_value(value=100)
+                return
+
+            threshold = max(round(total * 0.05), 1)
+
+            if proceed % threshold != 0:
+                return
+
+            self._update_progress_value(value=proceed / total * 100)
+
         patterns: Dict[str, RegexPattern] = search_patterns if search_patterns is not None else {}
+
+        # progress total
+        text_search_all_phrases_total = len(text_phrases_tokens)
+        surnames_search_all_phrases_total = len(self.source_tokens)
+        progress_total = text_search_all_phrases_total + surnames_search_all_phrases_total
 
         if len(text_phrases_tokens) > 0 or len(patterns) > 0:
             regex_arg: Optional[Dict[str, RegexPattern]] = patterns if len(patterns) > 0 else None
+
             text_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
                 text_strategy_instance.search_all_phrases(
-                    self.source_tokens,
-                    text_phrases_tokens,
-                    self.dictionary,
+                    source_tokens=self.source_tokens,
+                    search_phrases=text_phrases_tokens,
+                    dictionary=self.dictionary,
                     regex_patterns=regex_arg,
+                    on_source_token_proceed=lambda proceed, total: _on_source_token_proceed(proceed, progress_total),
                 )
             )
 
@@ -192,8 +228,12 @@ class FulltextSearch:
         if len(surname_phrases_tokens) > 0:
             surname_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
                 surname_strategy_instance.search_all_phrases(
-                    self.source_tokens,
-                    surname_phrases_tokens,
+                    source_tokens=self.source_tokens,
+                    search_phrases=surname_phrases_tokens,
+                    on_source_token_proceed=lambda proceed, total: _on_source_token_proceed(
+                        len(text_phrases_tokens) + proceed,
+                        progress_total
+                    ),
                 )
             )
 
@@ -228,6 +268,7 @@ class FulltextSearch:
             result.append((phrase, matches))
         # [end]
 
+        self._update_progress_value(100)
         return result
 
     @staticmethod
@@ -243,9 +284,9 @@ class FulltextSearch:
 
     @staticmethod
     def _compare_token_sequences(
-            source_tokens: List[Token],
-            search_tokens: List[Token],
-            strategy: Optional[SearchStrategy] = None
+        source_tokens: List[Token],
+        search_tokens: List[Token],
+        strategy: Optional[SearchStrategy] = None
     ) -> bool:
         """
         Compares two token sequences of the same length.
@@ -269,9 +310,9 @@ class FulltextSearch:
 
     @staticmethod
     def search_token_sequences(
-            source_tokens: List[Token],
-            search_tokens: List[Token],
-            strategy: Optional[SearchStrategy] = None
+        source_tokens: List[Token],
+        search_tokens: List[Token],
+        strategy: Optional[SearchStrategy] = None
     ) -> List[Tuple[int, int]]:
         """
         Search token sequences.

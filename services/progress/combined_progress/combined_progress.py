@@ -17,7 +17,7 @@ class CombinedProgress(TaskProgress):
 
     def __init__(self, task_id: str, particles: list[ProgressParticle]) -> None:
         self.task_id = task_id
-        self._particle_progresses = {}
+        self._particle_progresses: dict[str, ParticleProgress] = {}
         self._particle_descriptions = {}
         self._active_particle_key = None
         total_max: float = 0.0
@@ -106,4 +106,15 @@ class CombinedProgress(TaskProgress):
     def set_particle_value(self, key: str, value: float) -> None:
         self._active_particle_key = key
         self._particle_progresses[key].value = value
+        self._update()
+
+    def set_particle_desciption(self, description: str) -> None:
+        self._particle_descriptions = description
+        self._update()
+
+    def set_particle_description(self, key: str, description: str) -> None:
+        if key not in self._particle_progresses:
+            raise KeyError(f'Unknown progress particle key: {key!r}')
+
+        self._particle_descriptions[key] = description.strip()
         self._update()

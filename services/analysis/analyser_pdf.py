@@ -49,6 +49,10 @@ class AnalyserPdf(Analyser):
             ProgressParticle(
                 key=Tokenizer.PARTICLE_KEY,
                 description='Токенизация',
+            ),
+            ProgressParticle(
+                key=FulltextSearch.PARTICLE_KEY,
+                description='Поиск',
             )
         ])
 
@@ -93,7 +97,7 @@ class AnalyserPdf(Analyser):
         search_phrases_for_search: List[Tuple[Phrase, List[Token]]] = [
             (phrase, phrase.tokens) for phrase in phrases_list
         ]
-        fulltext_search = FulltextSearch(all_tokens)
+        fulltext_search = FulltextSearch(all_tokens, self._progress)
         regex_patterns_dict = None
 
         if self.analyse_data.regex_patterns:

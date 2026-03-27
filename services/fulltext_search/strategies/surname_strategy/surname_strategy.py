@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 from services.fulltext_search.check_id_collection import CheckIdCollection
 from services.fulltext_search.phrase import Phrase
@@ -64,6 +64,7 @@ class SurnameStrategy(BaseSearchStrategy):
             source_tokens: list[Token],
             search_phrases: List[Tuple[Phrase, List[Token]]],
             dictionary: Optional[TokenDictionary] = None,
+            on_source_token_proceed: Optional[Callable[[int, int], None]] = None,
             **kwargs: object,
     ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
         # [start] create surnames objects
@@ -97,5 +98,8 @@ class SurnameStrategy(BaseSearchStrategy):
 
                     # todo: здесь возможно неверно заполняется итоговый matches
                     matches.append((phrase, [match]))
+
+            if on_source_token_proceed is not None:
+                on_source_token_proceed(i + 1, len(source_tokens))
 
         return matches
