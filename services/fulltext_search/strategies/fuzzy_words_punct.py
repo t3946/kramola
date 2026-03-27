@@ -16,6 +16,37 @@ class FuzzyWordsPunctStrategy(BaseSearchStrategy):
     Words must match in strict order by lemma/stem, but punctuation is ignored.
     """
 
+    @staticmethod
+    def _compare_token_sequences(
+        source_tokens: List[Token],
+        search_tokens: List[Token],
+    ) -> bool:
+        """
+        Compares two token sequences of the same length.
+        Match if lemmas or stems match for words; token types must match exactly.
+        """
+        if len(source_tokens) != len(search_tokens):
+            return False
+
+        for t1, t2 in zip(source_tokens, search_tokens):
+            if t1.type != t2.type:
+                return False
+
+            match_by_text = t1.text == t2.text
+            match_by_lemma = False
+            match_by_stem = False
+
+            if t1.type == TokenType.WORD:
+                match_by_lemma = t1.lemma == t2.lemma
+                match_by_stem = t1.stem == t2.stem
+
+            match = match_by_text or match_by_lemma or match_by_stem
+
+            if not match:
+                return False
+
+        return True
+
     def search_token_sequences(
         self,
         source_tokens: 'List[Token]',

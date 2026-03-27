@@ -6,6 +6,7 @@ from services.fulltext_search.search_match import FTSMatch, FTSTextMatch
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 from services.fulltext_search.strategies.surname_strategy.surname import Surname
 from services.tokenization import Token, TokenDictionary
+from services.utils.timeit import timeit
 
 
 class SurnameStrategy(BaseSearchStrategy):
@@ -57,6 +58,7 @@ class SurnameStrategy(BaseSearchStrategy):
 
         return matches
 
+    @timeit
     def search_all_phrases(
             self,
             source_tokens: list[Token],

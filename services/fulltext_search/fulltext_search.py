@@ -1,21 +1,17 @@
-import uuid
-from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional, Tuple, Union, Dict
 
 from services.fulltext_search.phrase import EType, Phrase
 from services.progress.combined_progress.combined_progress import CombinedProgress
 from services.pymorphy_service import CYRILLIC_PATTERN
-from services.tokenization import Token, TokenType, TokenDictionary
+from services.tokenization import Token, TokenDictionary
 from services.tokenization.tokenizer import Tokenizer
 from services.utils.regex_pattern import RegexPattern
-from services.fulltext_search.search_match import FTSMatch, FTSTextMatch, FTSRegexMatch
+from services.fulltext_search.search_match import FTSMatch
 from services.fulltext_search.strategies import (
-    FuzzyWordsStrategy,
     FuzzyWordsPunctStrategy,
     SurnameStrategy,
 )
-from services.utils.timeit import timeit
 
 USE_STEM_FALLBACK = True
 STOP_WORDS_RU = {
@@ -51,7 +47,6 @@ STOP_WORDS_EN = {
 
 class SearchStrategy(Enum):
     """Search strategy enum."""
-    FUZZY_WORDS = "fuzzy_words"
     FUZZY_WORDS_PUNCT = "fuzzy_words_punct"
     SURNAME = "surname"
 
@@ -64,7 +59,7 @@ class FulltextSearch:
     by words and phrases using lemmatization and stemming.
     """
 
-    _default_strategy = FuzzyWordsStrategy()
+    _default_strategy = FuzzyWordsPunctStrategy()
 
     def __init__(
         self,
@@ -93,9 +88,7 @@ class FulltextSearch:
         if strategy is None:
             return FulltextSearch._default_strategy
 
-        if strategy == SearchStrategy.FUZZY_WORDS:
-            return FuzzyWordsStrategy()
-        elif strategy == SearchStrategy.FUZZY_WORDS_PUNCT:
+        if strategy == SearchStrategy.FUZZY_WORDS_PUNCT:
             return FuzzyWordsPunctStrategy()
         elif strategy == SearchStrategy.SURNAME:
             return SurnameStrategy()
@@ -112,7 +105,7 @@ class FulltextSearch:
         
         Args:
             text: Search text (str) or list of tokens to search for
-            strategy: Search strategy to use (default: FUZZY_WORDS)
+            strategy: Search strategy to use (default: FUZZY_WORDS_PUNCT)
             
         Returns:
             List of tuples (start, end) where start and end are source tokens indices.
@@ -140,7 +133,7 @@ class FulltextSearch:
 
         Args:
             search_phrases: List of (phrase, text_or_tokens) tuples
-            text_strategy: Search strategy for Phrases with type TEXT (default: FUZZY_WORDS)
+            text_strategy: Search strategy for Phrases with type TEXT (default: FUZZY_WORDS_PUNCT)
             search_patterns: Optional dictionary of {pattern_name: RegexPattern} for regex-based search
 
         Returns:
@@ -149,7 +142,6 @@ class FulltextSearch:
         text_strategy_instance = FulltextSearch._get_strategy(text_strategy)
         surname_strategy_instance = FulltextSearch._get_strategy(SearchStrategy.SURNAME)
 
-        # [start] Optimized path: use dictionary-based search_all_phrases if available
         text_phrases_tokens: List[Tuple[Phrase, List[Token]]] = []
         surname_phrases_tokens: List[Tuple[Phrase, List[Token]]] = []
 
@@ -166,128 +158,77 @@ class FulltextSearch:
             elif phrase.phrase_type == EType.SURNAME:
                 surname_phrases_tokens.append(pair)
 
-        use_text_optimized = (
-            len(text_phrases_tokens) > 0
-            and hasattr(text_strategy_instance, "search_all_phrases")
-        )
-        use_surname_optimized = len(surname_phrases_tokens) > 0
+        phrase_to_matches: Dict[Union[int, str], Tuple[Union[Phrase, str], List[FTSMatch]]] = {}
 
-        if use_text_optimized or use_surname_optimized:
-            phrase_to_matches: Dict[Union[int, str], Tuple[Union[Phrase, str], List[FTSMatch]]] = {}
+        def _add_matches(phrase: Union[Phrase, str], matches: List[FTSMatch]) -> None:
+            if isinstance(phrase, Phrase):
+                phrase_id = id(phrase)
+            else:
+                phrase_id = phrase
 
-            def _add_matches(phrase: Union[Phrase, str], matches: List[FTSMatch]):
-                if isinstance(phrase, Phrase):
-                    phrase_id = id(phrase)
-                else:
-                    phrase_id = phrase
+            if phrase_to_matches.get(phrase_id) is None:
+                phrase_to_matches[phrase_id] = (phrase, [])
 
-                if phrase_to_matches.get(phrase_id) is None:
-                    phrase_to_matches[phrase_id] = (phrase, [])
+            _, prev_matches = phrase_to_matches[phrase_id]
+            prev_matches.extend(matches)
+            phrase_to_matches[phrase_id] = (phrase, prev_matches)
 
-                _, prev_matches = phrase_to_matches[phrase_id]
-                prev_matches.extend(matches)
-                phrase_to_matches[phrase_id] = (phrase, prev_matches)
+        patterns: Dict[str, RegexPattern] = search_patterns if search_patterns is not None else {}
 
-            if use_text_optimized:
-                text_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
-                    text_strategy_instance.search_all_phrases(
-                        self.source_tokens,
-                        text_phrases_tokens,
-                        self.dictionary,
-                        regex_patterns=search_patterns,
-                    )
+        if len(text_phrases_tokens) > 0 or len(patterns) > 0:
+            regex_arg: Optional[Dict[str, RegexPattern]] = patterns if len(patterns) > 0 else None
+            text_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
+                text_strategy_instance.search_all_phrases(
+                    self.source_tokens,
+                    text_phrases_tokens,
+                    self.dictionary,
+                    regex_patterns=regex_arg,
                 )
-                for phrase, matches in text_results:
-                    _add_matches(phrase, matches)
-
-            if use_surname_optimized:
-                surname_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
-                    surname_strategy_instance.search_all_phrases(
-                        self.source_tokens,
-                        surname_phrases_tokens,
-                    )
-                )
-
-                for phrase, matches in surname_results:
-                    _add_matches(phrase, matches)
-
-            result: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
-
-            for phrase, _ in search_phrases:
-                if phrase_to_matches.get(id(phrase)) is None:
-                    continue
-
-                _, matches = phrase_to_matches.get(id(phrase))
-                result.append((phrase, matches))
-
-            # [start] convert regex matches to phrase matches
-            if search_patterns is None:
-                search_patterns = {}
-
-            for _, pattern in search_patterns.items():
-                key = 'regex ' + pattern.pattern_name
-
-                if phrase_to_matches.get(key) is None:
-                    continue
-
-                _, matches = phrase_to_matches.get(key)
-                phrase = Phrase(
-                    phrase=pattern.pattern_name,
-                    source_list=pattern.source_list,
-                    phrase_original=None,
-                    phrase_type=EType.TEXT,
-                    model=None,
-                )
-
-                result.append((phrase, matches))
-            # [end]
-
-            return result
-        # [end]
-
-        # [start] Fallback: search each phrase separately with full text scan
-        results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
-        regex_matches_map: Dict[Tuple[int, int], RegexPattern] = {}
-
-        if hasattr(text_strategy_instance, 'search_regex_matches') and search_patterns:
-            regex_matches = text_strategy_instance.search_regex_matches(
-                self.source_tokens,
-                regex_patterns=search_patterns
             )
 
-            for regex_match in regex_matches:
-                key = (regex_match.start_token_idx, regex_match.end_token_idx)
-                regex_matches_map[key] = regex_match.regex_info
+            for phrase, matches in text_results:
+                _add_matches(phrase, matches)
 
-        for phrase, text_or_tokens in search_phrases:
-            matches_indices = self.search(text_or_tokens, text_strategy)
-            matches: List[FTSMatch] = []
+        if len(surname_phrases_tokens) > 0:
+            surname_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
+                surname_strategy_instance.search_all_phrases(
+                    self.source_tokens,
+                    surname_phrases_tokens,
+                )
+            )
 
-            for start, end in matches_indices:
-                key = (start, end)
+            for phrase, matches in surname_results:
+                _add_matches(phrase, matches)
 
-                if key in regex_matches_map:
-                    regex_info = regex_matches_map[key]
-                    matches.append(FTSRegexMatch(
-                        tokens=self.source_tokens[start:end + 1],
-                        start_token_idx=start,
-                        end_token_idx=end,
-                        regex_info=regex_info,
-                        check_id = uuid.uuid1(),
-                    ))
-                else:
-                    matches.append(FTSTextMatch(
-                        tokens=self.source_tokens[start:end + 1],
-                        start_token_idx=start,
-                        end_token_idx=end,
-                        search_phrase=phrase,
-                        check_id = uuid.uuid1(),
-                    ))
+        result: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
 
-            results.append((phrase, matches))
+        for phrase, _ in search_phrases:
+            if phrase_to_matches.get(id(phrase)) is None:
+                continue
 
-        return results
+            _, matches = phrase_to_matches.get(id(phrase))
+            result.append((phrase, matches))
+
+        # [start] convert regex matches to phrase matches
+        for _, pattern in patterns.items():
+            key = 'regex ' + pattern.pattern_name
+
+            if phrase_to_matches.get(key) is None:
+                continue
+
+            _, matches = phrase_to_matches.get(key)
+            phrase = Phrase(
+                phrase=pattern.pattern_name,
+                source_list=pattern.source_list,
+                phrase_original=None,
+                phrase_type=EType.TEXT,
+                model=None,
+            )
+
+            result.append((phrase, matches))
         # [end]
+
+        return result
 
     @staticmethod
     def _is_stop_word(lemma: str) -> bool:
@@ -309,28 +250,28 @@ class FulltextSearch:
         """
         Compares two token sequences of the same length.
         Match is considered according to selected strategy.
-        Works only with FUZZY_WORDS strategy.
+        Works only with FUZZY_WORDS_PUNCT token-by-token comparison helper.
         
         Args:
             source_tokens: Tokens from source text
             search_tokens: Tokens from search query
-            strategy: Search strategy to use (default: FUZZY_WORDS)
+            strategy: Search strategy to use (default: FUZZY_WORDS_PUNCT)
             
         Returns:
             True if sequences match according to strategy, False otherwise
         """
         strategy_instance = FulltextSearch._get_strategy(strategy)
 
-        if not isinstance(strategy_instance, FuzzyWordsStrategy):
-            raise ValueError("_compare_token_sequences is only available for FUZZY_WORDS strategy")
+        if not isinstance(strategy_instance, FuzzyWordsPunctStrategy):
+            raise ValueError("_compare_token_sequences is only available for FUZZY_WORDS_PUNCT strategy")
 
-        return strategy_instance._compare_token_sequences(source_tokens, search_tokens)
+        return FuzzyWordsPunctStrategy._compare_token_sequences(source_tokens, search_tokens)
 
     @staticmethod
     def search_token_sequences(
-        source_tokens: List[Token],
-        search_tokens: List[Token],
-        strategy: Optional[SearchStrategy] = None
+            source_tokens: List[Token],
+            search_tokens: List[Token],
+            strategy: Optional[SearchStrategy] = None
     ) -> List[Tuple[int, int]]:
         """
         Search token sequences.
@@ -338,7 +279,7 @@ class FulltextSearch:
         Args:
             source_tokens: Tokens from source text
             search_tokens: Tokens from search query
-            strategy: Search strategy to use (default: FUZZY_WORDS)
+            strategy: Search strategy to use (default: FUZZY_WORDS_PUNCT)
             
         Returns:
             List of tuples (start, end) where start and end are source tokens indices.
