@@ -1,0 +1,21 @@
+{% extends 'admin/master.html' %}
+{% import 'admin/layout.html' as layout with context %}
+
+{% block page_title %}
+<h1 class="text-xl font-semibold text-gray-800 mb-4">
+    {{ layout.menu_icon(admin_view.menu) }}
+    Парсинг
+</h1>
+{% endblock %}
+
+{% block body %}
+<div class="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
+    <p class="text-gray-800">
+        Последний парсинг иноагентов: {{ last_inagents_parsing }}
+    </p>
+
+    <p class="text-gray-800">
+        Последний парсинг экстремистов: {{ last_extremists_parsing }}
+    </p>
+</div>
+{% endblock %}

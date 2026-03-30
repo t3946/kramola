@@ -711,6 +711,27 @@ class MonitoringTasksView(BaseView):
         )
 
 
+class MonitoringParsingView(BaseView):
+    """Admin page: last run times for inagents and extremists list parsing (placeholder until wired to real data)."""
+
+    def is_accessible(self) -> bool:
+        return current_user.is_authenticated and current_user.has_role("admin")
+
+    def inaccessible_callback(self, name: str, **kwargs) -> redirect:
+        return redirect(url_for("admin_auth.login", next=request.url))
+
+    @expose("/")
+    def index(self, **kwargs):
+        last_inagents_parsing: str = "28.03.2026, 04:15"
+        last_extremists_parsing: str = "29.03.2026, 02:40"
+
+        return self.render(
+            "admin/monitoring_parsing.html",
+            last_inagents_parsing=last_inagents_parsing,
+            last_extremists_parsing=last_extremists_parsing,
+        )
+
+
 class SecureAdminIndexView(AdminIndexView):
     def is_accessible(self) -> bool:
         return current_user.is_authenticated and current_user.has_role("admin")
@@ -758,6 +779,7 @@ VIEW_CLASS_MAP: dict[str, type] = {
     "SearchSettingsView": SearchSettingsView,
     "AutoloadView": AutoloadView,
     "MonitoringTasksView": MonitoringTasksView,
+    "MonitoringParsingView": MonitoringParsingView,
 }
 
 

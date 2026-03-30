@@ -106,6 +106,12 @@ MENU_SPEC: list[dict] = [
                 "url": "monitoring/tasks",
                 "endpoint": "monitoring_tasks",
             },
+            {
+                "view_class": "MonitoringParsingView",
+                "name": "Парсинг",
+                "url": "monitoring/parsing",
+                "endpoint": "monitoring_parsing",
+            },
         ],
     },
     {
