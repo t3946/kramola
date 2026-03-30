@@ -59,7 +59,7 @@ class Tokenizer:
 
         for match in Tokenizer.TOKENIZE_PATTERN.finditer(text):
             start, end = match.span()
-            text_token = match.group(0)
+            text_token: str = match.group(0)
 
             if start > current_pos:
                 missed_text = text[current_pos:start]

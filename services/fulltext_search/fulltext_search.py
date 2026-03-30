@@ -98,33 +98,6 @@ class FulltextSearch:
 
         return FulltextSearch._default_strategy
 
-    def search(
-        self,
-        text: Union[str, List[Token]],
-        strategy: Optional[SearchStrategy] = None
-    ) -> List[Tuple[int, int]]:
-        """
-        Search for text or tokens in source.
-        
-        Args:
-            text: Search text (str) or list of tokens to search for
-            strategy: Search strategy to use (default: FUZZY_WORDS_PUNCT)
-            
-        Returns:
-            List of tuples (start, end) where start and end are source tokens indices.
-        """
-        if isinstance(text, str):
-            search_tokens: List[Token] = self._tokenizer.tokenize_text(text)
-        else:
-            search_tokens: List[Token] = text
-
-        strategy_instance = FulltextSearch._get_strategy(strategy)
-        return strategy_instance.search_token_sequences(
-            self.source_tokens,
-            search_tokens,
-            self.dictionary
-        )
-
     def _update_progress_value(self, value: float) -> None:
         if self._progress is None:
             return
