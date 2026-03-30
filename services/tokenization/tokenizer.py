@@ -6,6 +6,7 @@ from services.pymorphy_service import ensure_models_loaded
 from services.progress.combined_progress.combined_progress import CombinedProgress
 
 from services.tokenization.token import Token, TokenType
+from services.utils.normalize_text import normalize_text
 
 
 class Tokenizer:
@@ -59,7 +60,13 @@ class Tokenizer:
 
         for match in Tokenizer.TOKENIZE_PATTERN.finditer(text):
             start, end = match.span()
-            text_token: str = match.group(0)
+            text_token: str = (
+                match
+                .group(0)
+                .replace("Ё", "Е")
+                .replace("ё", "е")
+                .lower()
+            )
 
             if start > current_pos:
                 missed_text = text[current_pos:start]

@@ -1,4 +1,4 @@
-from services.fulltext_search.utils import normalize_text
+from services.utils import normalize_text
 
 from .declension import (
     EXCEPTION_FORMS,

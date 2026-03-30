@@ -2,7 +2,7 @@ import re
 from itertools import product
 from pathlib import Path
 
-from services.fulltext_search.utils import normalize_text
+from services.utils import normalize_text
 
 try:
     from docx import Document
