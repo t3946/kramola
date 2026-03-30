@@ -1,7 +1,8 @@
+from services.fulltext_search.utils import normalize_text
+
 from .declension import (
     EXCEPTION_FORMS,
     decline_surname_forms,
-    normalize_text,
 )
 
 PADEZHI: tuple[str, ...] = ("nom", "gen", "dat", "acc", "ins", "pre")

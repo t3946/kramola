@@ -4,7 +4,7 @@ from services.fulltext_search.check_id_collection import CheckIdCollection
 from services.fulltext_search.phrase import Phrase
 from services.fulltext_search.search_match import FTSMatch, FTSTextMatch
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
-from services.fulltext_search.strategies.surname_strategy.declension import normalize_text
+from services.fulltext_search.utils import normalize_text
 from services.fulltext_search.strategies.surname_strategy.surname import Surname
 from services.tokenization import Token, TokenDictionary
 from services.utils.timeit import timeit

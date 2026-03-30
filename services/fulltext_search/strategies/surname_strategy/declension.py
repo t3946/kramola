@@ -2,6 +2,8 @@ import re
 from itertools import product
 from pathlib import Path
 
+from services.fulltext_search.utils import normalize_text
+
 try:
     from docx import Document
 except ImportError:
@@ -78,10 +80,6 @@ EXCEPTION_FORMS = {
         }
     },
 }
-
-
-def normalize_text(s: str) -> str:
-    return s.replace("Ё", "Е").replace("ё", "е").lower().strip()
 
 
 def uniq(seq):
