@@ -4,6 +4,7 @@ from services.fulltext_search.check_id_collection import CheckIdCollection
 from services.fulltext_search.phrase import Phrase
 from services.fulltext_search.search_match import FTSMatch, FTSTextMatch
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
+from services.fulltext_search.strategies.surname_strategy.declension import normalize_text
 from services.fulltext_search.strategies.surname_strategy.surname import Surname
 from services.tokenization import Token, TokenDictionary
 from services.utils.timeit import timeit
@@ -14,49 +15,13 @@ class SurnameStrategy(BaseSearchStrategy):
     def _norm_surname(value: str) -> str:
         return value.strip().casefold() if value else ""
 
-    def _alphabetically_sort_surnames(self, surnames: list[str]) -> list[str]:
-        return sorted(surnames, key=self._norm_surname)
-
-    def _search_candidate_surnames(
-            self,
-            source_norm: str,
-            search_phrases: list[Phrase],
-    ) -> list[Phrase]:
-        prefix_len = min(len(source_norm), 3)
-        source_prefix: str = source_norm[:prefix_len]
-        result: list[Phrase] = []
-
-        for phrase in search_phrases:
-            search_prefix: str = self._norm_surname(phrase.phrase[:prefix_len])
-
-            if source_prefix == search_prefix:
-                result.append(phrase)
-
-        return result
-
     def search_token_sequences(
             self,
             source_tokens: list[Token],
             search_tokens: list[Token],
             dictionary: Optional[TokenDictionary] = None,
     ) -> List[Tuple[int, int]]:
-        if not search_tokens:
-            return []
-
-        search_norm: str = self._norm_surname(search_tokens[0].text)
-        if not search_norm:
-            return []
-
-        prefix_len = min(len(search_norm), 3)
-        search_prefix: str = search_norm[:prefix_len]
-        matches: List[Tuple[int, int]] = []
-
-        for idx, token in enumerate(source_tokens):
-            source_norm: str = self._norm_surname(token.text)
-            if source_norm[:prefix_len] == search_prefix:
-                matches.append((idx, idx))
-
-        return matches
+        return []
 
     @timeit
     def search_all_phrases(
@@ -67,27 +32,52 @@ class SurnameStrategy(BaseSearchStrategy):
             on_source_token_proceed: Optional[Callable[[int, int], None]] = None,
             **kwargs: object,
     ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
-        # [start] create surnames objects
-        phrases_surnames_map: dict[Phrase, Surname] = {}
+        # [start] progress
+        progress_max_steps = len(source_tokens) + len(search_phrases)
+        progress_step = 0
 
-        for phrase, _ in search_phrases:
-            phrases_surnames_map[phrase] = Surname(phrase.phrase)
+        def _continue_progress():
+            nonlocal progress_step, progress_max_steps
+
+            if on_source_token_proceed is not None:
+                progress_step += 1
+                on_source_token_proceed(progress_step, progress_max_steps)
         # [end]
 
+        # [start] build token index
+        source_tokens_index: dict[str, list[tuple[int, Token]]] = {}
+
+        for i, token in enumerate(source_tokens):
+            token_text_norm: str = normalize_text(token.text)
+            prefix_len = min(len(token_text_norm), 3)
+            key: str = token_text_norm[:prefix_len]
+
+            if key not in source_tokens_index:
+                source_tokens_index[key] = []
+
+            source_tokens_index[key].append((i, token))
+            _continue_progress()
+        # [end]
+
+        # [start] search
         check_id_collection: CheckIdCollection = CheckIdCollection()
         matches = []
 
-        for i, token in enumerate(source_tokens):
-            token_text_norm: str = self._norm_surname(token.text)
-            phrases_filtered: list[Phrase] = self._search_candidate_surnames(
-                source_norm=token_text_norm,
-                search_phrases=[phrase for phrase, _ in search_phrases],
-            )
+        for phrase, _ in search_phrases:
+            token_text_norm: str = normalize_text(phrase.phrase)
+            prefix_len = min(len(token_text_norm), 3)
+            key: str = token_text_norm[:prefix_len]
+            surname = Surname(phrase.phrase)
 
-            for phrase in phrases_filtered:
-                surname: Surname = phrases_surnames_map[phrase]
+            if key not in source_tokens_index:
+                continue
 
-                if surname.check(token_text_norm):
+            source_tokens_candidates: list[tuple[int, Token]] = source_tokens_index[key]
+
+            for item in source_tokens_candidates:
+                i, token = item
+
+                if surname.check(token.text):
                     match = FTSTextMatch(
                         tokens=[source_tokens[i]],
                         start_token_idx=i,
@@ -99,7 +89,7 @@ class SurnameStrategy(BaseSearchStrategy):
                     # todo: здесь возможно неверно заполняется итоговый matches
                     matches.append((phrase, [match]))
 
-            if on_source_token_proceed is not None:
-                on_source_token_proceed(i + 1, len(source_tokens))
+            _continue_progress()
+        # [end]
 
         return matches

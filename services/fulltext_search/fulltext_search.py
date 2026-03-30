@@ -206,7 +206,7 @@ class FulltextSearch:
 
         # progress total
         text_search_all_phrases_total = len(text_phrases_tokens)
-        surnames_search_all_phrases_total = len(self.source_tokens)
+        surnames_search_all_phrases_total = len(self.source_tokens) + len(surname_phrases_tokens)
         progress_total = text_search_all_phrases_total + surnames_search_all_phrases_total
 
         if len(text_phrases_tokens) > 0 or len(patterns) > 0:
