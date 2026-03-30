@@ -11,6 +11,8 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement, CT_R, CT_Text, CT_P, CT_Hyperlink
 from copy import deepcopy
 
+from services.progress.combined_progress.combined_progress import CombinedProgress
+from services.progress.combined_progress.process_particle import ProgressParticle
 from services.utils.intersects_at import intersects_at
 from services.utils.interval import Interval
 from services.analysis.analyser import Analyser
@@ -20,10 +22,6 @@ from services.fulltext_search.fulltext_search import FulltextSearch, SearchStrat
 from services.tokenization import Token, TokenType, TokenDictionary, Tokenizer
 from services.fulltext_search.phrase import Phrase
 from services.utils.timeit import timeit
-from services.progress.docx.progress_docx_analyse_and_highlight import (
-    ProgressDOCXAnalyseAndHighlight,
-    ProgressType,
-)
 
 
 class _SearchIntersection(NamedTuple):
@@ -43,11 +41,17 @@ class _RunMapEntry:
 
 
 class AnalyserDocx(Analyser):
+    _PARTICLE_PREPARATION: str = 'docx_preparation'
+    _PARTICLE_SEARCH: str = 'docx_search'
+    _DOCX_PROGRESS_EMIT_EVERY: int = 100
+
     document: docx.Document
     _tokenize_time_total: float
     _global_document_dictionary: Optional[TokenDictionary]
     _search_phrases: List[Phrase]
-    _progress: Optional[ProgressDOCXAnalyseAndHighlight]
+    _progress: Optional[CombinedProgress]
+    _docx_preparation_value: float
+    _docx_search_value: float
 
     def __init__(self, document: Union[docx.Document, str]):
         super().__init__()
@@ -59,6 +63,54 @@ class AnalyserDocx(Analyser):
         self._global_document_dictionary = None
         self._search_phrases = []
         self._progress = None
+        self._docx_preparation_value = 0.0
+        self._docx_search_value = 0.0
+
+    def _docx_progress_preparation_value(self, value: float) -> None:
+        self._docx_preparation_value = value
+
+        if self._progress is None:
+            return
+
+        if int(value) % AnalyserDocx._DOCX_PROGRESS_EMIT_EVERY != 0:
+            return
+
+        self._progress.set_particle_value(
+            AnalyserDocx._PARTICLE_PREPARATION,
+            value,
+        )
+
+    def _docx_progress_search_value(self, value: float) -> None:
+        self._docx_search_value = value
+
+        if self._progress is None:
+            return
+
+        if int(value) % AnalyserDocx._DOCX_PROGRESS_EMIT_EVERY != 0:
+            return
+
+        self._progress.set_particle_value(
+            AnalyserDocx._PARTICLE_SEARCH,
+            value,
+        )
+
+    def _docx_progress_flush_preparation(self) -> None:
+        if self._progress is None:
+            return
+
+        self._progress.set_particle_value(
+            AnalyserDocx._PARTICLE_PREPARATION,
+            self._docx_preparation_value,
+        )
+
+    def _docx_progress_flush_search(self) -> None:
+        if self._progress is None:
+            return
+
+        self._progress.set_particle_value(
+            AnalyserDocx._PARTICLE_SEARCH,
+            self._docx_search_value,
+        )
 
     @staticmethod
     def __clone_run(
@@ -360,33 +412,20 @@ class AnalyserDocx(Analyser):
 
     def __build_global_dictionary(self) -> TokenDictionary:
         """Build dictionary from entire document text."""
-        if self._progress:
-            self._progress.setValue(0, ProgressType.PREPARATION)
+        self._docx_progress_preparation_value(0.0)
 
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables
 
-        # [start] count total paragraphs for progress
-        total_paragraphs = len(paragraphs)
-
-        for table in tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    total_paragraphs += len(cell.paragraphs)
-
-        if self._progress:
-            self._progress.setMax(total_paragraphs, ProgressType.PREPARATION)
-        # [end]
-
         # [start] tokenize and build dictionary gradually
         all_tokens: List[Token] = []
+        preparation_paragraph_index: int = 0
 
         for paragraph in paragraphs:
             paragraph_tokens = Tokenizer(None).tokenize_text(paragraph.text)
             all_tokens.extend(paragraph_tokens)
-
-            if self._progress:
-                self._progress.add(1, ProgressType.PREPARATION)
+            preparation_paragraph_index += 1
+            self._docx_progress_preparation_value(float(preparation_paragraph_index))
 
         for table in tables:
             for row in table.rows:
@@ -394,9 +433,8 @@ class AnalyserDocx(Analyser):
                     for paragraph in cell.paragraphs:
                         paragraph_tokens = Tokenizer(None).tokenize_text(paragraph.text)
                         all_tokens.extend(paragraph_tokens)
-
-                        if self._progress:
-                            self._progress.add(1, ProgressType.PREPARATION)
+                        preparation_paragraph_index += 1
+                        self._docx_progress_preparation_value(float(preparation_paragraph_index))
         # [end]
 
         dictionary = TokenDictionary(all_tokens)
@@ -410,15 +448,15 @@ class AnalyserDocx(Analyser):
     ) -> List[Phrase]:
         """Filter phrases: exclude those where at least one word is missing in dictionary."""
         filtered_phrases: List[Phrase] = []
+        preparation_value: float = self._docx_preparation_value
 
         for phrase in search_phrases:
             search_words = [t for t in phrase.tokens if t.type == TokenType.WORD]
 
+            preparation_value += 1.0
+
             if len(search_words) == 0:
-                # [start] update progress - all progress updates in one place
-                if self._progress:
-                    self._progress.add(1, ProgressType.PREPARATION)
-                # [end]
+                self._docx_progress_preparation_value(preparation_value)
                 continue
 
             filtered_words = dictionary.filter_tokens(search_words)
@@ -426,10 +464,7 @@ class AnalyserDocx(Analyser):
             if len(filtered_words) == len(search_words):
                 filtered_phrases.append(phrase)
 
-            # [start] update progress - all progress updates in one place
-            if self._progress:
-                self._progress.add(1, ProgressType.PREPARATION)
-            # [end]
+            self._docx_progress_preparation_value(preparation_value)
 
         return filtered_phrases
 
@@ -440,41 +475,55 @@ class AnalyserDocx(Analyser):
 
         paragraphs: List[Paragraph] = self.document.paragraphs
         tables: List[Table] = self.document.tables
+        phrases_list = self.analyse_data.phrases
 
-        # [start] count progress max
         self._progress = None
+        self._docx_preparation_value = 0.0
+        self._docx_search_value = 0.0
 
         if task_id is not None:
-            phrases_list = self.analyse_data.phrases
-            preparation_max_value = len(phrases_list) + 1  # +1 for building dictionary
-
-            total_table_paragraphs = 0
+            total_paragraphs_for_dict: int = len(paragraphs)
+            total_table_paragraphs: int = 0
 
             for table in tables:
                 for row in table.rows:
                     for cell in row.cells:
-                        total_table_paragraphs += len(cell.paragraphs)
+                        cell_paragraph_count: int = len(cell.paragraphs)
+                        total_paragraphs_for_dict += cell_paragraph_count
+                        total_table_paragraphs += cell_paragraph_count
 
-            search_max_value = len(paragraphs) + total_table_paragraphs
-            self._progress = ProgressDOCXAnalyseAndHighlight(task_id, preparation_max_value, search_max_value)
-        # [end]
+            preparation_max: int = total_paragraphs_for_dict + len(phrases_list)
+            search_max: int = len(paragraphs) + total_table_paragraphs
+
+            self._progress = CombinedProgress(task_id, [
+                ProgressParticle(
+                    key=AnalyserDocx._PARTICLE_PREPARATION,
+                    description='Подготовка',
+                    max_value=preparation_max,
+                ),
+                ProgressParticle(
+                    key=AnalyserDocx._PARTICLE_SEARCH,
+                    description='Поиск и подсветка',
+                    max_value=search_max,
+                ),
+            ])
 
         # [start] build global dictionary and filter search phrases by it
         self._global_document_dictionary = self.__build_global_dictionary()
-        phrases_list = self.analyse_data.phrases
         self._search_phrases = self.__filter_phrases_by_dictionary(
             phrases_list,
             self._global_document_dictionary
         )
+        self._docx_progress_flush_preparation()
         # [end]
 
         # process paragraphs
+        search_paragraph_index: int = 0
+
         for paragraph in paragraphs:
             self.__analyse_paragraph(paragraph)
-            # [start] update progress - all progress updates in one place
-            if self._progress:
-                self._progress.add(1, ProgressType.SEARCH)
-            # [end]
+            search_paragraph_index += 1
+            self._docx_progress_search_value(float(search_paragraph_index))
 
         # process tables
         for table in tables:
@@ -484,14 +533,10 @@ class AnalyserDocx(Analyser):
 
                     for paragraph in cell_paragraphs:
                         self.__analyse_paragraph(paragraph)
-                        # [start] update progress - all progress updates in one place
-                        if self._progress:
-                            self._progress.add(1, ProgressType.SEARCH)
-                        # [end]
+                        search_paragraph_index += 1
+                        self._docx_progress_search_value(float(search_paragraph_index))
 
-        if self._progress:
-            self._progress.flush()
-            self._progress.clear()
+        self._docx_progress_flush_search()
 
         return self._get_stats_result(self._all_matches)
 

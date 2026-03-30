@@ -3,7 +3,6 @@ from typing import List, Optional, Tuple, Union, Dict
 
 from services.fulltext_search.phrase import EType, Phrase
 from services.progress.combined_progress.combined_progress import CombinedProgress
-from services.progress.combined_progress.process_particle import ProgressParticle
 from services.pymorphy_service import CYRILLIC_PATTERN
 from services.tokenization import Token, TokenDictionary
 from services.tokenization.tokenizer import Tokenizer
@@ -61,7 +60,7 @@ class FulltextSearch:
     """
 
     _default_strategy = FuzzyWordsPunctStrategy()
-    _progress: Union[ProgressParticle, None] = None
+    _progress: Optional[CombinedProgress] = None
     PARTICLE_KEY = 'fulltext_search'
 
     def __init__(
@@ -77,7 +76,7 @@ class FulltextSearch:
             combined_progress: When source is str, passed to Tokenizer for particle progress
         """
         self._tokenizer: Tokenizer = Tokenizer(combined_progress)
-        self._progress: CombinedProgress = combined_progress
+        self._progress: Optional[CombinedProgress] = combined_progress
 
         if isinstance(source, str):
             self.source_tokens: List[Token] = self._tokenizer.tokenize_text(source)
@@ -126,16 +125,22 @@ class FulltextSearch:
             self.dictionary
         )
 
-    def _update_progress_value(self, value: float):
+    def _update_progress_value(self, value: float) -> None:
+        if self._progress is None:
+            return
+
         self._progress.set_particle_value(
             key=FulltextSearch.PARTICLE_KEY,
-            value=value
+            value=value,
         )
 
-    def _update_progress_description(self, description: str):
-        self._progress.set_particle_desciption(
-            key=FulltextSearch.PARTICLE_KEY,
-            description=description
+    def _update_progress_description(self, description: str) -> None:
+        if self._progress is None:
+            return
+
+        self._progress.set_particle_description(
+            FulltextSearch.PARTICLE_KEY,
+            description,
         )
 
     def search_all(
