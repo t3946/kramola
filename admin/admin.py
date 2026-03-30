@@ -10,8 +10,10 @@ from flask_login import current_user
 from wtforms import PasswordField
 
 from admin.menu_config import MENU_SPEC
+from commands.parse_inagents_cmd import get_parse_inagents_module
 from models import Inagent, User, Role
-from services.task.task import Task
+from services.parser_feds_fm import ParserFedsFM
+from services.task.task import Task, _datetime_display_moscow
 from services.task.tasks import Tasks
 from models.extremists_terrorists import (
     EXTREMIST_AREA_LABELS,
@@ -712,7 +714,7 @@ class MonitoringTasksView(BaseView):
 
 
 class MonitoringParsingView(BaseView):
-    """Admin page: last run times for inagents and extremists list parsing (placeholder until wired to real data)."""
+    """Admin page: last run times for inagents and extremists list parsing (Redis via Parser.get_last_parse_datetime)."""
 
     def is_accessible(self) -> bool:
         return current_user.is_authenticated and current_user.has_role("admin")
@@ -722,8 +724,9 @@ class MonitoringParsingView(BaseView):
 
     @expose("/")
     def index(self, **kwargs):
-        last_inagents_parsing: str = "28.03.2026, 04:15"
-        last_extremists_parsing: str = "29.03.2026, 02:40"
+        InagentsXlsxParser = get_parse_inagents_module().InagentsXlsxParser
+        last_inagents_parsing: str = _datetime_display_moscow(InagentsXlsxParser.get_last_parse_datetime())
+        last_extremists_parsing: str = _datetime_display_moscow(ParserFedsFM.get_last_parse_datetime())
 
         return self.render(
             "admin/monitoring_parsing.html",

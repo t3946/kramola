@@ -10,6 +10,7 @@ from typing import Any, Optional, Union
 from flask import current_app
 
 from models.inagents import AGENT_TYPE_MAP
+from services.parser.parser import Parser
 from services.words_list.search_term import SearchTerm, EType
 
 with warnings.catch_warnings():
@@ -106,11 +107,13 @@ def _normalize_value(col: str, value: Any) -> Any:
     return str(value).strip() or None
 
 
-class InagentsXlsxParser:
+class InagentsXlsxParser(Parser):
     """Reads xlsx: row 3 = headers, rows 4+ = data. Builds dicts with file headers, then maps to DB column names. Upserts by registry_number."""
 
     def __init__(self, file_path: Path) -> None:
         self.file_path = file_path
+        self._last_inserted: int = 0
+        self._last_updated: int = 0
 
     def _raw_value_for_header(self, raw: dict[str, Any], file_header: str) -> Any:
         key_stripped = file_header.strip()
@@ -185,12 +188,10 @@ class InagentsXlsxParser:
         """Raw rows transformed to dicts with DB column names."""
         return [self._map_row(r) for r in self.load_raw_rows()]
 
-    def sync_to_db(self, rows: Optional[list[dict[str, Any]]] = None) -> tuple[int, int]:
+    def _apply_rows_to_db(self, rows: list[dict[str, Any]]) -> tuple[int, int]:
         """Upsert rows: by registry_number update existing or insert. Returns (inserted, updated). Requires Flask app context."""
-        if rows is None:
-            rows = self.load_mapped_rows()
-        inserted = 0
-        updated = 0
+        inserted: int = 0
+        updated: int = 0
 
         for row in rows:
             registry_number = row.get("registry_number")
@@ -215,6 +216,24 @@ class InagentsXlsxParser:
                 inserted += 1
 
         db.session.commit()
+
+        self._last_inserted = inserted
+        self._last_updated = updated
+
+        return (inserted, updated)
+
+    def _perform_update(self) -> None:
+        self._apply_rows_to_db(self.load_mapped_rows())
+
+    def sync_to_db(self, rows: Optional[list[dict[str, Any]]] = None) -> tuple[int, int]:
+        """Upsert rows: by registry_number update existing or insert. Returns (inserted, updated). Requires Flask app context."""
+        if rows is None:
+            self.update()
+
+            return (self._last_inserted, self._last_updated)
+
+        inserted, updated = self._apply_rows_to_db(rows)
+        self._update_last_parse_date()
 
         return (inserted, updated)
 

@@ -2,9 +2,10 @@ import json
 import time
 from pathlib import Path
 from extensions import db
-from typing import List, Dict, Tuple
+from typing import List, Dict
 
 from models.extremists_terrorists import ExtremistArea, ExtremistType, ExtremistTerrorist
+from services.parser.parser import Parser
 from services.parser_feds_fm.registry_loader import RegistryLoader
 from services.words_list.search_term import EType
 from services.parser_feds_fm.process_raw_international import ProcessRawInternational
@@ -17,7 +18,7 @@ URL_INTERNATIONAL = "https://www.fedsfm.ru/documents/omu-or-terrorists-catalog-a
 URL_INTERNATIONAL_EXCLUDED = "https://www.fedsfm.ru/documents/omu-or-terrorists-catalog-excluded"
 
 
-class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
+class ParserFedsFM(ProcessRawInternational, ProcessRawRussian, Parser):
     def __init__(self) -> None:
         pass
 
@@ -53,7 +54,6 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
     def parse(self, download_new_data: bool = True) -> None:
         print("Parse: start")
 
-        # download new raw data
         if download_new_data:
             print("Parse: downloading new data")
             RegistryLoader().load()
@@ -61,6 +61,9 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
         else:
             print("Parse: read old data")
 
+        self.update()
+
+    def _perform_update(self) -> None:
         # [start] read raw data
         raw_data_path: Path = RegistryLoader.get_raw_path()
 
@@ -225,4 +228,3 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian):
 
         db.session.commit()
         print("Parse: Done!")
-        return
