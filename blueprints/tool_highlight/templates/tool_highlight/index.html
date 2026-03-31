@@ -128,10 +128,16 @@ function loadFileData(filename) {
             </div>
         </div>
 
-        <div class="card">
+        <div class="card inDevelopmentWrapper">
             <h3>5. Глубокий анализ PDF (Для обложки):</h3>
-            <label><input type="checkbox" id="use_ocr" name="use_ocr" value="true" disabled> Включить</label>
-            <div class="note">Включите для поиска текста на изображениях или в сложных PDF. Работает значительно медленнее!</div>
+
+            <div class="inDevelopmentTarget">
+                <label><input type="checkbox" id="use_ocr" name="use_ocr" value="true" disabled> Включить</label>
+
+                <div class="note">Включите для поиска текста на изображениях или в сложных PDF. Работает значительно медленнее!</div>
+            </div>
+
+            <div class="inDevelopmentOverlay">В разработке</div>
         </div>
 
         <div class="card js-task-progress-container" style="margin: 15px 0; display: none;">

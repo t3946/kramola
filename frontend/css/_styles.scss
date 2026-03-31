@@ -72,6 +72,41 @@ body {
   background-color: #e0e0e0;
 }
 
+.inDevelopmentWrapper {
+  position: relative;
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.inDevelopmentWrapper--sidebar {
+  border-radius: 5px;
+  margin-bottom: 5px;
+}
+
+.inDevelopmentTarget {
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+.inDevelopmentOverlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(10, 10, 10, 0.45);
+  color: #f3f5f7;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
 .main-content {
   flex: 1;
   padding: 20px;

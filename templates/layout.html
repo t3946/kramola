@@ -22,11 +22,28 @@
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <h2>Инструменты</h2>
+
                 <button class="toggle-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
             </div>
+
             <div class="sidebar-menu">
                 <a href="{{ url_for('highlight.index') }}" class="{% if request.endpoint == 'highlight.index' %}active{% endif %}"><i class="fas fa-file-alt"></i><span>Поиск крамолы</span></a>
-                <a href="{{ url_for('footnotes.index') }}" class="{% if request.endpoint == 'footnotes.index' %}active{% endif %}"><i class="fas fa-tags"></i><span>Добавление сносок</span></a>
+
+                <div class="inDevelopmentWrapper inDevelopmentWrapper--sidebar">
+                    <a
+                        href="{{ url_for('footnotes.index') }}"
+                        class="{% if request.endpoint == 'footnotes.index' %}active{% endif %} inDevelopmentTarget"
+                        aria-disabled="true"
+                        tabindex="-1"
+                        onclick="return false;"
+                    >
+                        <i class="fas fa-tags"></i>
+
+                        <span>Добавление сносок</span>
+                    </a>
+
+                    <div class="inDevelopmentOverlay">В разработке</div>
+                </div>
             </div>
         </div>
 
