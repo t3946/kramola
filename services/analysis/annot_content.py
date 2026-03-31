@@ -28,9 +28,11 @@ def get_annot_title_content(match: AnalysisMatch) -> Tuple[str, str]:
             inagent: Union[Inagent, None] = phrase.model
 
             if inagent:
+                status_text: str =  'Числится' if inagent.is_active() else 'Снят'
+
                 if inagent.agent_type == AgentType.FIZ.value:
                     content = "\n".join([
-                        "Иноагент",
+                        f"Иноагент (Статус: {status_text})",
                         f"{inagent.full_name}",
                         f"Дата рождения: {inagent.birth_date}",
                         "",
@@ -41,7 +43,7 @@ def get_annot_title_content(match: AnalysisMatch) -> Tuple[str, str]:
                     ])
                 else:
                     content = "\n".join([
-                        "Иноагент",
+                        f"Иноагент (Статус: {status_text})",
                         f"{inagent.full_name}",
                         "",
                         "Деятельность: нет",

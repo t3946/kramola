@@ -74,3 +74,15 @@ class Inagent(db.Model):
                     break
 
         return result
+
+    def is_active(self):
+        i_d = self.include_minjust_date
+        e_d = self.exclude_minjust_date
+
+        if i_d and not e_d or i_d and e_d and i_d > e_d:
+            return True
+
+        if i_d and e_d and i_d <= e_d:
+            return False
+
+        return False
