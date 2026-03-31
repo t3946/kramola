@@ -213,6 +213,7 @@ def index():
     return render_template(
         'tool_highlight/index.html',
         predefined_lists=current_app.config.get('PREDEFINED_LISTS', {}),
+        predefined_list_descriptions=current_app.config.get('PREDEFINED_LISTS_DESCRIPTIONS', {}),
         analyzers_ready=current_app.config.get('ANALYZERS_READY', False),
         error=error
     )

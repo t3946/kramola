@@ -4,6 +4,11 @@ from services.words_list import SimpleList
 
 class ListProfanity(SimpleList):
     key = WordsListKey.PROFANITY
+    title: str = "Матные слова"
+    description: str = (
+        "Перечень нецензурной, обсценной и грубо-бранной лексики, "
+        "включая распространённые ругательные формы и их варианты"
+    )
 
     def patterns(self) -> dict:
         return {

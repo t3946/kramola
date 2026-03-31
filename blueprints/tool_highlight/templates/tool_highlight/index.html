@@ -118,7 +118,7 @@ function loadFileData(filename) {
                         <div class="tooltip-wrapper">
                             <input type="checkbox" name="predefined_list_keys" value="{{ key }}" id="list_{{ key }}">
                             {{ name }}
-                            <span class="tooltip-icon" data-tooltip="Поиск по списку {{ name }}">?</span>
+                            <span class="tooltip-icon" data-tooltip="{{ predefined_list_descriptions.get(key, 'Поиск по списку ' ~ name) }}">?</span>
                         </div>
                     </label>
                     {% endfor %}
