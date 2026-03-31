@@ -150,7 +150,7 @@ class FulltextSearch:
 
             if phrase.phrase_type == EType.TEXT:
                 text_phrases_tokens.append(pair)
-            elif phrase.phrase_type == EType.SURNAME:
+            elif phrase.phrase_type == EType.SURNAME and phrase.source_list.search_surnames:
                 surname_phrases_tokens.append(pair)
 
         phrase_to_matches: Dict[Union[int, str], Tuple[Union[Phrase, str], List[FTSMatch]]] = {}

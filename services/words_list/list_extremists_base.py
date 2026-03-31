@@ -14,6 +14,7 @@ class ListExtremistsTerroristsBase(WordsList, ABC):
     key = WordsListKey.EXTREMISTS_TERRORISTS
     area: ClassVar[Optional[ExtremistArea]] = None
     status: ClassVar[Optional[ExtremistType]] = None
+    search_surnames: bool = False
 
     def __init__(self) -> None:
         super().__init__()

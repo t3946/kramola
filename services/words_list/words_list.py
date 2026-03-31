@@ -7,6 +7,7 @@ from services.words_list.list_colors import ListColor
 
 class WordsList(ListColor, ABC):
     key: ClassVar[WordsListKey]
+    search_surnames: bool = True
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
