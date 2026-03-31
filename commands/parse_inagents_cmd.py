@@ -19,19 +19,37 @@ def get_parse_inagents_module():
     return _get_parser_module()
 
 
+def run_parse_inagents(file_path: Path | None = None) -> tuple[int, int] | None:
+    """Parse inagents file and sync DB. Returns (inserted, updated) or None when file not found."""
+    mod = _get_parser_module()
+    target_file_path: Path | None = file_path
+
+    if target_file_path is None:
+        temp_dir = Path(__file__).resolve().parent / "load-inagents" / "temp"
+        target_file_path = temp_dir / "export.csv" if (temp_dir / "export.csv").exists() else temp_dir / "export.xlsx"
+
+    if not target_file_path.exists():
+        return None
+
+    parser = mod.InagentsXlsxParser(target_file_path)
+    inserted: int
+    updated: int
+    inserted, updated = parser.sync_to_db()
+
+    return (inserted, updated)
+
+
 @click.command("inagents:parse")
 @click.option("--path", "file_path", type=click.Path(path_type=Path), default=None, help="Path to export.xlsx or export.csv (default: commands/load-inagents/temp/export.csv or export.xlsx)")
 def parse_inagents_cmd(file_path: Path | None) -> None:
-    mod = _get_parser_module()
+    sync_result: tuple[int, int] | None = run_parse_inagents(file_path)
 
-    if file_path is None:
+    if sync_result is None:
         temp_dir = Path(__file__).resolve().parent / "load-inagents" / "temp"
-        file_path = temp_dir / "export.csv" if (temp_dir / "export.csv").exists() else temp_dir / "export.xlsx"
-
-    if not file_path.exists():
-        click.echo(f"File not found: {file_path}")
+        default_file_path = temp_dir / "export.csv" if (temp_dir / "export.csv").exists() else temp_dir / "export.xlsx"
+        show_file_path: Path = file_path or default_file_path
+        click.echo(f"File not found: {show_file_path}")
         return
 
-    parser = mod.InagentsXlsxParser(file_path)
-    inserted, updated = parser.sync_to_db()
+    inserted, updated = sync_result
     click.echo(f"Synced: {inserted} inserted, {updated} updated.")

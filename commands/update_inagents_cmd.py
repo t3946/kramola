@@ -2,8 +2,15 @@
 
 import click
 
-from commands.load_inagents_cmd import load_inagents_cmd
-from commands.parse_inagents_cmd import parse_inagents_cmd
+from commands.load_inagents_cmd import load_inagents_cmd, run_load_inagents
+from commands.parse_inagents_cmd import parse_inagents_cmd, run_parse_inagents
+
+
+def run_update_inagents() -> tuple[int, int] | None:
+    """Run inagents update flow and return parse stats."""
+    loaded_file_path = run_load_inagents()
+
+    return run_parse_inagents(loaded_file_path)
 
 
 @click.command("inagents:update")

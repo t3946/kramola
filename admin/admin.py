@@ -1,8 +1,9 @@
+from collections.abc import Callable
 from datetime import datetime
 from sqlalchemy import Date, func, inspect, or_
 
 from extensions import db
-from flask import Flask, flash, jsonify, redirect, render_template, request, Response, url_for
+from flask import Flask, current_app, flash, jsonify, redirect, render_template, request, Response, url_for
 from flask_admin import Admin, AdminIndexView, BaseView, expose
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.theme import Bootstrap4Theme
@@ -10,7 +11,9 @@ from flask_login import current_user
 from wtforms import PasswordField
 
 from admin.menu_config import MENU_SPEC
+from commands.parse_extremists import run_extremists_parse
 from commands.parse_inagents_cmd import get_parse_inagents_module
+from commands.update_inagents_cmd import run_update_inagents
 from models import Inagent, User, Role
 from services.parser_feds_fm import ParserFedsFM
 from services.task.task import Task, _datetime_display_moscow
@@ -42,6 +45,10 @@ from admin.words_list_controller import (
 )
 
 SLUG_EXTREMISTS_TERRORISTS: str = "extremists-terrorists"
+PARSING_STATUS_KEY_INAGENTS: str = "parser:status:InagentsXlsxParser"
+PARSING_STATUS_KEY_EXTREMISTS: str = "parser:status:ParserFedsFM"
+PARSING_STATUS_TTL_SECONDS: int = 6 * 60 * 60
+PARSING_SOCKET_EVENT: str = "parsing_status_changed"
 
 
 VALID_EXTREMIST_TYPES: tuple[str, ...] = (ExtremistType.FIZ.value, ExtremistType.UR.value)
@@ -713,6 +720,38 @@ class MonitoringTasksView(BaseView):
         )
 
 
+def _run_inagents_update_job(app: Flask) -> None:
+    with app.app_context():
+        try:
+            run_update_inagents()
+        finally:
+            redis_client = getattr(app, "redis_client_tasks", None)
+            if redis_client is not None:
+                redis_client.delete(PARSING_STATUS_KEY_INAGENTS)
+            socketio = current_app.extensions.get("socketio")
+            if socketio is not None:
+                socketio.emit(
+                    PARSING_SOCKET_EVENT,
+                    {"key": PARSING_STATUS_KEY_INAGENTS, "state": "done"},
+                )
+
+
+def _run_extremists_parse_job(app: Flask) -> None:
+    with app.app_context():
+        try:
+            run_extremists_parse()
+        finally:
+            redis_client = getattr(app, "redis_client_tasks", None)
+            if redis_client is not None:
+                redis_client.delete(PARSING_STATUS_KEY_EXTREMISTS)
+            socketio = current_app.extensions.get("socketio")
+            if socketio is not None:
+                socketio.emit(
+                    PARSING_SOCKET_EVENT,
+                    {"key": PARSING_STATUS_KEY_EXTREMISTS, "state": "done"},
+                )
+
+
 class MonitoringParsingView(BaseView):
     """Admin page: last run times for inagents and extremists list parsing (Redis via Parser.get_last_parse_datetime)."""
 
@@ -722,16 +761,112 @@ class MonitoringParsingView(BaseView):
     def inaccessible_callback(self, name: str, **kwargs) -> redirect:
         return redirect(url_for("admin_auth.login", next=request.url))
 
+    def _submit_job(self, job_func: Callable[[Flask], None], status_key: str) -> bool:
+        executor = current_app.extensions.get("executor")
+
+        if executor is None:
+            return False
+
+        redis_client = getattr(current_app, "redis_client_tasks", None)
+        if redis_client is not None:
+            redis_client.set(status_key, "running", ex=PARSING_STATUS_TTL_SECONDS)
+        socketio = current_app.extensions.get("socketio")
+        if socketio is not None:
+            socketio.emit(
+                PARSING_SOCKET_EVENT,
+                {"key": status_key, "state": "running"},
+            )
+
+        app: Flask = current_app._get_current_object()
+        executor.submit(job_func, app)
+
+        return True
+
+    def _is_job_running(self, status_key: str) -> bool:
+        redis_client = getattr(current_app, "redis_client_tasks", None)
+
+        if redis_client is None:
+            return False
+
+        return bool(redis_client.get(status_key))
+
+    @expose("/run-inagents", methods=["POST"])
+    def run_inagents(self) -> redirect:
+        if self._is_job_running(PARSING_STATUS_KEY_INAGENTS):
+            flash("Обновление иноагентов уже выполняется.")
+
+        elif self._submit_job(_run_inagents_update_job, PARSING_STATUS_KEY_INAGENTS):
+            flash("Обновление иноагентов запущено.")
+
+        else:
+            flash("Executor недоступен. Не удалось запустить обновление.")
+
+        return redirect(url_for(".index"))
+
+    @expose("/run-extremists", methods=["POST"])
+    def run_extremists(self) -> redirect:
+        if self._is_job_running(PARSING_STATUS_KEY_EXTREMISTS):
+            flash("Обновление экстремистов уже выполняется.")
+
+        elif self._submit_job(_run_extremists_parse_job, PARSING_STATUS_KEY_EXTREMISTS):
+            flash("Обновление экстремистов запущено.")
+
+        else:
+            flash("Executor недоступен. Не удалось запустить обновление.")
+
+        return redirect(url_for(".index"))
+
     @expose("/")
     def index(self, **kwargs):
         InagentsXlsxParser = get_parse_inagents_module().InagentsXlsxParser
-        last_inagents_parsing: str = _datetime_display_moscow(InagentsXlsxParser.get_last_parse_datetime())
-        last_extremists_parsing: str = _datetime_display_moscow(ParserFedsFM.get_last_parse_datetime())
+        last_inagents_dt: datetime | None = InagentsXlsxParser.get_last_parse_datetime()
+        last_extremists_dt: datetime | None = ParserFedsFM.get_last_parse_datetime()
+        last_inagents_parsing: str = _datetime_display_moscow(last_inagents_dt)
+        last_extremists_parsing: str = _datetime_display_moscow(last_extremists_dt)
+
+        redis_client = getattr(current_app, "redis_client_tasks", None)
+        is_inagents_running: bool = (
+            bool(redis_client.get(PARSING_STATUS_KEY_INAGENTS))
+            if redis_client is not None
+            else False
+        )
+        is_extremists_running: bool = (
+            bool(redis_client.get(PARSING_STATUS_KEY_EXTREMISTS))
+            if redis_client is not None
+            else False
+        )
+
+        inagents_status: str = (
+            "В работе"
+            if is_inagents_running
+            else ("Не проводилось" if last_inagents_dt is None else "Выполенено")
+        )
+        extremists_status: str = (
+            "В работе"
+            if is_extremists_running
+            else ("Не проводилось" if last_extremists_dt is None else "Выполенено")
+        )
+
+        rows: list[dict[str, str | bool]] = [
+            {
+                "title": "Иноагенты",
+                "last_parse": last_inagents_parsing,
+                "status": inagents_status,
+                "run_url": url_for(".run_inagents"),
+                "can_run": not is_inagents_running,
+            },
+            {
+                "title": "Экстремисты",
+                "last_parse": last_extremists_parsing,
+                "status": extremists_status,
+                "run_url": url_for(".run_extremists"),
+                "can_run": not is_extremists_running,
+            },
+        ]
 
         return self.render(
             "admin/monitoring_parsing.html",
-            last_inagents_parsing=last_inagents_parsing,
-            last_extremists_parsing=last_extremists_parsing,
+            rows=rows,
         )
 
 

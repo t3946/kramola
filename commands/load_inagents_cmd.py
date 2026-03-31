@@ -15,11 +15,20 @@ def _load_run():
     return mod.run
 
 
+def run_load_inagents() -> Path | None:
+    """Load inagents source xlsx and return saved file path."""
+    run = _load_run()
+    out_path: Path | None = run()
+
+    return out_path
+
+
 @click.command("inagents:load")
 def load_inagents_cmd() -> None:
-    run = _load_run()
-    out = run()
+    out = run_load_inagents()
+
     if out is None:
         click.echo("Export link not found.")
+
     else:
         click.echo(f"Saved: {out}")

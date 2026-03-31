@@ -3,10 +3,16 @@ import click
 
 from services.parser_feds_fm import ParserFedsFM
 
+
+def run_extremists_parse() -> None:
+    """Run extremists parser and sync DB."""
+    ParserFedsFM().parse()
+
+
 @click.command("extremists:parse")
 def sync_extremists_cmd() -> None:
     """Parse international and russian catalogs from fedsfm.ru and sync to DB."""
     from app import app
 
     with app.app_context():
-        ParserFedsFM().parse()
+        run_extremists_parse()
