@@ -1,13 +1,17 @@
 @layer components {
   .btn {
-    @apply px-4 py-2 rounded;
+    @apply px-4 py-2 rounded transition-colors;
 
     &__primary {
-      @apply bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0;
+      @apply border border-blue-600 bg-blue-600 text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-0;
     }
 
     &__secondary {
       @apply border border-gray-300 bg-white text-gray-700 hover:bg-gray-50;
+    }
+
+    &__disabled {
+      @apply border border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed;
     }
   }
 }

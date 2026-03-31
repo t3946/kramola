@@ -54,6 +54,59 @@ PARSING_SOCKET_EVENT: str = "parsing_status_changed"
 VALID_EXTREMIST_TYPES: tuple[str, ...] = (ExtremistType.FIZ.value, ExtremistType.UR.value)
 
 
+def _parsing_is_running(app: Flask, status_key: str) -> bool:
+    redis_client = getattr(app, "redis_client_tasks", None)
+
+    if redis_client is None:
+        return False
+
+    return bool(redis_client.get(status_key))
+
+
+def _parsing_last_datetime(status_key: str) -> datetime | None:
+    if status_key == PARSING_STATUS_KEY_INAGENTS:
+        inagents_parser_cls = get_parse_inagents_module().InagentsXlsxParser
+        return inagents_parser_cls.get_last_parse_datetime()
+
+    if status_key == PARSING_STATUS_KEY_EXTREMISTS:
+        return ParserFedsFM.get_last_parse_datetime()
+
+    return None
+
+
+def _parsing_status_label(is_running: bool, last_dt: datetime | None) -> str:
+    if is_running:
+        return "В работе"
+
+    if last_dt is None:
+        return "Не проводилось"
+
+    return "Выполенено"
+
+
+def _parsing_realtime_payload(app: Flask, status_key: str, state: str) -> dict[str, str | bool]:
+    last_dt: datetime | None = _parsing_last_datetime(status_key)
+    is_running: bool = _parsing_is_running(app, status_key)
+    status_label: str = _parsing_status_label(is_running, last_dt)
+
+    return {
+        "key": status_key,
+        "state": state,
+        "status": status_label,
+        "last_parse": _datetime_display_moscow(last_dt),
+        "can_run": not is_running,
+    }
+
+
+def _emit_parsing_status(app: Flask, status_key: str, state: str) -> None:
+    socketio = app.extensions.get("socketio")
+
+    if socketio is None:
+        return
+
+    socketio.emit(PARSING_SOCKET_EVENT, _parsing_realtime_payload(app, status_key, state))
+
+
 def _search_terms_for_form(search_terms: list | None) -> list[dict]:
     """Return list of {text, type} for form display (and template)."""
     raw = list(search_terms) if isinstance(search_terms, list) else []
@@ -728,12 +781,7 @@ def _run_inagents_update_job(app: Flask) -> None:
             redis_client = getattr(app, "redis_client_tasks", None)
             if redis_client is not None:
                 redis_client.delete(PARSING_STATUS_KEY_INAGENTS)
-            socketio = current_app.extensions.get("socketio")
-            if socketio is not None:
-                socketio.emit(
-                    PARSING_SOCKET_EVENT,
-                    {"key": PARSING_STATUS_KEY_INAGENTS, "state": "done"},
-                )
+            _emit_parsing_status(app, PARSING_STATUS_KEY_INAGENTS, "done")
 
 
 def _run_extremists_parse_job(app: Flask) -> None:
@@ -744,12 +792,7 @@ def _run_extremists_parse_job(app: Flask) -> None:
             redis_client = getattr(app, "redis_client_tasks", None)
             if redis_client is not None:
                 redis_client.delete(PARSING_STATUS_KEY_EXTREMISTS)
-            socketio = current_app.extensions.get("socketio")
-            if socketio is not None:
-                socketio.emit(
-                    PARSING_SOCKET_EVENT,
-                    {"key": PARSING_STATUS_KEY_EXTREMISTS, "state": "done"},
-                )
+            _emit_parsing_status(app, PARSING_STATUS_KEY_EXTREMISTS, "done")
 
 
 class MonitoringParsingView(BaseView):
@@ -770,14 +813,9 @@ class MonitoringParsingView(BaseView):
         redis_client = getattr(current_app, "redis_client_tasks", None)
         if redis_client is not None:
             redis_client.set(status_key, "running", ex=PARSING_STATUS_TTL_SECONDS)
-        socketio = current_app.extensions.get("socketio")
-        if socketio is not None:
-            socketio.emit(
-                PARSING_SOCKET_EVENT,
-                {"key": status_key, "state": "running"},
-            )
 
         app: Flask = current_app._get_current_object()
+        _emit_parsing_status(app, status_key, "running")
         executor.submit(job_func, app)
 
         return True
@@ -791,76 +829,78 @@ class MonitoringParsingView(BaseView):
         return bool(redis_client.get(status_key))
 
     @expose("/run-inagents", methods=["POST"])
-    def run_inagents(self) -> redirect:
+    def run_inagents(self) -> Response:
+        app: Flask = current_app._get_current_object()
+        is_ajax: bool = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
         if self._is_job_running(PARSING_STATUS_KEY_INAGENTS):
-            flash("Обновление иноагентов уже выполняется.")
+            if is_ajax:
+                return jsonify(
+                    success=True,
+                    payload=_parsing_realtime_payload(app, PARSING_STATUS_KEY_INAGENTS, "running"),
+                )
 
         elif self._submit_job(_run_inagents_update_job, PARSING_STATUS_KEY_INAGENTS):
-            flash("Обновление иноагентов запущено.")
+            if is_ajax:
+                return jsonify(
+                    success=True,
+                    payload=_parsing_realtime_payload(app, PARSING_STATUS_KEY_INAGENTS, "running"),
+                )
 
         else:
+            if is_ajax:
+                return jsonify(success=False), 503
             flash("Executor недоступен. Не удалось запустить обновление.")
 
         return redirect(url_for(".index"))
 
     @expose("/run-extremists", methods=["POST"])
-    def run_extremists(self) -> redirect:
+    def run_extremists(self) -> Response:
+        app: Flask = current_app._get_current_object()
+        is_ajax: bool = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
         if self._is_job_running(PARSING_STATUS_KEY_EXTREMISTS):
-            flash("Обновление экстремистов уже выполняется.")
+            if is_ajax:
+                return jsonify(
+                    success=True,
+                    payload=_parsing_realtime_payload(app, PARSING_STATUS_KEY_EXTREMISTS, "running"),
+                )
 
         elif self._submit_job(_run_extremists_parse_job, PARSING_STATUS_KEY_EXTREMISTS):
-            flash("Обновление экстремистов запущено.")
+            if is_ajax:
+                return jsonify(
+                    success=True,
+                    payload=_parsing_realtime_payload(app, PARSING_STATUS_KEY_EXTREMISTS, "running"),
+                )
 
         else:
+            if is_ajax:
+                return jsonify(success=False), 503
             flash("Executor недоступен. Не удалось запустить обновление.")
 
         return redirect(url_for(".index"))
 
     @expose("/")
     def index(self, **kwargs):
-        InagentsXlsxParser = get_parse_inagents_module().InagentsXlsxParser
-        last_inagents_dt: datetime | None = InagentsXlsxParser.get_last_parse_datetime()
-        last_extremists_dt: datetime | None = ParserFedsFM.get_last_parse_datetime()
-        last_inagents_parsing: str = _datetime_display_moscow(last_inagents_dt)
-        last_extremists_parsing: str = _datetime_display_moscow(last_extremists_dt)
-
-        redis_client = getattr(current_app, "redis_client_tasks", None)
-        is_inagents_running: bool = (
-            bool(redis_client.get(PARSING_STATUS_KEY_INAGENTS))
-            if redis_client is not None
-            else False
-        )
-        is_extremists_running: bool = (
-            bool(redis_client.get(PARSING_STATUS_KEY_EXTREMISTS))
-            if redis_client is not None
-            else False
-        )
-
-        inagents_status: str = (
-            "В работе"
-            if is_inagents_running
-            else ("Не проводилось" if last_inagents_dt is None else "Выполенено")
-        )
-        extremists_status: str = (
-            "В работе"
-            if is_extremists_running
-            else ("Не проводилось" if last_extremists_dt is None else "Выполенено")
-        )
-
+        app: Flask = current_app._get_current_object()
+        inagents_payload: dict[str, str | bool] = _parsing_realtime_payload(app, PARSING_STATUS_KEY_INAGENTS, "snapshot")
+        extremists_payload: dict[str, str | bool] = _parsing_realtime_payload(app, PARSING_STATUS_KEY_EXTREMISTS, "snapshot")
         rows: list[dict[str, str | bool]] = [
             {
+                "key": PARSING_STATUS_KEY_INAGENTS,
                 "title": "Иноагенты",
-                "last_parse": last_inagents_parsing,
-                "status": inagents_status,
+                "last_parse": str(inagents_payload["last_parse"]),
+                "status": str(inagents_payload["status"]),
                 "run_url": url_for(".run_inagents"),
-                "can_run": not is_inagents_running,
+                "can_run": bool(inagents_payload["can_run"]),
             },
             {
+                "key": PARSING_STATUS_KEY_EXTREMISTS,
                 "title": "Экстремисты",
-                "last_parse": last_extremists_parsing,
-                "status": extremists_status,
+                "last_parse": str(extremists_payload["last_parse"]),
+                "status": str(extremists_payload["status"]),
                 "run_url": url_for(".run_extremists"),
-                "can_run": not is_extremists_running,
+                "can_run": bool(extremists_payload["can_run"]),
             },
         ]
 
