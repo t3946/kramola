@@ -1,12 +1,13 @@
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from services.fulltext_search.check_id_collection import CheckIdCollection
 from services.fulltext_search.phrase import Phrase
 from services.fulltext_search.search_match import FTSMatch, FTSTextMatch
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
-from services.utils import normalize_text
 from services.fulltext_search.strategies.surname_strategy.surname import Surname
 from services.tokenization import Token, TokenDictionary
+from services.utils import normalize_text
+from services.utils.regex_pattern import RegexPattern
 
 
 class SurnameStrategy(BaseSearchStrategy):
@@ -19,9 +20,12 @@ class SurnameStrategy(BaseSearchStrategy):
             source_tokens: list[Token],
             search_phrases: List[Tuple[Phrase, List[Token]]],
             dictionary: Optional[TokenDictionary] = None,
+            regex_patterns: Optional[Dict[str, RegexPattern]] = None,
             on_source_token_proceed: Optional[Callable[[int, int], None]] = None,
-            **kwargs: object,
     ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
+        _ = dictionary
+        _ = regex_patterns
+
         # [start] progress
         progress_max_steps = len(source_tokens) + len(search_phrases)
         progress_step = 0

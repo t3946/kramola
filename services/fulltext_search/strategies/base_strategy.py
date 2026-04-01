@@ -1,7 +1,9 @@
-import re
 import uuid
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Optional, Dict
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
+from services.fulltext_search.phrase import Phrase
+from services.fulltext_search.search_match import FTSMatch
 from services.utils.regex_pattern import RegexPattern
 from services.fulltext_search.search_match import FTSRegexMatch
 
@@ -10,6 +12,17 @@ from services.tokenization import Token, TokenDictionary
 
 class BaseSearchStrategy(ABC):
     """Base class for search strategies."""
+
+    @abstractmethod
+    def search_all_phrases(
+        self,
+        source_tokens: List[Token],
+        search_phrases: List[Tuple[Phrase, List[Token]]],
+        dictionary: Optional[TokenDictionary] = None,
+        regex_patterns: Optional[Dict[str, RegexPattern]] = None,
+        on_source_token_proceed: Optional[Callable[[int, int], None]] = None,
+    ) -> List[Tuple[Union[Phrase, str], List[FTSMatch]]]:
+        """Search all phrases and return grouped matches."""
 
     def search_regex_matches(
         self,
