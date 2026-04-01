@@ -7,6 +7,7 @@ from services.tokenization import Token, Tokenizer
 class EType(Enum):
     TEXT = 'text'
     SURNAME = 'surname'
+    FULL_NAME = 'full_name'
 
 class Phrase:
     phrase: str

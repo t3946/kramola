@@ -57,7 +57,11 @@ function editButtonHtml(row: ExtremistsRow): string {
 
 function pillClass(term: SearchTermItem | string): string {
   const type = typeof term === "object" && term !== null ? (term as SearchTermItem).type : "text";
-  return type === "surname" ? "pill pill--teal" : "pill";
+  if (type === "surname") return "pill pill--teal";
+
+  if (type === "full_name") return "pill pill--pink";
+
+  return "pill";
 }
 
 function pillText(term: SearchTermItem | string): string {

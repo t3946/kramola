@@ -62,6 +62,8 @@
     </div>
   </div>
 
+  {% include "admin/_search_terms_legend.html" %}
+
   <div id="extremists-grid-wrapper" class="my-3"></div>
 </div>
 
@@ -87,5 +89,16 @@
   font-size: 0.75rem;
 }
 .search-highlight { background-color: #93c5fd; }
+.search-terms-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.search-terms-legend__dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  padding: 0;
+  border-radius: 9999px;
+}
 </style>
 {% endblock %}

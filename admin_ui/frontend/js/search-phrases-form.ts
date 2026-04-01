@@ -45,8 +45,12 @@ function initSearchPhrasesForm(): void {
     const optSurname = document.createElement("option");
     optSurname.value = "surname";
     optSurname.textContent = "Фамилия";
+    const optFullName = document.createElement("option");
+    optFullName.value = "full_name";
+    optFullName.textContent = "ФИО";
     select.appendChild(optText);
     select.appendChild(optSurname);
+    select.appendChild(optFullName);
 
     const input = document.createElement("input");
     input.type = "text";

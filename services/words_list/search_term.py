@@ -3,6 +3,7 @@ from enum import Enum
 class EType(Enum):
     TEXT = 'text'
     SURNAME = 'surname'
+    FULL_NAME = 'full_name'
 
 class SearchTerm:
     type: EType

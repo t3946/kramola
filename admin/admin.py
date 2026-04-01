@@ -124,7 +124,7 @@ def _search_terms_from_form(texts: list, types: list) -> list[dict]:
         if not text:
             continue
         type_val = (ty.strip() if isinstance(ty, str) else "text") or "text"
-        if type_val not in ("text", "surname"):
+        if type_val not in ("text", "surname", "full_name"):
             type_val = "text"
         result.append({"text": text, "type": type_val})
     return result

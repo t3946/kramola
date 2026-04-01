@@ -23,6 +23,7 @@
       >
         <option value="text" {{ 'selected' if (term.type | default('text')) == 'text' }}>Текст</option>
         <option value="surname" {{ 'selected' if (term.type | default('text')) == 'surname' }}>Фамилия</option>
+        <option value="full_name" {{ 'selected' if (term.type | default('text')) == 'full_name' }}>ФИО</option>
       </select>
       <input
         type="text"
