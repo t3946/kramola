@@ -285,24 +285,3 @@ class FulltextSearch:
             raise ValueError("_compare_token_sequences is only available for FUZZY_WORDS_PUNCT strategy")
 
         return FuzzyWordsPunctStrategy._compare_token_sequences(source_tokens, search_tokens)
-
-    @staticmethod
-    def search_token_sequences(
-        source_tokens: List[Token],
-        search_tokens: List[Token],
-        strategy: Optional[SearchStrategy] = None
-    ) -> List[Tuple[int, int]]:
-        """
-        Search token sequences.
-        
-        Args:
-            source_tokens: Tokens from source text
-            search_tokens: Tokens from search query
-            strategy: Search strategy to use (default: FUZZY_WORDS_PUNCT)
-            
-        Returns:
-            List of tuples (start, end) where start and end are source tokens indices.
-        """
-        strategy_instance = FulltextSearch._get_strategy(strategy)
-        dictionary = TokenDictionary(source_tokens)
-        return strategy_instance.search_token_sequences(source_tokens, search_tokens, dictionary)

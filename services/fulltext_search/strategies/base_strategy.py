@@ -82,23 +82,3 @@ class BaseSearchStrategy(ABC):
             if start_pos <= position < end_pos:
                 return idx
         return None
-
-    @abstractmethod
-    def search_token_sequences(
-        self,
-        source_tokens: 'List[Token]',
-        search_tokens: 'List[Token]',
-        dictionary: Optional['TokenDictionary'] = None
-    ) -> List[Tuple[int, int]]:
-        """
-        Search token sequences in source text.
-        
-        Args:
-            source_tokens: Tokens from source text
-            search_tokens: Tokens from search query
-            dictionary: Optional dictionary for faster lookup
-            
-        Returns:
-            List of tuples (start_token_idx, end_token_idx) for matches
-        """
-        pass

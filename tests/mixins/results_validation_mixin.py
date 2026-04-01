@@ -17,9 +17,7 @@ class ResultsValidationMixin:
             AssertionError: If structure is invalid
         """
         assert results is not None, "Analysis returned None"
-        assert 'stats' in results, "Missing stats in results"
         assert 'total_matches' in results, "Missing total_matches in results"
-        assert isinstance(results['stats'], list), "stats should be list"
         assert isinstance(results['total_matches'], int), "total_matches should be int"
 
     def validate_expected_count(self, results: Dict, result_json_path: Path) -> None:

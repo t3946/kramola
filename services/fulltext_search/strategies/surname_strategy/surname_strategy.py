@@ -14,14 +14,6 @@ class SurnameStrategy(BaseSearchStrategy):
     def _norm_surname(value: str) -> str:
         return value.strip().casefold() if value else ""
 
-    def search_token_sequences(
-            self,
-            source_tokens: list[Token],
-            search_tokens: list[Token],
-            dictionary: Optional[TokenDictionary] = None,
-    ) -> List[Tuple[int, int]]:
-        return []
-
     def search_all_phrases(
             self,
             source_tokens: list[Token],
