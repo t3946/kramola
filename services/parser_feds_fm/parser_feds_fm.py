@@ -31,15 +31,17 @@ class ParserFedsFM(ProcessRawInternational, ProcessRawRussian, Parser):
         terms: List[dict] = []
         main = names.get("main") or ""
         additional = names.get("additional") or []
-        is_russian_fiz = area == ExtremistArea.RUSSIAN and extremist_type == ExtremistType.FIZ
+        is_fiz = extremist_type == ExtremistType.FIZ
+        full_name_type = EType.FULL_NAME.value if is_fiz else EType.TEXT.value
+        is_russian_fiz = area == ExtremistArea.RUSSIAN and is_fiz
 
         if main:
-            terms.append({"text": main, "type": EType.TEXT.value})
+            terms.append({"text": main, "type": full_name_type})
             if is_russian_fiz:
                 terms.append({"text": self._extract_surname(main), "type": EType.SURNAME.value})
 
         for name in additional:
-            terms.append({"text": name, "type": EType.TEXT.value})
+            terms.append({"text": name, "type": full_name_type})
             if is_russian_fiz:
                 terms.append({"text": self._extract_surname(name), "type": EType.SURNAME.value})
 

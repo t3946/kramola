@@ -256,7 +256,7 @@ class InagentsXlsxParser(Parser):
 
         # [start] parse name
         surname, first_name, patronymic = [name for name in full_name.strip().split(" ")]
-        search_phrases.append(SearchTerm(text=f"{surname} {first_name} {patronymic}"))
+        search_phrases.append(SearchTerm(text=f"{surname} {first_name} {patronymic}", term_type=EType.FULL_NAME))
         search_phrases.append(SearchTerm(text=f"{surname}", term_type=EType.SURNAME))
         # [end]
 
