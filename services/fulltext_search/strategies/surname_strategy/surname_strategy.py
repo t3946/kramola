@@ -7,7 +7,6 @@ from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
 from services.utils import normalize_text
 from services.fulltext_search.strategies.surname_strategy.surname import Surname
 from services.tokenization import Token, TokenDictionary
-from services.utils.timeit import timeit
 
 
 class SurnameStrategy(BaseSearchStrategy):
@@ -23,7 +22,6 @@ class SurnameStrategy(BaseSearchStrategy):
     ) -> List[Tuple[int, int]]:
         return []
 
-    @timeit
     def search_all_phrases(
             self,
             source_tokens: list[Token],
@@ -86,7 +84,6 @@ class SurnameStrategy(BaseSearchStrategy):
                         check_id=check_id_collection[(i, i)],
                     )
 
-                    # todo: здесь возможно неверно заполняется итоговый matches
                     matches.append((phrase, [match]))
 
             _continue_progress()
