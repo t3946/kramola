@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Optional
 
 from petrovich.enums import Case, Gender
 from petrovich.main import Petrovich
@@ -10,15 +11,20 @@ from services.declension_name.person_name import PersonName
 if not sys.flags.utf8_mode:
     os.execv(sys.executable, [sys.executable, "-X", "utf8", *sys.argv])
 
+
 class Declension:
     def __init__(self) -> None:
         self._petrovich: Petrovich = Petrovich()
 
-    def decline_full_name(self, full_name: str) -> list[str]:
+    def decline_full_name(
+        self,
+        full_name: str,
+        gender: Optional[str] = None
+    ) -> list[str]:
         result = [full_name]
 
         try:
-            person_name = PersonName(full_name)
+            person_name = PersonName(full_name, gender)
         except ValueError as e:
             return result
 
