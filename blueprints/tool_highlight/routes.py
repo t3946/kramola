@@ -56,7 +56,10 @@ def _perform_highlight_processing(
         used_predefined_list_names_for_session,
         app_config_dict,
         task_created_at_iso: str,
-        exclude_path: str = None
+        exclude_path: str = None,
+        inagents_fiz_search_text: bool = True,
+        inagents_fiz_search_surnames: bool = True,
+        inagents_fiz_search_full_names: bool = True,
 ):
     logger = current_app.logger
     redis_client = _get_redis_client()
@@ -103,7 +106,12 @@ def _perform_highlight_processing(
         analyse_data.load_user_list(task_id=task_id)
 
         if selected_list_keys:
-            analyse_data.load_predefined_lists(selected_list_keys)
+            analyse_data.load_predefined_lists(
+                selected_list_keys,
+                inagents_fiz_search_text=inagents_fiz_search_text,
+                inagents_fiz_search_surnames=inagents_fiz_search_surnames,
+                inagents_fiz_search_full_names=inagents_fiz_search_full_names,
+            )
 
         analyse_data.apply_exclude_user_list(task_id)
 
@@ -262,6 +270,9 @@ def process_async():
             file_ext = upload_result['file_ext']
             used_predefined_list_names_for_session = upload_result['used_predefined_list_names']
             selected_list_keys = upload_result.get('selected_list_keys', [])
+            inagents_fiz_search_text = upload_result.get('inagents_fiz_search_text', True)
+            inagents_fiz_search_surnames = upload_result.get('inagents_fiz_search_surnames', True)
+            inagents_fiz_search_full_names = upload_result.get('inagents_fiz_search_full_names', True)
             exclude_path = upload_result.get('exclude_path')
             exclude_lines = upload_result.get('exclude_lines', [])
 
@@ -345,7 +356,10 @@ def process_async():
             used_predefined_list_names_for_session,
             app_config_dict,
             task_created_at_iso,
-            exclude_path
+            exclude_path,
+            inagents_fiz_search_text,
+            inagents_fiz_search_surnames,
+            inagents_fiz_search_full_names,
         )
         _EXECUTOR_FUTURES_REGISTRY[task_id] = future
         session['last_task_id_highlight'] = task_id

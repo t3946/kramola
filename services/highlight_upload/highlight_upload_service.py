@@ -66,7 +66,16 @@ class HighlightUploadService:
             'is_docx_source': source_result['is_docx'],
             'file_ext': source_result['file_ext'],
             'used_predefined_list_names': search_terms_result['used_list_names'],
-            'selected_list_keys': search_terms_result.get('selected_list_keys', [])
+            'selected_list_keys': search_terms_result.get('selected_list_keys', []),
+            'inagents_fiz_search_text': search_terms_result.get(
+                'inagents_fiz_search_text', True
+            ),
+            'inagents_fiz_search_surnames': search_terms_result.get(
+                'inagents_fiz_search_surnames', True
+            ),
+            'inagents_fiz_search_full_names': search_terms_result.get(
+                'inagents_fiz_search_full_names', True
+            ),
         }
 
     @staticmethod
@@ -219,7 +228,18 @@ class HighlightUploadService:
         # 5. Load predefined lists using AnalysisData
         if selected_list_keys:
             analysis_data = AnalysisData()
-            analysis_data.load_predefined_lists(selected_list_keys)
+            analysis_data.load_predefined_lists(
+                selected_list_keys,
+                inagents_fiz_search_text=predefined_result.get(
+                    'inagents_fiz_search_text', True
+                ),
+                inagents_fiz_search_surnames=predefined_result.get(
+                    'inagents_fiz_search_surnames', True
+                ),
+                inagents_fiz_search_full_names=predefined_result.get(
+                    'inagents_fiz_search_full_names', True
+                ),
+            )
 
             # Extract texts from loaded phrases
             search_terms_from_lists: list[Phrase] = analysis_data.phrases
@@ -239,7 +259,16 @@ class HighlightUploadService:
             'search_terms': search_terms,
             'user_search_terms': user_search_terms,
             'used_list_names': used_predefined_list_names,
-            'selected_list_keys': selected_list_keys
+            'selected_list_keys': selected_list_keys,
+            'inagents_fiz_search_text': predefined_result.get(
+                'inagents_fiz_search_text', True
+            ),
+            'inagents_fiz_search_surnames': predefined_result.get(
+                'inagents_fiz_search_surnames', True
+            ),
+            'inagents_fiz_search_full_names': predefined_result.get(
+                'inagents_fiz_search_full_names', True
+            ),
         }
 
     @staticmethod
@@ -262,9 +291,25 @@ class HighlightUploadService:
     ) -> Dict:
         """Get selected predefined list keys. Actual loading is done in universal code section."""
         selected_list_keys = request.form.getlist('predefined_list_keys')
+        inagents_text: bool
+        inagents_surnames: bool
+        inagents_full_names: bool
+
+        if request.form.get('inagents_fiz_options_version') == '1':
+            by_surname = request.form.get('inagents_fiz_by_surname') == '1'
+            inagents_text = by_surname
+            inagents_surnames = by_surname
+            inagents_full_names = request.form.get('inagents_fiz_search_full_names') == '1'
+        else:
+            inagents_text = True
+            inagents_surnames = True
+            inagents_full_names = True
 
         return {
             'search_lines': [],
             'list_names': [],
             'selected_list_keys': selected_list_keys,
+            'inagents_fiz_search_text': inagents_text,
+            'inagents_fiz_search_surnames': inagents_surnames,
+            'inagents_fiz_search_full_names': inagents_full_names,
         }

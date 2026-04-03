@@ -113,6 +113,10 @@ function loadFileData(filename) {
             <h3>4. Готовые списки для поиска (необязательно):</h3>
             <div class="checkbox-group">
                 {% if predefined_lists %}
+                    {% if 'foreign_agents_persons' in predefined_lists %}
+                    <input type="hidden" name="inagents_fiz_options_version" value="1">
+                    {% endif %}
+
                     {% for key, name in predefined_lists.items() %}
                     <label>
                         <div class="tooltip-wrapper">
@@ -121,6 +125,31 @@ function loadFileData(filename) {
                             <span class="tooltip-icon" data-tooltip="{{ predefined_list_descriptions.get(key, 'Поиск по списку ' ~ name) }}">?</span>
                         </div>
                     </label>
+
+                    {% if key == 'foreign_agents_persons' %}
+                    <div class="js-inagents-fiz-options" style="margin-left: 1.25rem;">
+                        <label class="tooltip-wrapper">
+                            <input
+                                type="checkbox"
+                                name="inagents_fiz_search_full_names"
+                                value="1"
+                                class="js-inagents-fiz-option"
+                            >
+                            Поиск по полному совпадению ФИО
+                        </label>
+
+                        <label class="tooltip-wrapper">
+                            <input
+                                type="checkbox"
+                                name="inagents_fiz_by_surname"
+                                value="1"
+                                class="js-inagents-fiz-option"
+                                checked
+                            >
+                            Поиск по фамилии и псевдониму (Рекомендуется)
+                        </label>
+                    </div>
+                    {% endif %}
                     {% endfor %}
                 {% else %}
                     <p class="note">Готовые списки не настроены.</p>

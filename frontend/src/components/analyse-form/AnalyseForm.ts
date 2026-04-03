@@ -41,6 +41,12 @@ export default class AnalyseForm extends BaseComponent {
         /** @type {NodeListOf<HTMLInputElement>} */
         this.predefinedCheckboxes = /** @type {NodeListOf<HTMLInputElement>} */ ([]);
 
+        /** @type {HTMLInputElement|null} */
+        this.inagentsFizMainCheckbox = null;
+
+        /** @type {NodeListOf<HTMLInputElement>} */
+        this.inagentsFizOptionCheckboxes = /** @type {NodeListOf<HTMLInputElement>} */ ([]);
+
         /** @type {NodeListOf<HTMLInputElement>} */
         this.inputMethodRadios = /** @type {NodeListOf<HTMLInputElement>} */ ([]);
 
@@ -73,6 +79,10 @@ export default class AnalyseForm extends BaseComponent {
         this.wordsTextareaEl = /** @type {HTMLTextAreaElement|null} */ (this.formEl.querySelector('#words-textarea'));
         this.checkboxGroupEl = getFirst('.checkbox-group');
         this.predefinedCheckboxes = this.formEl.querySelectorAll('input[name="predefined_list_keys"]');
+        this.inagentsFizMainCheckbox = /** @type {HTMLInputElement|null} */ (
+            this.formEl.querySelector('#list_foreign_agents_persons')
+        );
+        this.inagentsFizOptionCheckboxes = this.formEl.querySelectorAll('.js-inagents-fiz-option');
         this.inputMethodRadios = this.formEl.querySelectorAll('input[name="input-method"]');
 
         const doc = this.formEl.ownerDocument;
@@ -110,6 +120,22 @@ export default class AnalyseForm extends BaseComponent {
 
         this.bindUiHandlers();
         this.setupValidator();
+        this._syncInagentsFizOptions();
+    }
+
+    /**
+     * @returns {void}
+     */
+    _syncInagentsFizOptions() {
+        if (!this.inagentsFizMainCheckbox || !this.inagentsFizOptionCheckboxes.length) {
+            return;
+        }
+
+        const enabled = this.inagentsFizMainCheckbox.checked;
+
+        [...this.inagentsFizOptionCheckboxes].forEach((checkbox) => {
+            checkbox.disabled = !enabled;
+        });
     }
 
     /**
@@ -248,6 +274,16 @@ export default class AnalyseForm extends BaseComponent {
         }
 
         [...this.predefinedCheckboxes].forEach((checkbox) => checkbox.addEventListener('change', clear));
+
+        if (this.inagentsFizMainCheckbox) {
+            this.inagentsFizMainCheckbox.addEventListener('change', () => {
+                this._syncInagentsFizOptions();
+            });
+        }
+
+        [...this.inagentsFizOptionCheckboxes].forEach((checkbox) => {
+            checkbox.addEventListener('change', clear);
+        });
 
         [...this.inputMethodRadios].forEach((radio) => {
             radio.addEventListener('change', () => {

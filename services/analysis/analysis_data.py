@@ -62,7 +62,14 @@ class AnalysisData:
 
         self.phrases = result_phrases
 
-    def load_predefined_lists(self, list_keys: Optional[List[str]]) -> None:
+    def load_predefined_lists(
+        self,
+        list_keys: Optional[List[str]],
+        *,
+        inagents_fiz_search_text: bool = True,
+        inagents_fiz_search_surnames: bool = True,
+        inagents_fiz_search_full_names: bool = True,
+    ) -> None:
         if list_keys is None:
             return
 
@@ -84,12 +91,21 @@ class AnalysisData:
             # Convert string key to enum if needed
             key_enum = PredefinedListKey(key) if isinstance(key, str) else key
 
-            if key_enum in list_mapping:
+            if key_enum == PredefinedListKey.FOREIGN_AGENTS_PERSONS:
+                words_list = ListInagentsFIZ(
+                    search_text=inagents_fiz_search_text,
+                    search_surnames=inagents_fiz_search_surnames,
+                    search_full_names=inagents_fiz_search_full_names,
+                )
+                phrases = words_list.load()
+            elif key_enum in list_mapping:
                 words_list = list_mapping[key_enum]()
                 phrases = words_list.load()
+            else:
+                continue
 
-                for phrase in phrases:
-                    if phrase and phrase.phrase and phrase.phrase.strip():
-                        self.phrases.append(phrase)
+            for phrase in phrases:
+                if phrase and phrase.phrase and phrase.phrase.strip():
+                    self.phrases.append(phrase)
 
-                self.read_regex_patterns(words_list)
+            self.read_regex_patterns(words_list)
