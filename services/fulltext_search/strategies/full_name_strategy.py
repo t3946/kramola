@@ -5,7 +5,7 @@ from services.fulltext_search.check_id_collection import CheckIdCollection
 from services.fulltext_search.phrase import Phrase
 from services.fulltext_search.search_match import FTSMatch, FTSTextMatch
 from services.fulltext_search.strategies.base_strategy import BaseSearchStrategy
-from services.tokenization import Token, TokenDictionary
+from services.tokenization import Token, TokenDictionary, TokenType
 from services.utils import normalize_text
 from services.utils.regex_pattern import RegexPattern
 
@@ -14,6 +14,21 @@ class FullNameStrategy(BaseSearchStrategy):
     @staticmethod
     def _norm_surname(value: str) -> str:
         return value.strip().casefold() if value else ""
+
+    def _read_full_name(self, i: int, source_tokens: list[Token]) -> Optional[tuple[str, int, int]]:
+        words = []
+        j = i
+
+        for token in source_tokens[i:]:
+            if token.type == TokenType.WORD:
+                words.append(normalize_text(token.text))
+
+            if len(words) == 3:
+                return ' '.join(words), i, j
+
+            j += 1
+
+        return None
 
     def search_all_phrases(
             self,
@@ -71,8 +86,12 @@ class FullNameStrategy(BaseSearchStrategy):
 
             for item in source_tokens_candidates:
                 i, token = item
-                j = i + 2
-                source_name = ' '.join(source_tokens[i:j])
+                full_name_data: Optional[tuple[str, int, int]] = self._read_full_name(i, source_tokens)
+
+                if full_name_data is None:
+                    continue
+
+                source_name, i, j = full_name_data
 
                 if source_name in search_names:
                     match = FTSTextMatch(

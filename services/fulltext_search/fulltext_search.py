@@ -2,6 +2,7 @@ from enum import Enum
 from typing import List, Optional, Tuple, Union, Dict
 
 from services.fulltext_search.phrase import EType, Phrase
+from services.fulltext_search.strategies.full_name_strategy import FullNameStrategy
 from services.progress.combined_progress.combined_progress import CombinedProgress
 from services.pymorphy_service import CYRILLIC_PATTERN
 from services.tokenization import Token, TokenDictionary
@@ -49,6 +50,7 @@ class SearchStrategy(Enum):
     """Search strategy enum."""
     FUZZY_WORDS_PUNCT = "fuzzy_words_punct"
     SURNAME = "surname"
+    FULL_NAME = "full_name"
 
 
 class FulltextSearch:
@@ -95,6 +97,8 @@ class FulltextSearch:
             return FuzzyWordsPunctStrategy()
         elif strategy == SearchStrategy.SURNAME:
             return SurnameStrategy()
+        elif strategy == SearchStrategy.FULL_NAME:
+            return FullNameStrategy()
 
         return FulltextSearch._default_strategy
 
@@ -136,9 +140,11 @@ class FulltextSearch:
         """
         text_strategy_instance = FulltextSearch._get_strategy(text_strategy)
         surname_strategy_instance = FulltextSearch._get_strategy(SearchStrategy.SURNAME)
+        full_name_strategy_instance = FulltextSearch._get_strategy(SearchStrategy.FULL_NAME)
 
         text_phrases_tokens: List[Tuple[Phrase, List[Token]]] = []
         surname_phrases_tokens: List[Tuple[Phrase, List[Token]]] = []
+        full_name_phrases_tokens: List[Tuple[Phrase, List[Token]]] = []
 
         for phrase, text_or_tokens in search_phrases:
             search_tokens = (
@@ -152,6 +158,8 @@ class FulltextSearch:
                 text_phrases_tokens.append(pair)
             elif phrase.phrase_type == EType.SURNAME and phrase.source_list.search_surnames:
                 surname_phrases_tokens.append(pair)
+            elif phrase.phrase_type == EType.FULL_NAME:
+                full_name_phrases_tokens.append(pair)
 
         phrase_to_matches: Dict[Union[int, str], Tuple[Union[Phrase, str], List[FTSMatch]]] = {}
 
@@ -185,7 +193,12 @@ class FulltextSearch:
         # progress total
         text_search_all_phrases_total = len(text_phrases_tokens)
         surnames_search_all_phrases_total = len(self.source_tokens) + len(surname_phrases_tokens)
-        progress_total = text_search_all_phrases_total + surnames_search_all_phrases_total
+        full_name_search_all_phrases_total = len(self.source_tokens) + len(full_name_phrases_tokens)
+        progress_total = (
+            + text_search_all_phrases_total
+            + surnames_search_all_phrases_total
+            + full_name_search_all_phrases_total
+        )
 
         if len(text_phrases_tokens) > 0 or len(patterns) > 0:
             regex_arg: Optional[Dict[str, RegexPattern]] = patterns if len(patterns) > 0 else None
@@ -209,13 +222,28 @@ class FulltextSearch:
                     source_tokens=self.source_tokens,
                     search_phrases=surname_phrases_tokens,
                     on_source_token_proceed=lambda proceed, total: _on_source_token_proceed(
-                        len(text_phrases_tokens) + proceed,
+                        text_search_all_phrases_total + proceed,
                         progress_total
                     ),
                 )
             )
 
             for phrase, matches in surname_results:
+                _add_matches(phrase, matches)
+
+        if len(full_name_phrases_tokens) > 0:
+            full_name_results: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = (
+                full_name_strategy_instance.search_all_phrases(
+                    source_tokens=self.source_tokens,
+                    search_phrases=full_name_phrases_tokens,
+                    on_source_token_proceed=lambda proceed, total: _on_source_token_proceed(
+                        text_search_all_phrases_total + surnames_search_all_phrases_total + proceed,
+                        progress_total
+                    ),
+                )
+            )
+
+            for phrase, matches in full_name_results:
                 _add_matches(phrase, matches)
 
         result: List[Tuple[Union[Phrase, str], List[FTSMatch]]] = []
